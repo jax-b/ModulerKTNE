@@ -6,9 +6,9 @@ My eventual aim is to replicate every module.
 
 Lets start out with my overall plan!
 Each module should be self contained, meaning that that module knows weather or not it is solved.
-Each module should be able to be configured from the central controler to replicate game senarios.
-The central controler should have a easy to use web interface.
+Each module should be able to be configured from the central controller to replicate game scenarios.
+The central controller should have a easy to use web interface.
 Each module should look like it does in the game.
-The game should know if it is being tamperd with.
+The game should know if it is being tampered with.
 
-Coms between the central controller and the modules will likely use I2C with a master intreupt line.
+Coms between the central controller and the modules will likely use I2C with a master interrupt line.
