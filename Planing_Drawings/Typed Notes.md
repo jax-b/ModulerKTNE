@@ -4,7 +4,7 @@
  - 0x00 Get Module Type
  - 0x01 Get Module Config (Gets current scenario id and progress)
  - 0x02 Get Module Status (Should contain if solved)
- - 0x11 Set Module Config (Should contain the scenario id for that module, ie blue abort button with 1 bat and blue strip)
+ - 0x11 Set Module Solved Status (Sets if solved)
  - 0x12 Time Sync
 
 ### Time Keeping
@@ -29,7 +29,7 @@
 || 54 ||
 ## SideCase
  - Each Side Should have its own PCB
- - Each Side Should have some indicators of each type (exluding serial and second factor)
+ - Each Side Should have some indicators of each type (excluding serial and second factor)
  - Serial and Second Factor should be on the bottom
 ## FrontOfDevice
 ### Dimensions
@@ -42,15 +42,15 @@
   - 6 PoGo pins are required
 ### Master Module
  - 7 segment display for time
- - warning indicator should just be two led's with difusers and then a mask applied to the front of the defuser to be stars
+ - warning indicator should just be two led's with diffuses and then a mask applied to the front of the diffuse to be stars
  - Inside of the device should be a extra sd card conatining stuff like WiFi Information (Parameters that cannot be set through the web interface)
 ## ModSlot
 ### Pin Order
 | | | | | | |
 |:-:|:-:|:-:|:-:|:-:|:-:|
-|VCC|Ground|Addr|Interupt|Clock|Data|
+|VCC|Ground|Addr|Interrupt|Clock|Data|
  - Interupt is active low
- - Addr is a voltage devider
+ - Addr is a voltage divider
  - Addr's voltage must be present at time of module boot in order to get address
  - Addr Should tie to the first analog input on the chip of the Module
 ## New Notes
