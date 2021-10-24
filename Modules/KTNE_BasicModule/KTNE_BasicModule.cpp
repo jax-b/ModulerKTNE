@@ -147,7 +147,11 @@ void requestEvent() {
 void receiveEvent(int numBytes) {
     bytesReceived = numBytes;
     for (int i = 0; i < numBytes; i++) {
-        incomeingI2CData[i] = Wire.read();
+        if (i > 10) {
+            Wire.read();
+        } else {
+            incomeingI2CData[i] = Wire.read();
+        }
     }
     processCommands();
 }
