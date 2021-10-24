@@ -7,8 +7,7 @@
 #define S2MInteruptPin  4
 #define MinMaxStable 5
 
-
-#define ModuleID "Blnk"
+const String ModuleID = "Blnk";
 
 // Most modules will have a scenario that it can be set to
 uint8_t ScenarioID = 0;
@@ -19,14 +18,19 @@ uint8_t ScenarioID = 0;
 int8_t moduleSolved = 0;
 
 unsigned long S2MInteruptCallTime = 0;
-
+unsigned long FailureLEDCallTime = 0;
 byte I2C_command = 0;
 
 unsigned long deviceCountdownTime;
 float StrikeReductionRate = 0.25;
 
+byte incomeingI2CData[10];
+byte outgoingI2CData[10];
+uint8_t bytesToSend = 0;
+uint8_t bytesReceived = 0;
+
 // Address Table
-uint8_t convertToAddress(uint_16t addrVIn){
+uint8_t convertToAddress(uint16_t addrVIn){
     // Top
     if (addrVIn >= 93 && addrVIn < 186){
         return 0x30;
@@ -65,7 +69,7 @@ uint8_t convertToAddress(uint_16t addrVIn){
 }
 
 // Checks to make sure the the voltage coming in is stable with in a certain range
-uint_16t getStableVoltage(int pin) {
+uint16_t getStableVoltage(int pin) {
     bool VoltageStable = false;
     uint_16t AnalogReading = 0;
     while (!VoltageStable){
@@ -109,48 +113,95 @@ void FlagModuleFailed() {
     digitalWrite(S2MInteruptPin, LOW);
 }
 
-void receiveEvent(int numBytes) {
-    uint8_t data[numBytes];
-    for (int i = 0; i < numBytes; i++) {
-        data[i] = Wire.read();
+float timekeeperLastRun = 0;
+// Updates to defused time of the module
+void decrementCounter() {
+    // Calculate our reduction rate based on current number of strikes
+    int BaseReductionRate = 10;
+    int reductionRate;
+    if (moduleSolved == 0) {
+        reductionRate = BaseReductionRate;
+    } else if (moduleSolved < 0) {
+        reductionRate = (moduleSolved * -1 * StrikeReductionRate + 1) * BaseReductionRate;
+    } else {
+        return;
     }
-    I2C_command = data[0];
-    if (data[0] >> 4 == 0x1) {
-        // This is a command to the module for configuration
-        switch (data[0] & 0xF) {
-        //  set solved status
-        case 0x1:
-           
-            if (len(data) > 1) {
-                moduleSolved = data[1];
-            }
-            break;
-        // Sync Time between the module and the device
-        case 0x2:
-            // Time should be a unsigned long so 4 bytes
-            if (len(data) > 4){
-                deviceCountdownTime = data[1] << 24 | data[2] << 16 | data[3] << 8 | data[4];
-            }
-            break;
-        case 0x3:
-            // Set Strike Rate
-            // Reduction Rate should be a float so 4 bytes
-            if (len(data) > 4){
-                StrikeReductionRate = data[1] << 24 | data[2] << 16 | data[3] << 8 | data[4];
-            }
-        default:
-            break;
-        }
+    
+    // Calculate the current time minus how fast the clock is running
+    if (millis() - reductionRate > timekeeperLastRun) {
+        timekeeperLastRun = millis();
+        // Reduce the clock
+        deviceCountdownTime -= reductionRate;
     }
-{
-
-void requestEvent() {
 }
 
-void setup(){
+// Sends out our output buffer
+void requestEvent() {
+    if ( bytesToSend > 0 ) {
+        Wire.write(outgoingI2CData, bytesToSend);
+    }
+    bytesToSend = 0;
+}
+
+// Copy the incoming data into our input buffer
+void receiveEvent(int numBytes) {
+    bytesReceived = numBytes;
+    for (int i = 0; i < numBytes; i++) {
+        incomeingI2CData[i] = Wire.read();
+    }
+    processCommands();
+}
+
+// Processe a command from the controller and if necessary copy data into the output buffer
+void processCommands(){
+    switch (incomeingI2CData[0] >> 4) {
+    // This is a command to the module for configuration
+    case 0x1:
+        switch (incomeingI2CData[0] & 0xF) {
+            // Set solved status
+            case 0x1:
+                if (bytesReceived > 2) {
+                    moduleSolved = incomeingI2CData[1];
+                }
+                break;
+            // Sync Time between the module and the device
+            case 0x2:
+                // Time should be a unsigned long so 4 bytes
+                if (bytesReceived > 5){
+                    deviceCountdownTime = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
+                }
+                break;
+            // Set Strike Rate
+            case 0x3:
+                // Reduction Rate should be a float so 4 bytes
+                if (bytesReceived > 5){
+                    StrikeReductionRate = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
+                }
+            default:
+                break;
+        }
+        break;
+    // This is a command to the device for data
+    case 0x0:
+        switch (incomeingI2CData[0] & 0xF) {
+            case 0x0:
+                bytesToSend = ModuleID.length();
+                for (int i = 0; i < bytesToSend; i++) {
+                    outgoingI2CData[i] = ModuleID[i];
+                }
+            // Get the Solved Status
+            case 0x1:
+                bytesToSend = 1;
+                outgoingI2CData[0] = moduleSolved;
+                break;
+        }
+    }
+}
+
+void setup() {
     // Setup LED's
-    pinMode(SuccessLED, OUTPUT);
-    pinMode(FailureLED, OUTPUT);
+    pinMode(SuccessLEDPin, OUTPUT);
+    pinMode(FailureLEDPin, OUTPUT);
     pinMode(S2MInteruptPin, OUTPUT);
     digitalWrite(S2MInteruptPin, HIGH);
     // Setup I2C
@@ -164,13 +215,16 @@ void loop(){
     // Pull the S2M Interupt Pin back UP after a short delay
     if (millis() - S2MInteruptCallTime > 10) {
         digitalWrite(S2MInteruptPin, HIGH);
+        S2MInteruptCallTime = 0;
     }
     // Turn off the failure LED after a short delay
     if (millis() - FailureLEDCallTime > 500) {
         digitalWrite(FailureLEDPin, LOW);
+        FailureLEDCallTime = 0;
     }
     // Module Code
-    if moduleSolved != 1{
+    if (moduleSolved != 1) {
         //run the module code
     }
+    decrementCounter();
 }
