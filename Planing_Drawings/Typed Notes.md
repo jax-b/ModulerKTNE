@@ -5,8 +5,10 @@
  - 0x01 Get Module Config (Gets current scenario id and progress)
  - 0x02 Get Module Status (Should contain if solved)
  - 0x11 Set Module Config (Should contain the scenario id for that module, ie blue abort button with 1 bat and blue strip)
-### TimeKeeping
-    # the current countdown time should be sent out to all modules using the 0xFF address
+ - 0x12 Time Sync
+
+### Time Keeping
+~~- the current countdown time should be sent out to all modules using the 0xFF address~~
 ### I2C Address Locations
 #### Modules
 ##### Front
