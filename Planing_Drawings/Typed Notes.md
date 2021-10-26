@@ -26,7 +26,7 @@
 |:-:|:-:|:-:|
 ||50||
 |53| Front Face | 51|
-|| 54 ||
+|| 52 ||
 ## SideCase
  - Each Side Should have its own PCB
  - Each Side Should have some indicators of each type (excluding serial and second factor)
