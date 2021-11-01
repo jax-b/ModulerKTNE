@@ -56,3 +56,12 @@
 ## New Notes
 - Any information that does not change throughout the course of a defusal session should be displayed on a eInk Display
 - Information that does change should use either a LCD or OLED
+
+## Gameplay port ID's
+There are 6 types of ports in the game here is the id's we use to keep track of them
+  - 0x1 = DVI-D
+  - 0x2 = Parallel
+  - 0x3 = PS2
+  - 0x4 = RJ-45
+  - 0x5 = Serial
+  - 0x6 = Stereo RCA

@@ -13,8 +13,25 @@
 #define S2MInteruptPin  7
 #define MinMaxStable 5
 
+// Gameplay variables
 // Most modules will have a seed that it can be set to in order to load a specific module
-uint16_t SeedValue = 0;
+uint16_t gameplaySeed = 0;
+
+// the specific module will might not use the following variables
+// each run will have a serial number that is used in that run
+#define GAMEPLAYSERIALNUMBERLENGTH 8
+char gameplaySerialNumber[GAMEPLAYSERIALNUMBERLENGTH];
+// The device can have a number of lit indicators on the sides but gameplay only cares if they are lit
+#define GAMEPLAYMAXLITINDICATOR 6
+char gameplayLitIndicators[GAMEPLAYMAXLITINDICATOR][3];
+uint8_t gameplayLitIndicatorCount = 0;
+// Self explanitory
+uint8_t gameplayNumBattery = 0;
+// There is only six possible ports in the game and they have a number assigned to them.
+// See reference chart in typed notes for more information about which is which
+#define GAMEPLAYMAXNUMPORT 6
+uint8_t gameplayPorts[GAMEPLAYMAXNUMPORT]; 
+uint8_t gameplayPortCount = 0;
 
 // All most modules will have a state that they can be set to
 // if a module is failed it will be set to a negative number
@@ -165,32 +182,110 @@ void receiveEvent(int numBytes) {
 // Processe a command from the controller and if necessary copy data into the output buffer
 void processCommands(){
     switch (incomeingI2CData[0] >> 4) {
+    // this is a clear command
+    case 0x2:
+        switch (incomeingI2CData[0] & 0xF) {
+            // Clear SerialNumber
+            case 0x4:
+                for (int i = 0; i < GAMEPLAYSERIALNUMBERLENGTH; i++){
+                    gameplaySerialNumber[i] = '\0';
+                }
+                break;
+            // Clear LitIndicators
+            case 0x5:
+                gameplayLitIndicatorCount = 0;
+                for (int i = 0; i < GAMEPLAYMAXLITINDICATOR; i++){
+                    for (int j = 0; j < 3; j++){
+                        gameplayLitIndicators[i][j] = '\0';
+                    }
+                }
+                break;
+            // Clear Number Batteries
+            case 0x6:
+                gameplayNumBattery = 0;
+                break;
+            // Clear Port Identities
+            case 0x7:
+                for (int i = 0; i < GAMEPLAYMAXNUMPORT; i++){
+                    gameplayPorts[i] = 0x0;
+                }
+                break;
+            // Clear Seed
+            case 0x8:
+                gameplaySeed = 0x0;
+                break;
+            default:
+                break;
+        }
+        break;
+
     // This is a command to the module for configuration
     case 0x1:
         switch (incomeingI2CData[0] & 0xF) {
             // Set solved status
             case 0x1:
-                if (bytesReceived > 2) {
+                // greater than 1 bytes because bytes received includes the command byte
+                if (bytesReceived > 1) {
                     moduleSolved = incomeingI2CData[1];
                 }
                 break;
             // Sync Time between the module and the device
             case 0x2:
                 // Time should be a unsigned long so 4 bytes
-                if (bytesReceived > 5){
+                // greater than 4 bytes because bytes received includes the command byte
+                if (bytesReceived > 4){
                     deviceCountdownTime = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 }
                 break;
             // Set Strike Rate
             case 0x3:
                 // Reduction Rate should be a float so 4 bytes
-                if (bytesReceived > 5){
+                // greater than 4 bytes because bytes received includes the command byte
+                if (bytesReceived > 4){
                     StrikeReductionRate = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 }
                 break;
             // Set Serial Number
             case 0x4:
                 // Serial Number should be a String max 8 char;
+                // greater than 8 bytes because bytes received includes the command byte
+                if (bytesReceived > GAMEPLAYSERIALNUMBERLENGTH){
+                    for (int i = 0; i < bytesReceived && i < GAMEPLAYSERIALNUMBERLENGTH ; i++){
+                        gameplaySerialNumber[i] = (char)incomeingI2CData[i + 1];
+                    }
+                }
+            // Set LitIndicator
+            case 0x5:
+                // Lit Indicator should be a string of 3 char
+                // greater than 3 bytes because bytes received includes the command byte
+                if (bytesReceived > 3){
+                    for (int i = 0; i < bytesReceived && i < 3 ; i++){
+                        gameplayLitIndicators[gameplayLitIndicatorCount][i] = (char)incomeingI2CData[i + 1];
+                    }
+                    if (gameplayLitIndicatorCount < GAMEPLAYMAXLITINDICATOR - 1){
+                        gameplayLitIndicatorCount++;
+                    }
+                }
+                break;
+            // Set Number of Batteries
+            case 0x6:
+                // Number of Batteries should be a byte
+                // greater than 1 bytes because bytes received includes the command byte
+                if (bytesReceived > 1){
+                    gameplayNumBattery = incomeingI2CData[1];
+                }
+                break;
+            // Set A Port Identity
+            case 0x7:
+                // Port Identities should be a byte
+                // greater than 1 bytes because bytes received includes the command byte
+                if (bytesReceived > 1){
+                    gameplayPorts[gameplayPortCount] = incomeingI2CData[1];
+                    if (gameplayPortCount < GAMEPLAYMAXNUMPORT - 1){
+                        gameplayPortCount++;
+                    }
+                }
+                break;
             default:
                 break;
         }
@@ -200,7 +295,7 @@ void processCommands(){
         switch (incomeingI2CData[0] & 0xF) {
             // Get the modules ID
             case 0x0:
-                bytesToSend = ModuleID.length();
+                bytesToSend = ModuleID.length(); // *^* Needs to be revised
                 for (int i = 0; i < bytesToSend; i++) {
                     outgoingI2CData[i] = ModuleID[i];
                 }
@@ -228,8 +323,6 @@ void setup() {
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
 
-    // Module Specific Setup
-    moduleSetup();
 
     // Turn off LEDs to signal initialization is complete
     digitalWrite(FailureLEDPin , LOW);
@@ -256,7 +349,6 @@ void loop(){
 
     // Module Specific Code
     if (moduleSolved != 1) {
-        moduleRunning();
     }
 
 
