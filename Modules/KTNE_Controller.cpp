@@ -1,29 +1,35 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+// ********************************
+// Include the type of module that we use
+// ********************************
+#include "basemodule\basemodule.h"
+
+
 #define AddressInPin A0
-#define SuccessLEDPin 2
-#define FailureLEDPin 3
-#define S2MInteruptPin  4
+#define SuccessLEDPin 5
+#define FailureLEDPin 6
+#define S2MInteruptPin  7
 #define MinMaxStable 5
 
-const String ModuleID = "Blnk";
-
-// Most modules will have a scenario that it can be set to
-uint8_t ScenarioID = 0;
+// Most modules will have a seed that it can be set to in order to load a specific module
+uint16_t SeedValue = 0;
 
 // All most modules will have a state that they can be set to
 // if a module is failed it will be set to a negative number
 // it will decrement by 1 each time it is failed
 int8_t moduleSolved = 0;
 
+// Timekeeping variables for external pins
 unsigned long S2MInteruptCallTime = 0;
 unsigned long FailureLEDCallTime = 0;
-byte I2C_command = 0;
 
+// Timekeeping and gameplay variables
 unsigned long deviceCountdownTime;
 float StrikeReductionRate = 0.25;
 
+// Buffers and data tracking for I2C communication
 byte incomeingI2CData[10];
 byte outgoingI2CData[10];
 uint8_t bytesToSend = 0;
@@ -71,7 +77,7 @@ uint8_t convertToAddress(uint16_t addrVIn){
 // Checks to make sure the the voltage coming in is stable with in a certain range
 uint16_t getStableVoltage(int pin) {
     bool VoltageStable = false;
-    uint_16t AnalogReading = 0;
+    uint16_t AnalogReading = 0;
     while (!VoltageStable){
         // Read the voltage
         uint16_t currentReading = analogRead(pin);
@@ -84,7 +90,7 @@ uint16_t getStableVoltage(int pin) {
         }
         delay(1);
     }
-    return analogReading;
+    return AnalogReading;
 }
 
 // This function is called when the module code determines that the module has been solved
@@ -181,6 +187,10 @@ void processCommands(){
                 if (bytesReceived > 5){
                     StrikeReductionRate = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 }
+                break;
+            // Set Serial Number
+            case 0x4:
+                // Serial Number should be a String max 8 char;
             default:
                 break;
         }
@@ -188,6 +198,7 @@ void processCommands(){
     // This is a command to the device for data
     case 0x0:
         switch (incomeingI2CData[0] & 0xF) {
+            // Get the modules ID
             case 0x0:
                 bytesToSend = ModuleID.length();
                 for (int i = 0; i < bytesToSend; i++) {
@@ -207,12 +218,22 @@ void setup() {
     pinMode(SuccessLEDPin, OUTPUT);
     pinMode(FailureLEDPin, OUTPUT);
     pinMode(S2MInteruptPin, OUTPUT);
+    // Set output pins to inital state
     digitalWrite(S2MInteruptPin, HIGH);
+    digitalWrite(SuccessLEDPin, HIGH);
+    digitalWrite(FailureLEDPin, HIGH);
     // Setup I2C
     // Start Listening for address
     Wire.begin(convertToAddress(getStableVoltage(AddressInPin)));
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
+
+    // Module Specific Setup
+    moduleSetup();
+
+    // Turn off LEDs to signal initialization is complete
+    digitalWrite(FailureLEDPin , LOW);
+    digitalWrite(SuccessLEDPin, LOW);
 }
 
 void loop(){
@@ -221,14 +242,24 @@ void loop(){
         digitalWrite(S2MInteruptPin, HIGH);
         S2MInteruptCallTime = 0;
     }
+    
     // Turn off the failure LED after a short delay
     if (millis() - FailureLEDCallTime > 500) {
         digitalWrite(FailureLEDPin, LOW);
         FailureLEDCallTime = 0;
     }
-    // Module Code
+
+    // Success LED should be on for only module success
     if (moduleSolved != 1) {
-        //run the module code
+        digitalWrite(SuccessLEDPin, LOW);
     }
+
+    // Module Specific Code
+    if (moduleSolved != 1) {
+        moduleRunning();
+    }
+
+
+    // Timekeeping 
     decrementCounter();
 }
