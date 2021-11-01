@@ -10,9 +10,10 @@ void BaseModule::runModule()
 }
 bool BaseModule::checkFailure()
 {
-    return true;
+    return failuretriggered;
+    failuretriggered = false;
 }
 bool BaseModule::checkSuccess()
 {
-    return true;
+    return successtriggered;
 }

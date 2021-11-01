@@ -7,5 +7,8 @@ namespace N
         bool checkFailure();
         void runModule();
         void setupModule();
+    private:
+        bool successtriggered;
+        bool failuretriggered;
     };
 }
