@@ -16,7 +16,7 @@ BACK_MOD_3 = 0x42
 BACK_MOD_4 = 0x43
 BACK_MOD_5 = 0x44
 
-class ModuleControler:
+class ModuleController:
     import smbus
     clsbusctrl = None
     def __init__(busctrl: smbus.SMBus):
