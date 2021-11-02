@@ -17,3 +17,7 @@ bool BaseModule::checkSuccess()
 {
     return successtriggered;
 }
+char[] BaseModule::getID()
+{
+    return modID;
+}

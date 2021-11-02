@@ -7,9 +7,10 @@ namespace N
         bool checkFailure();
         void runModule();
         void setupModule();
+        char[] modID();
     protected:
         bool successtriggered;
         bool failuretriggered;
-        char[] modID;
+        char[] modID = "base";
     };
 }
