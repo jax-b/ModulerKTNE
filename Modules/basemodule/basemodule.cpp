@@ -2,7 +2,7 @@
 
 void BaseModule::setupModule()
 {
-    Serial.print("HellWoWorld");
+    Serial.print("HelloWorld");
 }
 void BaseModule::runModule()
 {
