@@ -5,7 +5,7 @@
 // Include the type of module that we use
 // ********************************
 #include "basemodule\basemodule.h"
-
+BaseModule mod;
 
 #define AddressInPin A0
 #define SuccessLEDPin 5
@@ -43,7 +43,8 @@ unsigned long S2MInteruptCallTime = 0;
 unsigned long FailureLEDCallTime = 0;
 
 // Timekeeping and gameplay variables
-unsigned long deviceCountdownTime;
+unsigned long gameplayCountdownTime;
+bool timerRunning = false;
 float StrikeReductionRate = 0.25;
 
 // Buffers and data tracking for I2C communication
@@ -120,6 +121,7 @@ void FlagModuleSolved() {
     S2MInteruptCallTime = millis();
     // Turn off the failure LED
     digitalWrite(S2MInteruptPin, LOW);
+    timerRunning = false;
 }
 
 // This function is called when the module code determines that the module has been failed
@@ -151,10 +153,10 @@ void decrementCounter() {
     }
     
     // Calculate the current time minus how fast the clock is running
-    if (millis() - reductionRate > timekeeperLastRun) {
+    if (millis() - reductionRate > timekeeperLastRun && timerRunning) {
         timekeeperLastRun = millis();
         // Reduce the clock
-        deviceCountdownTime -= reductionRate;
+        gameplayCountdownTime -= reductionRate;
     }
 }
 
@@ -182,6 +184,16 @@ void receiveEvent(int numBytes) {
 // Processe a command from the controller and if necessary copy data into the output buffer
 void processCommands(){
     switch (incomeingI2CData[0] >> 4) {
+    case 0x3:
+        switch (incomeingI2CData[0] & 0xF) {
+        //start
+        case 0x0:
+            timerRunning = true;
+            break;
+        
+        default:
+            break;
+        }
     // this is a clear command
     case 0x2:
         switch (incomeingI2CData[0] & 0xF) {
@@ -234,7 +246,7 @@ void processCommands(){
                 // Time should be a unsigned long so 4 bytes
                 // greater than 4 bytes because bytes received includes the command byte
                 if (bytesReceived > 4){
-                    deviceCountdownTime = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
+                    gameplayCountdownTime = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 }
                 break;
             // Set Strike Rate
@@ -295,9 +307,10 @@ void processCommands(){
         switch (incomeingI2CData[0] & 0xF) {
             // Get the modules ID
             case 0x0:
-                bytesToSend = ModuleID.length(); // *^* Needs to be revised
+                bytesToSend = 4;
+                modID = mod.getID();
                 for (int i = 0; i < bytesToSend; i++) {
-                    outgoingI2CData[i] = ModuleID[i];
+                    outgoingI2CData[i] = modID[i];
                 }
             // Get the Solved Status
             case 0x1:
@@ -317,12 +330,16 @@ void setup() {
     digitalWrite(S2MInteruptPin, HIGH);
     digitalWrite(SuccessLEDPin, HIGH);
     digitalWrite(FailureLEDPin, HIGH);
+
     // Setup I2C
     // Start Listening for address
     Wire.begin(convertToAddress(getStableVoltage(AddressInPin)));
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
+    
+    mod = new BaseModule(*gameplayCountdownTime);
 
+    mod.setupModule();
 
     // Turn off LEDs to signal initialization is complete
     digitalWrite(FailureLEDPin , LOW);
@@ -349,6 +366,13 @@ void loop(){
 
     // Module Specific Code
     if (moduleSolved != 1) {
+        if (mod.checkSuccess()) {
+            FlagModuleSolved();
+        }
+        if (mod.checkfss()) {
+            FlagModuleSolved();
+        }
+        mod.runModule();
     }
 
 
