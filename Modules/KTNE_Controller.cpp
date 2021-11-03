@@ -178,22 +178,36 @@ void receiveEvent(int numBytes) {
             incomeingI2CData[i] = Wire.read();
         }
     }
-    processCommands();
 }
 
 // Processe a command from the controller and if necessary copy data into the output buffer
 void processCommands(){
     switch (incomeingI2CData[0] >> 4) {
-    case 0x3:
-        switch (incomeingI2CData[0] & 0xF) {
-        //start
+    case 0x4: 
+        switch (incomeingI2CData[0] & 0xF)
+        {
         case 0x0:
-            timerRunning = true;
+            timerRunning = false;
             break;
         
         default:
             break;
         }
+        break;
+    case 0x3:
+        switch (incomeingI2CData[0] & 0xF) {
+        //start
+        case 0x0:
+            timerRunning = true;
+            if (gameplaySeed == 0) {
+                gameplaySeed = random(1, 65535);
+            }
+            break;
+        
+        default:
+            break;
+        }
+        break;
     // this is a clear command
     case 0x2:
         switch (incomeingI2CData[0] & 0xF) {
@@ -298,6 +312,14 @@ void processCommands(){
                     }
                 }
                 break;
+            // Set Seed
+            case 0x8:
+                // Seed should be 2 bytes
+                // greater than 2 bytes because bytes received includes the command byte
+                if (bytesReceived > 2){
+                    gameplaySeed = incomeingI2CData[1] << 8 | incomeingI2CData[2];
+                }
+                break;
             default:
                 break;
         }
@@ -312,6 +334,7 @@ void processCommands(){
                 for (int i = 0; i < bytesToSend; i++) {
                     outgoingI2CData[i] = modID[i];
                 }
+                break;
             // Get the Solved Status
             case 0x1:
                 bytesToSend = 1;
@@ -319,6 +342,7 @@ void processCommands(){
                 break;
         }
     }
+    bytesReceived = 0;
 }
 
 void setup() {
@@ -330,6 +354,8 @@ void setup() {
     digitalWrite(S2MInteruptPin, HIGH);
     digitalWrite(SuccessLEDPin, HIGH);
     digitalWrite(FailureLEDPin, HIGH);
+
+    randomSeed(AnalogRead(A5));
 
     // Setup I2C
     // Start Listening for address
@@ -348,13 +374,12 @@ void setup() {
 
 void loop(){
     // Pull the S2M Interupt Pin back UP after a short delay
-    if (millis() - S2MInteruptCallTime > 10) {
+    if (millis() - S2MInteruptCallTime > 10 && S2MInteruptCallTime != 0) {
         digitalWrite(S2MInteruptPin, HIGH);
         S2MInteruptCallTime = 0;
     }
-    
     // Turn off the failure LED after a short delay
-    if (millis() - FailureLEDCallTime > 500) {
+    if (millis() - FailureLEDCallTime > 500 && FailureLEDCallTime != 0) {
         digitalWrite(FailureLEDPin, LOW);
         FailureLEDCallTime = 0;
     }
@@ -375,6 +400,9 @@ void loop(){
         mod.runModule();
     }
 
+    if (bytesReceived != 0) {
+        processCommands();
+    }
 
     // Timekeeping 
     decrementCounter();
