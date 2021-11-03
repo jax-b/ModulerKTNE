@@ -2,8 +2,6 @@
 # Front Face
 # Main | 1 | 2
 #   3  | 4 | 5
-from typing import ValuesView
-
 
 FRONT_MOD_1 = 0x30
 FRONT_MOD_2 = 0x31
