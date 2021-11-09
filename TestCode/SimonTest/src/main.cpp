@@ -97,7 +97,7 @@ uint16_t getStableVoltage(int pin)
 void debounce(int ButtonNumber)
 {
     // read the state of the switch/button:
-    bool currentState = digitalRead(ButtonOrder[ButtonNumber]) ;
+    bool currentState = digitalRead(ButtonOrder[ButtonNumber]);
 
     if (currentState != buttonStatesFlicker[ButtonNumber])
     {
@@ -105,7 +105,8 @@ void debounce(int ButtonNumber)
         buttonStatesFlicker[ButtonNumber] = currentState;
     }
 
-    if ((millis() - lastDebounceTime[ButtonNumber]) > DEBOUNCE_DELAY) {
+    if ((millis() - lastDebounceTime[ButtonNumber]) > DEBOUNCE_DELAY)
+    {
         // save the the last state
         buttonStates[ButtonNumber] = currentState;
     }
@@ -113,10 +114,8 @@ void debounce(int ButtonNumber)
 void setup()
 {
     Serial.begin(9600);
-    while (!Serial)
-    {
-        ;
-    }
+    while (!Serial);
+    
     pinMode(SuccessLEDPin, OUTPUT);
     pinMode(FailureLEDPin, OUTPUT);
     pinMode(AddressInPin, INPUT);
@@ -135,7 +134,7 @@ void setup()
     Serial.println("Address Read Test");
     uint16_t stblVoltage = getStableVoltage(AddressInPin);
     Serial.print("Stable Voltage: ");
-    Serial.println(stblVoltage);
+    Serial.print(stblVoltage);
     uint8_t address = convertToAddress(stblVoltage);
     Serial.print(", Address: ");
     Serial.println(address);
@@ -175,6 +174,6 @@ void loop()
     }
     for (int i = 0; i < 4; i++)
     {
-        digitalWrite(LEDOrder[i], ! buttonStates[i]);
+        digitalWrite(LEDOrder[i], !buttonStates[i]);
     }
 }
