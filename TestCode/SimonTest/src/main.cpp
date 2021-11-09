@@ -75,7 +75,7 @@ uint8_t convertToAddress(uint16_t addrVIn)
 uint16_t getStableVoltage(int pin)
 {
     bool VoltageStable = false;
-    uint16_t AnalogReading = 0;
+    uint16_t AnalogReading = analogRead(pin);
     while (!VoltageStable)
     {
         // Read the voltage
