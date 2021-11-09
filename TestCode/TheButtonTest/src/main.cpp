@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <FastLED.h>
-#include <SPI.h>
-#include <EPD1in54.h>
-#include <EPDPaint.h>
+#include <GxEPD2_BW.h>
+#include <Fonts/FreeMonoBold12pt7b.h>
+#include <Adafruit_I2CDevice.h>
 
 #define AddressInPin A0
 #define SuccessLEDPin 8
@@ -23,12 +23,7 @@ CRGB aleds[4];
 #define EPD_DC      5
 #define EPD_RESET   1 // can set to -1 and share with microcontroller Reset!
 #define EPD_BUSY    A1 // can set to -1 to not use a pin (will wait a fixed delay)
-#define COLORED     0
-#define UNCOLORED   1
-unsigned char image[1024];
-EPDPaint paint(image, 0, 0); 
-EPD1in54 epd(EPD_RESET,EPD_DC,EPD_CS,EPD_BUSY);
-
+GxEPD2_BW<GxEPD2_154_D67, 32> display(GxEPD2_154_D67(EPD_CS, EPD_DC, EPD_RESET, EPD_BUSY));
 // Address Table
 uint8_t convertToAddress(uint16_t addrVIn)
 {
@@ -84,13 +79,13 @@ uint8_t convertToAddress(uint16_t addrVIn)
 uint16_t getStableVoltage(int pin)
 {
   bool VoltageStable = false;
-  uint16_t AnalogReading = 0;
+  uint16_t AnalogReading = analogRead(pin);
   while (!VoltageStable)
   {
     // Read the voltage
     uint16_t currentReading = analogRead(pin);
     // If the voltage is within the range of the voltage we are looking for
-    if (currentReading - MinMaxStable <= AnalogReading || currentReading + MinMaxStable >= AnalogReading)
+    if (currentReading - MinMaxStable <= AnalogReading && currentReading + MinMaxStable >= AnalogReading)
     {
       VoltageStable = true;
     }
@@ -126,9 +121,10 @@ void setup()
   Serial.begin(9600);
   while (!Serial);
 
+  Serial.println(analogRead(AddressInPin));
+
   pinMode(SuccessLEDPin, OUTPUT);
   pinMode(FailureLEDPin, OUTPUT);
-  pinMode(AddressInPin, INPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   Serial.println("Hello World!");
@@ -156,50 +152,26 @@ void setup()
   Serial.println("Red LED Off");
 
   Serial.println("EPD Test");
-  if (epd.init(lutPartialUpdate) != 0) {
-    Serial.print("e-Paper init failed");
-  } else {
-    Serial.println("e-Paper init succeed");
-    epd.clearFrameMemory(0xFF);   // bit set = white, bit reset = black
-    epd.displayFrame();
-    epd.clearFrameMemory(0xFF);   // bit set = white, bit reset = black
-    epd.displayFrame();
-
-    paint.setWidth(200);
-    paint.setHeight(24);
-    paint.setRotate(ROTATE_0);
-
-    paint.clear(UNCOLORED);
-    paint.drawStringAt(30, 4, "Hello world!", &Font16, UNCOLORED);
-    epd.setFrameMemory(paint.getImage(), 0, 10, paint.getWidth(), paint.getHeight());
-
-    paint.clear(UNCOLORED);
-    paint.drawStringAt(30, 4, "e-Paper Demo", &Font16, UNCOLORED);
-    epd.setFrameMemory(paint.getImage(), 0, 30, paint.getWidth(), paint.getHeight());
-
-    paint.setWidth(64);
-    paint.setHeight(64);
-
-    paint.clear(UNCOLORED);
-    paint.drawRectangle(0, 0, 40, 50, UNCOLORED);
-    paint.drawLine(0, 0, 40, 50, UNCOLORED);
-    paint.drawLine(40, 0, 0, 50, UNCOLORED);
-    epd.setFrameMemory(paint.getImage(), 16, 60, paint.getWidth(), paint.getHeight());
-
-    paint.clear(UNCOLORED);
-    paint.drawCircle(32, 32, 30, UNCOLORED);
-    epd.setFrameMemory(paint.getImage(), 120, 60, paint.getWidth(), paint.getHeight());
-
-    paint.clear(UNCOLORED);
-    paint.drawFilledRectangle(0, 0, 40, 50, UNCOLORED);
-    epd.setFrameMemory(paint.getImage(), 16, 130, paint.getWidth(), paint.getHeight());
-
-    paint.clear(UNCOLORED);
-    paint.drawFilledCircle(32, 32, 30, UNCOLORED);
-    epd.setFrameMemory(paint.getImage(), 120, 130, paint.getWidth(), paint.getHeight());
-    epd.displayFrame();
+  display.init();
+  display.setTextColor(GxEPD_BLACK);
+  display.setFont(&FreeMonoBold12pt7b);
+  int16_t  x1, y1;
+  uint16_t w, h;
+  String stringtoprint = "Detonate";
+  display.getTextBounds(stringtoprint, 0, 0, &x1, &y1, &w, &h);
+  uint16_t x = ((display.width() - w) / 2) - x1;
+  uint16_t y = ((display.height() - h) / 2) - y1;
+  display.firstPage();
+  do
+  {
+    display.fillScreen(GxEPD_WHITE);
+    // comment out next line to have no or minimal Adafruit_GFX code
+    display.setCursor(x, y);
+    display.print(stringtoprint);
+    
   }
-
+  while (display.nextPage());
+  
   Serial.println("ledtest");
   FastLED.addLeds<WS2812B, ALED_Pin, GRB>(aleds, 4);
   for (int i = 0; i < 4; i++)
