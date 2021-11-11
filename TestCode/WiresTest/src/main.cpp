@@ -7,8 +7,8 @@
 #define MinMaxStable 5
 #define ALED_Pin 10
 
-#define Wire1Button 14
-#define Wire2Button 15
+#define Wire1Button 15
+#define Wire2Button 14
 #define Wire3Button 16
 #define Wire4Button 5
 #define Wire5Button 6
@@ -195,7 +195,7 @@ void loop()
   }
   for (int i = 0; i < 6; i++)
   {
-    if (buttonStates[i] == HIGH)
+    if (buttonStates[i] == LOW)
     {
       aleds[i] = CRGB::Purple;
       aleds[i+6] = CRGB::Orange;
