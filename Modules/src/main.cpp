@@ -15,7 +15,7 @@ BaseModule mod;
 
 // Gameplay variables
 // Most modules will have a seed that it can be set to in order to load a specific module
-uint16_t gameplaySeed = 0;
+uint16_t gameplaySeed = NULL;
 
 // the specific module will might not use the following variables
 // each run will have a serial number that is used in that run
@@ -199,7 +199,7 @@ void processCommands(){
         //start
         case 0x0:
             timerRunning = true;
-            if (gameplaySeed == 0) {
+            if (gameplaySeed == NULL) {
                 gameplaySeed = random(1, 65535);
             }
             break;
@@ -238,7 +238,7 @@ void processCommands(){
                 break;
             // Clear Seed
             case 0x8:
-                gameplaySeed = 0x0;
+                gameplaySeed = NULL;
                 break;
             default:
                 break;

@@ -69,7 +69,7 @@ class ModControl {
         int8_t setStrikeReductionRate(uint8_t address, float rate);
         /// Set Game Serial Number
         /// Returns sucess of command
-        int8_t setGameSerialNumber(uint8_t address, char *serialnumber);
+        int8_t setGameSerialNumber(uint8_t address, char serialnumber[8]);
         /// Sets a lit indicator, only provide indicators that are lit
         /// Each time a lit indicator is sent, the module will append it to the list of indicators
         /// There is a max of 6 indicators that can be lit at a time
@@ -77,7 +77,7 @@ class ModControl {
         /// use clearGameLitIndicators to clear the list
         /// the indicator label is exactly 3 characters long
         /// Returns sucess of command
-        int8_t setGameLitIndicator(uint8_t address, char *indlabel);
+        int8_t setGameLitIndicator(uint8_t address, char indlabel[3]);
         /// Set Game Num Batteries
         /// 0 - 255
         /// Returns sucess of command
@@ -89,7 +89,7 @@ class ModControl {
         /// use clearGamePortIDS to clear the list
         /// Only send that specific port ID once, thats all that matters for the game logic
         /// Returns sucess of command
-        int8_t setGamePortIDS(uint8_t address, uint8_t port);
+        int8_t setGamePortID(uint8_t address, uint8_t port);
         /// Set Game Seed
         /// The seed is a 2 byte number, 1-65535
         /// Returns sucess of command
@@ -97,7 +97,7 @@ class ModControl {
 
         // Get
         /// Get Module Type
-        char[] getModuleType(uint8_t address);
+        char * getModuleType(uint8_t address);
         /// Gets the solved status of the module
         int8_t getSolvedStatus(uint8_t address);
 
@@ -107,7 +107,7 @@ class ModControl {
         int8_t clearAllGameData(uint8_t address);
         // Setup All Game Data from the specified module
         /// Returns sucess of command
-        int8_t setupAllGameData(uint8_t address, char *serialnumber, uint16_t seed, uint8_t numBatteries, uint8_t *portID, char *litIndicators);
+        int8_t setupAllGameData(uint8_t address, char serialnumber[], char litIndicators[][3], uint8_t numBatteries, uint8_t portIDs[],uint16_t seed);
     protected:
         int file_i2c;
         
