@@ -5,8 +5,8 @@ I also want this project to use the original game manual!
 My eventual aim is to replicate every module.
 
 # Discord
-Join the [Discord](https://discord.gg/HurkjRnqG2) to talk about the project  
-[![Discord](https://img.shields.io/discord/901860287857197116?style=for-the-badge)](https://discord.gg/HurkjRnqG2)
+Join the [Discord](https://discord.gg/muyrytPZhW) to talk about the project  
+[![Discord](https://img.shields.io/discord/901860287857197116?style=for-the-badge)](https://discord.gg/muyrytPZhW)
 
 Lets start out with my overall plan!
 Each module should be self contained, meaning that that module knows weather or not it is solved.
