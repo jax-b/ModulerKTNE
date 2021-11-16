@@ -11,6 +11,7 @@ namespace N
     protected:
         char[][3] indicators;
         int seed;
+        int batteries;
         bool successtriggered;
         bool failuretriggered;
         char[] modID = "base";
