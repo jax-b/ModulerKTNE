@@ -3,6 +3,7 @@ namespace N
     class BaseModule
     {
     public:
+        int seed;
         bool checkSuccess();
         bool checkFailure();
         void runModule();
