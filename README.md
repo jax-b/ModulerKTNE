@@ -4,7 +4,7 @@ The goal of this project it to make a modular [Keep Talking and Nobody Explodes 
 I also want this project to use the original game manual!
 My eventual aim is to replicate every module.
 
-#Discord
+# Discord
 Join the [Discord](https://discord.gg/HurkjRnqG2) to talk about the project  
 [![Discord](https://img.shields.io/discord/901860287857197116?style=for-the-badge)](https://discord.gg/HurkjRnqG2)
 
