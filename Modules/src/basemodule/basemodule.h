@@ -9,6 +9,7 @@ namespace N
         void setupModule();
         char[] modID();
     protected:
+        char[][] indicators;
         int seed;
         bool successtriggered;
         bool failuretriggered;
