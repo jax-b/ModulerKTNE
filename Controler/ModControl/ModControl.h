@@ -5,7 +5,6 @@
 
 class ModControl {
     public:
-        ModControl(int *busname);
         // Front Face
         // Main | 1 | 2
         // 3  | 4 | 5
@@ -22,6 +21,8 @@ class ModControl {
         const uint8_t BACK_MOD_3 = 0x42;
         const uint8_t BACK_MOD_4 = 0x43;
         const uint8_t BACK_MOD_5 = 0x44;
+        
+        ModControl(int *busname);
 
         // Game Status
         /// Stop all gameplay functions

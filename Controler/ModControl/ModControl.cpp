@@ -1,7 +1,7 @@
 #include "ModControl.h"
 
-ModControl::ModControl(int busname){
-    ModControl::i2cBusName = busname;
+ModControl::ModControl(int *busname){
+    ModControl::i2cBusName = &busname;
 }
 ModControl::stopGame(uint8_t address){
     if (ioctl(ModControl::file_i2c, I2C_SLAVE, address)) {
