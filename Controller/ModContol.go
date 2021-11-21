@@ -32,10 +32,13 @@ type ModControl struct {
 // Returns a new module controller
 func NewModControl(address byte, bus int) (*ModControl, error) {
 	i2c, err := i2c.NewI2C(address, bus)
+	if err != nil {
+		return nil, err
+	}
 	mc := &ModControl{
 		i2c: i2c,
 	}
-	return mc
+	return mc, nil
 }
 
 // Safely closes the i2c connection
@@ -290,37 +293,37 @@ func (self *ModControl) ClearAllGameData() error {
 
 // User Automation Functions
 // Setup All Game Data from the specified module
-func (self *ModControl) SetupAllGameData(serialNumber [8]rune, litIndicators [][3]rune, numBatteries uint8, portIDs []uint8, uint16_t seed = nil) error{
-    err := ClearGameFromMod()
-	if err := nil {
+func (self *ModControl) SetupAllGameData(serialNumber [8]rune, litIndicators [][3]rune, numBatteries uint8, portIDs []uint8, seed ...uint16) error {
+	err := self.ClearAllGameData()
+	if err != nil {
 		return err
 	}
-    err = SetGameSerialNumber(serialNumber)
-	if err := nil {
+	err = self.SetGameSerialNumber(serialNumber)
+	if err != nil {
 		return err
 	}
-    for (int i = 0; i < length(indlabel); i++){
-        err = SetGameLitIndicator(indlabel[i])
-		if err := nil {
+	for i := 0; i < len(litIndicators); i++ {
+		err = self.SetGameLitIndicator(litIndicators[i])
+		if err != nil {
 			return err
 		}
-    }
-	err = setGameNumBatteries(numBatteries)
-	if err := nil {
+	}
+	err = self.SetGameNumBatteries(numBatteries)
+	if err != nil {
 		return err
 	}
-    for i := 0; i < length(portIDs); i++){
-        err = setGamePortID(portIDs[i])
-		if err := nil {
+	for i := 0; i < len(portIDs); i++ {
+		err = self.SetGamePortID(portIDs[i])
+		if err != nil {
 			return err
 		}
-    }
-    if (seed != nil) {
-        err = setGameSeed(seed)
-		if err := nil {
+	}
+	if len(seed) > 0 {
+		err = self.SetGameSeed(seed[0])
+		if err != nil {
 			return err
 		}
-    }
-    err = setSolvedStatus(0);
-    return 1;
+	}
+	err = self.SetSolvedStatus(0)
+	return nil
 }
