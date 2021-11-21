@@ -12,6 +12,7 @@ type InterProcessCom struct {
 	game  *Controller.GameController
 }
 
+// Creates a new interprocess communicator
 func NewIPC(gamectrl *Controller.GameController) *InterProcessCom {
 	return &InterProcessCom{
 		rpc:   rpc.NewRPC(),
@@ -20,6 +21,7 @@ func NewIPC(gamectrl *Controller.GameController) *InterProcessCom {
 	}
 }
 
+// Safely closes the interprocess communicator
 func (ipc *InterProcessCom) Close() error {
 	ipc.close <- true
 	return nil

@@ -10,6 +10,7 @@ type MultiCastCountdown struct {
 	con net.Conn
 }
 
+// Creates a new multicast connection
 func NewMultiCastCountdown(ip net.IP, port int) (*MultiCastCountdown, error) {
 	var newcon net.Conn
 	var err error
@@ -23,18 +24,23 @@ func NewMultiCastCountdown(ip net.IP, port int) (*MultiCastCountdown, error) {
 	}
 	return &MultiCastCountdown{con: newcon}, nil
 }
-func (m *MultiCastCountdown) SendTimeStrike(time uint32, numStrike uint8) error {
-	_, err := m.con.Write([]byte(fmt.Sprintf("{timeleft:%d,strike:%d}", time, numStrike)))
+
+// Sends current status as a json string to the multicast address
+func (m *MultiCastCountdown) SendTimeStrike(time uint32, numStrike uint8, boom bool, win, bool) error {
+	if win {
+		wins := "true"
+	} else {}
+		wins := "false"
+	}
+	if boom {
+		booms := "true"
+	} else {
+		booms := "false"
+	}
+	_, err := m.con.Write([]byte(fmt.Sprintf("{timeleft:%d,strike:%d,win:%s,boom:%s}", time, numStrike, wins, booms)))
 	return err
 }
-func (m *MultiCastCountdown) SendWin() error {
-	_, err := m.con.Write([]byte("{win:true}"))
-	return err
-}
-func (m *MultiCastCountdown) SendBoom() error {
-	_, err := m.con.Write([]byte("{boom:true}"))
-	return err
-}
+// Resets the segments to zero via a json string to the multicast address
 func (m *MultiCastCountdown) SendReset() error {
 	_, err := m.con.Write([]byte("{win:false,boom:false,timeleft:0,strike:0}"))
 	return err

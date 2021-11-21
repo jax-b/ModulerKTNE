@@ -52,6 +52,7 @@ func NewShieldControl(bus int, buzzerPinNum uint8, strike1PinNum uint8, strike2P
 	sc.modInterruptPin.PullUp()
 	sc.modInterruptPin.Detect(rpio.FallEdge)
 
+	// Start Input checker
 	go func() {
 		stop := false
 		for !stop {
@@ -64,10 +65,12 @@ func NewShieldControl(bus int, buzzerPinNum uint8, strike1PinNum uint8, strike2P
 	}()
 	return sc, nil
 }
+
+// Closes out all functions that are running safely
 func (self *ShieldControl) Close() {
+	self.stopBtnCheck <- true
 	self.seg.Close()
 	rpio.Close()
-	self.stopBtnCheck <- true
 }
 
 // Adds a strike to the display system and plays a sound
@@ -111,6 +114,8 @@ func (self *ShieldControl) TimeSigBeep(multiplier float32) {
 	time.Sleep(time.Millisecond * time.Duration(250*multiplier))
 	self.buzzerPin.DutyCycle(0, 32)
 }
+
+// Writes the name of the game to the display
 func (self *ShieldControl) WriteIdle() {
 	self.seg.Clear()
 	self.seg.WriteAsciiChar(0, 'K', false)
@@ -119,6 +124,9 @@ func (self *ShieldControl) WriteIdle() {
 	self.seg.WriteAsciiChar(4, 'E', true)
 	self.seg.WriteDisplay()
 }
+
+// Converts and writes the time to the display max it can display is 99:60
+// Will move to 49.50 when time is less then 1 minute
 func (self *ShieldControl) WriteTime(timemilis uint32) {
 	self.seg.Clear()
 	var tstring string
@@ -147,22 +155,32 @@ func (self *ShieldControl) WriteTime(timemilis uint32) {
 	}
 	self.seg.WriteDisplay()
 }
+
+// Clears the display
 func (self *ShieldControl) ClearDisplay() {
 	self.seg.Clear()
 	self.seg.WriteDisplay()
 }
+
+// Registers a consumer of the module to controller interrupt line
+// The consumer will have a true sent down it when the interupt line is triggered
 func (self *ShieldControl) RegisterM2CConsumer() chan bool {
 	c := make(chan bool)
 	self.m2cCallbackConsumer = append(self.m2cCallbackConsumer, c)
 
 	return c
 }
+
+// Registers a consumer of the module to the multifunction button
+// Sends how long the button was held for
 func (self *ShieldControl) RegisterMFBConsumer() chan uint16 {
 	c := make(chan uint16)
 	self.mfbCallbackConsumer = append(self.mfbCallbackConsumer, c)
 
 	return c
 }
+
+// Function for checking if the external inputs were pressed and will signal consumers when ready
 func (self *ShieldControl) btnCheck() {
 	// if we have a signal from a downstream controller signal all consumers (nonblocking)
 	if self.modInterruptPin.EdgeDetected() {
