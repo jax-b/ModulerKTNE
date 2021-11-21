@@ -1,4 +1,4 @@
-module github.com/jax-b/ModulerKTNE/Controler
+module github.com/jax-b/ModulerKTNE/Controller
 
 go 1.17
 

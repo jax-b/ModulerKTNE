@@ -1,4 +1,4 @@
-package ModControl
+package controller
 
 import (
 	"math"
