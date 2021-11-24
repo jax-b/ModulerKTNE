@@ -69,8 +69,10 @@ func (self *ModControl) TestIfPresent() bool {
 func (self *ModControl) StopGame() error {
 	_, err := self.i2c.WriteBytes([]byte{0x40})
 	if err != nil {
+		self.log.Error("Failed to write stop to bus:", err)
 		return err
 	}
+	self.log.Debug("Stopped Game")
 	return nil
 }
 
@@ -80,8 +82,10 @@ func (self *ModControl) StopGame() error {
 func (self *ModControl) StartGame() error {
 	_, err := self.i2c.WriteBytes([]byte{0x30})
 	if err != nil {
+		self.log.Error("Failed to write start to bus:", err)
 		return err
 	}
+	self.log.Debug("Started Game")
 	return nil
 }
 
@@ -89,8 +93,10 @@ func (self *ModControl) StartGame() error {
 func (self *ModControl) ClearGameSerialNumber() error {
 	_, err := self.i2c.WriteBytes([]byte{0x24})
 	if err != nil {
+		self.log.Error("Failed to write Clear Serial Number to bus:", err)
 		return err
 	}
+	self.log.Debug("Cleared Game Serial Number")
 	return nil
 }
 
@@ -98,8 +104,10 @@ func (self *ModControl) ClearGameSerialNumber() error {
 func (self *ModControl) ClearGameLitIndicator() error {
 	_, err := self.i2c.WriteBytes([]byte{0x25})
 	if err != nil {
+		self.log.Error("Failed to write Clear Game Lit Indicator to bus:", err)
 		return err
 	}
+	self.log.Debug("Cleared Game Lit Indicator")
 	return nil
 }
 
@@ -107,8 +115,10 @@ func (self *ModControl) ClearGameLitIndicator() error {
 func (self *ModControl) ClearGameNumBatteries() error {
 	_, err := self.i2c.WriteBytes([]byte{0x26})
 	if err != nil {
+		self.log.Error("Failed to write Clear batteries to bus:", err)
 		return err
 	}
+	self.log.Debug("Cleared Game Num Batteries")
 	return nil
 }
 
@@ -116,8 +126,10 @@ func (self *ModControl) ClearGameNumBatteries() error {
 func (self *ModControl) ClearGamePortIDS() error {
 	_, err := self.i2c.WriteBytes([]byte{0x27})
 	if err != nil {
+		self.log.Error("Failed to write Clear Game ID to bus:", err)
 		return err
 	}
+	self.log.Debug("Cleared Game Port IDs")
 	return nil
 }
 
@@ -125,8 +137,10 @@ func (self *ModControl) ClearGamePortIDS() error {
 func (self *ModControl) ClearGameSeed() error {
 	_, err := self.i2c.WriteBytes([]byte{0x28})
 	if err != nil {
+		self.log.Error("Failed to write Clear Game Seed to bus:", err)
 		return err
 	}
+	self.log.Debug("Cleared Game Seed")
 	return nil
 }
 
@@ -137,8 +151,10 @@ func (self *ModControl) ClearGameSeed() error {
 func (self *ModControl) SetSolvedStatus(status int8) error {
 	_, err := self.i2c.WriteBytes([]byte{0x11, byte(status)})
 	if err != nil {
+		self.log.Error("Failed to write Solved Status to bus:", err)
 		return err
 	}
+	self.log.Debug("Set Solved Status", status)
 	return nil
 }
 
@@ -147,8 +163,10 @@ func (self *ModControl) SetSolvedStatus(status int8) error {
 func (self *ModControl) SyncGameTime(value uint32) error {
 	_, err := self.i2c.WriteBytes([]byte{0x20, byte(value >> 24), byte(value >> 16), byte(value >> 8), byte(value)})
 	if err != nil {
+		self.log.Error("Failed to write Sync Game Time to bus:", err)
 		return err
 	}
+	self.log.Debug("Set Game Time", value)
 	return nil
 }
 
@@ -159,8 +177,10 @@ func (self *ModControl) SetStrikeReductionRate(rate float32) error {
 	n := math.Float32bits(rate)
 	_, err := self.i2c.WriteBytes([]byte{0x12, byte(n >> 24), byte(n >> 16), byte(n >> 8), byte(n)})
 	if err != nil {
+		self.log.Error("Failed to write Strike Reduction Rate to bus:", err)
 		return err
 	}
+	self.log.Debug("Set Strike Reduction Rate", rate)
 	return nil
 }
 
@@ -172,8 +192,10 @@ func (self *ModControl) SetGameSerialNumber(serialnumber [8]rune) error {
 	}
 	_, err := self.i2c.WriteBytes(buff)
 	if err != nil {
+		self.log.Error("Failed to write Game Serial Number to bus:", err)
 		return err
 	}
+	self.log.Debug("Set Game Serial Number", serialnumber)
 	return nil
 }
 
@@ -190,8 +212,10 @@ func (self *ModControl) SetGameLitIndicator(indlabel [3]rune) error {
 	}
 	_, err := self.i2c.WriteBytes(buff)
 	if err != nil {
+		self.log.Error("Failed to write Game Lit Indicator to bus:", err)
 		return err
 	}
+	self.log.Debug("Set Game Lit Indicator", indlabel)
 	return nil
 }
 
@@ -200,8 +224,10 @@ func (self *ModControl) SetGameLitIndicator(indlabel [3]rune) error {
 func (self *ModControl) SetGameNumBatteries(num uint8) error {
 	_, err := self.i2c.WriteBytes([]byte{0x15, byte(num)})
 	if err != nil {
+		self.log.Error("Failed to write Game Num Batteries to bus:", err)
 		return err
 	}
+	self.log.Debug("Set Game Num Batteries", num)
 	return nil
 }
 
@@ -214,8 +240,10 @@ func (self *ModControl) SetGameNumBatteries(num uint8) error {
 func (self *ModControl) SetGamePortID(id byte) error {
 	_, err := self.i2c.WriteBytes([]byte{0x16, id})
 	if err != nil {
+		self.log.Error("Failed to write Game Port ID to bus:", err)
 		return err
 	}
+	self.log.Debug("Set Game Port ID", id)
 	return nil
 }
 
@@ -224,8 +252,10 @@ func (self *ModControl) SetGamePortID(id byte) error {
 func (self *ModControl) SetGameSeed(seed uint16) error {
 	_, err := self.i2c.WriteBytes([]byte{0x17, byte(seed >> 8), byte(seed)})
 	if err != nil {
+		self.log.Error("Failed to write Game Seed to bus:", err)
 		return err
 	}
+	self.log.Debug("Set Game Seed", seed)
 	return nil
 }
 
@@ -234,18 +264,21 @@ func (self *ModControl) GetModuleType() ([4]rune, error) {
 	_, err := self.i2c.WriteBytes([]byte{0x00})
 	if err != nil {
 		nothing := [4]rune{}
+		self.log.Error("Failed to write Get Module Type to bus:", err)
 		return nothing, err
 	}
 	buff := make([]byte, 4)
 	numread, err := self.i2c.ReadBytes(buff)
 	if err != nil {
 		nothing := [4]rune{}
+		self.log.Error("Failed to read Get Module Type from bus:", err)
 		return nothing, err
 	}
 	modtype := [4]rune{}
 	for i := 0; i < numread && i < 4; i++ {
 		modtype[i] = rune(buff[i])
 	}
+	self.log.Debug("Get Module Type", modtype)
 	return modtype, nil
 }
 
@@ -253,13 +286,16 @@ func (self *ModControl) GetModuleType() ([4]rune, error) {
 func (self *ModControl) GetSolvedStatus() (int8, error) {
 	_, err := self.i2c.WriteBytes([]byte{0x01})
 	if err != nil {
+		self.log.Error("Failed to write Get Solved Status to bus:", err)
 		return 0, err
 	}
 	buff := make([]byte, 1)
 	_, err = self.i2c.ReadBytes(buff)
 	if err != nil {
+		self.log.Error("Failed to read Get Solved Status from bus:", err)
 		return 0, err
 	}
+	self.log.Debug("Get Solved Status", buff[0])
 	return int8(buff[0]), nil
 }
 
