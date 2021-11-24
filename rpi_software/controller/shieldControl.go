@@ -6,6 +6,7 @@ import (
 
 	"github.com/jax-b/go-i2c7Seg"
 	"github.com/stianeikeland/go-rpio/v4"
+	"go.uber.org/zap"
 )
 
 type ShieldControl struct {
@@ -20,25 +21,28 @@ type ShieldControl struct {
 	m2cCallbackConsumer []chan bool
 	mfbEdge             rpio.Edge
 	stopBtnCheck        chan bool
+	log                 *zap.SugaredLogger
 }
 
-func NewShieldControl(bus int, buzzerPinNum uint8, strike1PinNum uint8, strike2PinNum uint8, modInterruptPinNum uint8, mfbPinNum uint8) (*ShieldControl, error) {
-	i2c, err := i2c7Seg.NewSevenSegI2C(0x70, bus)
+func NewShieldControl(logger *zap.SugaredLogger, cfg *Config) *ShieldControl {
+	logger = logger.Named("ShieldControl")
+	i2c, err := i2c7Seg.NewSevenSegI2C(cfg.Shield.SevenSegAddress, int(cfg.Shield.I2cBusNumber))
 	if err != nil {
-		return nil, err
+		logger.Error("Failed to create i2c7Seg", err)
 	}
 	err = rpio.Open()
 	if err != nil {
-		return nil, err
+		logger.Error("Failed to open rpio", err)
 	}
 	sc := &ShieldControl{
 		seg:             i2c,
 		strikecount:     0,
-		buzzerPin:       rpio.Pin(buzzerPinNum),
-		strike1Pin:      rpio.Pin(strike1PinNum),
-		strike2Pin:      rpio.Pin(strike2PinNum),
-		modInterruptPin: rpio.Pin(modInterruptPinNum),
-		mfbPin:          rpio.Pin(mfbPinNum),
+		buzzerPin:       rpio.Pin(cfg.Shield.BuzzerPinNum),
+		strike1Pin:      rpio.Pin(cfg.Shield.Strike1PinNum),
+		strike2Pin:      rpio.Pin(cfg.Shield.Strike2PinNum),
+		modInterruptPin: rpio.Pin(cfg.Shield.ModInterruptPinNum),
+		mfbPin:          rpio.Pin(cfg.Shield.MfbStartPinNum),
+		log:             logger,
 	}
 	// Configure pins
 	sc.buzzerPin.Mode(rpio.Pwm)
@@ -63,12 +67,13 @@ func NewShieldControl(bus int, buzzerPinNum uint8, strike1PinNum uint8, strike2P
 			}
 		}
 	}()
-	return sc, nil
+	return sc
 }
 
 // Closes out all functions that are running safely
 func (self *ShieldControl) Close() {
 	self.stopBtnCheck <- true
+	self.ClearDisplay()
 	self.seg.Close()
 	rpio.Close()
 }

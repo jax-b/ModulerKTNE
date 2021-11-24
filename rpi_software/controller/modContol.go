@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/d2r2/go-i2c"
+	"go.uber.org/zap"
 )
 
 const (
@@ -27,27 +29,31 @@ const (
 
 type ModControl struct {
 	i2c *i2c.I2C
+	log *zap.SugaredLogger
 }
 
 // Returns a new module controller
-func NewModControl(address byte, bus int) (*ModControl, error) {
+func NewModControl(logger *zap.SugaredLogger, address byte, bus int) *ModControl {
+	logger = logger.Named("ModControl-" + fmt.Sprintf("%02X", address))
 	i2c, err := i2c.NewI2C(address, bus)
 	if err != nil {
-		return nil, err
+		logger.Error("Error opening i2c bus", err)
 	}
 	mc := &ModControl{
 		i2c: i2c,
+		log: logger,
 	}
-	return mc, nil
+	return mc
 }
 
 // Safely closes the i2c connection
 func (self *ModControl) Close() {
+	self.ClearAllGameData()
 	self.i2c.Close()
 }
 
 // Sends 1 byte of data to the module
-// If the byte is not writen then the module is not installed
+// If the byte is not written then the module is not installed
 func (self *ModControl) TestIfPresent() bool {
 	bytesWritten, err := self.i2c.WriteBytes([]byte{0x00})
 	if err != nil {

@@ -2,7 +2,10 @@ package controller
 
 import (
 	"errors"
+	"fmt"
+
 	"github.com/d2r2/go-i2c"
+	"go.uber.org/zap"
 )
 
 const (
@@ -15,17 +18,25 @@ const (
 
 type SideControl struct {
 	i2c *i2c.I2C
+	log *zap.SugaredLogger
 }
 
-func NewSideControl(address byte, bus int) (*SideControl, error) {
+func NewSideControl(logger *zap.SugaredLogger, address byte, bus int) *SideControl {
+	logger = logger.Named("SideControl-" + fmt.Sprintf("%02X", address))
 	i2c, err := i2c.NewI2C(address, bus)
 	if err != nil {
-		return nil, err
+		logger.Error("Error opening i2c bus", err)
 	}
 	sc := &SideControl{
 		i2c: i2c,
+		log: logger,
 	}
-	return sc, nil
+	return sc
+}
+
+func (self *SideControl) Close() {
+	self.ClearAll()
+	self.i2c.Close()
 }
 
 // Sends 1 byte of data to the module
@@ -33,7 +44,7 @@ func NewSideControl(address byte, bus int) (*SideControl, error) {
 func (self *SideControl) TestIfPresent() bool {
 	bytesWritten, err := self.i2c.WriteBytes([]byte{0x00})
 	if err != nil {
-		return false
+		self.log.Error("Error writing to i2c bus", err)
 	}
 	if bytesWritten < 1 {
 		return false

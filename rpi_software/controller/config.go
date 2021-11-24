@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const (
@@ -15,29 +16,34 @@ const (
 	defaultmodInterruptPinNum = 17
 	defaultMFBStartPinNum     = 27
 	defaultSevenSegAddress    = 0x70
+	defaultUseMultiCast       = false
 )
 
 type Config struct {
 	configReader *viper.Viper
+	log          *zap.SugaredLogger
 	// ConfigValues
 	Network struct {
-		MultiCastIP   string `yaml:"multicast_ip"`
-		MultiCastPort int    `yaml:"multicast_port"`
-	} `yaml:"Network"`
+		UseMulticast  bool
+		MultiCastIP   string
+		MultiCastPort int
+	}
 	Shield struct {
-		I2cBusNumber       uint8 `yaml:"i2c_bus_number"`
-		BuzzerPinNum       uint8 `yaml:"buzzer_pin"`
-		Strike1PinNum      uint8 `yaml:"strike_1_pin"`
-		Strike2PinNum      uint8 `yaml:"strike_2_pin"`
-		ModInterruptPinNum uint8 `yaml:"module_interupt_pin"`
-		MfbStartPinNum     uint8 `yaml:"mfb_pin"`
-		SevenSegAddress    uint8 `yaml:"seven_segment_address"`
-	} `yaml:Shield`
+		I2cBusNumber       uint8
+		BuzzerPinNum       uint8
+		Strike1PinNum      uint8
+		Strike2PinNum      uint8
+		ModInterruptPinNum uint8
+		MfbStartPinNum     uint8
+		SevenSegAddress    uint8
+	}
 }
 
-func NewConfig() (*Config, error) {
+func NewConfig(logger *zap.SugaredLogger) *Config {
+	logger.Named("Config")
 	c := &Config{
 		configReader: viper.New(),
+		log:          logger,
 	}
 	c.configReader.SetConfigName("config")
 	c.configReader.SetConfigType("yaml")
@@ -45,6 +51,7 @@ func NewConfig() (*Config, error) {
 	c.configReader.AddConfigPath("/etc/mktne/")
 
 	c.configReader.SetDefault("Network", map[string]string{
+		"UseMultiCast":  "false",
 		"MultiCastIP":   defaultMultiCastIP,
 		"MultiCastPort": defaultMultiCastPort,
 	})
@@ -58,17 +65,15 @@ func NewConfig() (*Config, error) {
 		"SevenSegAddress":    defaultSevenSegAddress,
 	})
 
-	return c, nil
+	return c
 }
-func (c *Config) Load() error {
+func (c *Config) Load() {
 	err := c.configReader.ReadInConfig()
 	if err != nil {
-		return err
+		c.log.Error("Error loading config", err)
 	}
 
 	c.populateFromVipers()
-
-	return nil
 }
 func (c *Config) populateFromVipers() {
 	c.Network.MultiCastIP = c.configReader.GetString("Network.MultiCastIP")
