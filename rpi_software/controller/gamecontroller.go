@@ -14,16 +14,16 @@ type multicast struct {
 	useMulti bool
 	mnetc    *MultiCastCountdown
 }
-type indicator struct {
-	lit   bool
-	label [3]rune
+type Indicator struct {
+	lit   bool    `json:lit`
+	label [3]rune `json:label`
 }
 type gameinfo struct {
 	time       uint32
 	numStrike  int8 //Works just like mod 1 is solved anything negative is a strike
 	run        bool
 	strikerate float32
-	indicator  []indicator
+	indicator  []Indicator
 	port       []byte
 }
 type GameController struct {
@@ -179,6 +179,50 @@ func (self *GameController) SetStrikeRate(rate float32) error {
 		}
 	}
 	self.game.strikerate = rate
+	return nil
+}
+
+// Adds a indicator to the list
+func (self *GameController) AddIndicator(indi Indicator) {
+	self.game.indicator = append(self.game.indicator, indi)
+}
+
+// Gets the currently configured indicators
+func (self *GameController) GetIndicators() []Indicator {
+	return self.game.indicator
+}
+
+// Clears out the current indicators
+func (self *GameController) ClearIndicators() {
+	self.game.indicator = make([]Indicator, 0)
+}
+
+// Adds a port to the list
+func (self *GameController) AddPort(port byte) error {
+	self.game.port = append(self.game.port, port)
+	for i := range self.modules {
+		if self.modules[i].present {
+			err := self.modules[i].mctrl.SetGamePortID(port)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+func (self *GameController) GetPorts() []byte {
+	return self.game.port
+}
+func (self *GameController) ClearPorts() error {
+	self.game.port = make([]byte, 0)
+	for i := range self.modules {
+		if self.modules[i].present {
+			err := self.modules[i].mctrl.ClearGamePortIDS()
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
