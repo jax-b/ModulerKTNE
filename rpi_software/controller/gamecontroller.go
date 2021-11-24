@@ -6,6 +6,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	GAMEPLAYMAXNUMPORT    = 6
+	GAMEPLAYMAXTINDICATOR = 12
+)
+
 type module struct {
 	mctrl   *ModControl
 	present bool
@@ -23,8 +28,10 @@ type gameinfo struct {
 	numStrike  int8 //Works just like mod 1 is solved anything negative is a strike
 	run        bool
 	strikerate float32
-	indicator  []Indicator
-	port       []byte
+	indicators []Indicator
+	port       []uint8
+	serialnum  [8]rune
+	numbat     int
 }
 type GameController struct {
 	sidePanels [4]*SideControl
@@ -184,17 +191,33 @@ func (self *GameController) SetStrikeRate(rate float32) error {
 
 // Adds a indicator to the list
 func (self *GameController) AddIndicator(indi Indicator) {
-	self.game.indicator = append(self.game.indicator, indi)
+	if len(self.game.indicators) > GAMEPLAYMAXTINDICATOR {
+		self.game.indicators[len(self.game.indicators)] = indi
+	} else {
+		self.game.indicators = append(self.game.indicators, indi)
+	}
+	if indi.lit {
+		for i := range self.modules {
+			if self.modules[i].present {
+				self.modules[i].mctrl.SetGameLitIndicator(indi.label)
+			}
+		}
+	}
 }
 
 // Gets the currently configured indicators
 func (self *GameController) GetIndicators() []Indicator {
-	return self.game.indicator
+	return self.game.indicators
 }
 
 // Clears out the current indicators
 func (self *GameController) ClearIndicators() {
-	self.game.indicator = make([]Indicator, 0)
+	for i := range self.modules {
+		if self.modules[i].present {
+			self.modules[i].mctrl.ClearGameLitIndicator()
+		}
+	}
+	self.game.indicators = make([]Indicator, 0)
 }
 
 // Adds a port to the list
@@ -210,9 +233,13 @@ func (self *GameController) AddPort(port byte) error {
 	}
 	return nil
 }
+
+// returns all of the ports that are configured for the game
 func (self *GameController) GetPorts() []byte {
 	return self.game.port
 }
+
+// clears all of the ports that are configured for the game
 func (self *GameController) ClearPorts() error {
 	self.game.port = make([]byte, 0)
 	for i := range self.modules {
@@ -224,6 +251,28 @@ func (self *GameController) ClearPorts() error {
 		}
 	}
 	return nil
+}
+
+// Sets the current game serial number
+func (self *GameController) SetSerial(serial string) error {
+	for i := range serial {
+		if i > len(self.game.serialnum) {
+			break
+		}
+		self.game.serialnum[i] = rune(serial[i])
+	}
+	for i := range self.modules {
+		if self.modules[i].present {
+			err := self.modules[i].mctrl.SetGameSerialNumber(self.game.serialnum)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+func (self *GameController) GetSerial() string {
+	return string(self.game.serialnum[0:])
 }
 
 // Starts the game
@@ -254,6 +303,22 @@ func (self *GameController) StopGame() error {
 		self.gameStopCh <- true
 	}
 	return nil
+}
+func (self *GameController) ModFullUpdate(modnum int) {
+	var litindi [][3]rune
+	for i := range self.game.indicators {
+		if self.game.indicators[i].lit {
+			litindi = append(litindi, self.game.indicators[i].label)
+		}
+	}
+	self.modules[modnum].mctrl.SetupAllGameData(
+		self.game.serialnum,
+		litindi,
+		uint8(self.game.numbat),
+		self.game.port,
+	)
+	self.modules[modnum].mctrl.SetStrikeReductionRate(self.game.strikerate)
+	self.modules[modnum].mctrl.SetSolvedStatus(self.game.numStrike)
 }
 
 // ******** Will have to have a bunch of work done on it to include all of the necessary functions
@@ -294,6 +359,10 @@ func (self *GameController) timerRunOut() {
 // Polls all possible module addresses and sees if something is their. Updates the class variables
 func (self *GameController) scanModules() {
 	for i := range self.modules {
+		laststate := self.modules[i].present
 		self.modules[i].present = self.modules[i].mctrl.TestIfPresent()
+		if laststate != self.modules[i].present && self.modules[i].present {
+			self.ModFullUpdate(i)
+		}
 	}
 }

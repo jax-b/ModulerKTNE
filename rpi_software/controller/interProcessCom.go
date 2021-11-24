@@ -121,7 +121,7 @@ func (self *InterProcessCom) commandTree() {
 					buffer := []byte("mktne.game.strike:")
 					buffer = append(buffer, []byte(strconv.Itoa(int(strikes)))...)
 					ipcwerr = self.ipc.Write(2, buffer)
-				case "set_strike_rate":
+				case "set_strike_rate": // Attempts to set the strike rate. This command will be automatically followed by get_strike_rate
 					strikeRate, err := strconv.ParseFloat(messagesCMDDTA[1], 32)
 					if err != nil {
 						self.log.Error("Failed to convert strike rate:", err)
@@ -142,7 +142,20 @@ func (self *InterProcessCom) commandTree() {
 					buffer := []byte("mktne.game.strike_rate:")
 					buffer = append(buffer, []byte(strconv.FormatFloat(float64(strikeRate), 'f', 2, 32))...)
 					ipcwerr = self.ipc.Write(2, buffer)
-				case "add_indicator":
+				case "set_serialnumber": // Attempts to set the serial number. This command will be automatically followed by get_serialnumber
+					serialNumber := messagesCMDDTA[1]
+					err := self.game.SetSerial(serialNumber)
+					if err != nil {
+						self.log.Error("Failed to set the serial number", err)
+						self.ipc.Write(1, []byte("mktne.game.set_serialnumber.error"))
+						break
+					}
+					self.log.Info("Set serial number to:", serialNumber)
+					self.ipc.Write(1, []byte("mktne.game.set_serialnumber.ok"))
+					fallthrough
+				case "get_serialnumber":
+					self.ipc.Write(1, []byte("mktne.game.serialnumber:"+self.game.GetSerial()))
+				case "add_indicator": // Attempts to add a indicator to the list. This command will be automatically followed by get_indicators.
 					var indiobj Indicator
 					err := json.Unmarshal([]byte(messagesCMDDTA[1]), &indiobj)
 					if err != nil {
@@ -170,7 +183,7 @@ func (self *InterProcessCom) commandTree() {
 					self.game.ClearIndicators()
 					self.log.Info("Cleared Active Indicators")
 					ipcwerr = self.ipc.Write(1, []byte("mktne.game.clear_indicators.ok"))
-				case "add_port":
+				case "add_port": // Attempts to add a port to the list. This command will be automatically followed by get_ports.
 					portInt64, err := strconv.ParseInt(messagesCMDDTA[1], 10, 8)
 					if err != nil {
 						self.log.Error("Failed to convert port:", err)
