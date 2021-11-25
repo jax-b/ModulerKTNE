@@ -1,9 +1,18 @@
 package controller
 
 import (
+	"math/rand"
+	"syscall"
 	"time"
 
+	"github.com/jax-b/ModulerKTNE/rpi_software/util"
 	"go.uber.org/zap"
+)
+
+var (
+	VALID_INDICATORS       []string = []string{"SND", "CLR", "CAR", "IND", "FRQ", "SIG", "NSA", "MSA", "TRN", "BOB", "FRK"}
+	VALID_PORT_ID          []string = []string{"DVI", "PAR", "PS2", "RJ4", "SER", "RCA"}
+	VALID_PORTS_TRANSLATED []byte   = []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
 )
 
 const (
@@ -34,15 +43,17 @@ type gameinfo struct {
 	numbat     int
 }
 type GameController struct {
-	sidePanels [4]*SideControl
-	modules    [10]module
-	multicast  multicast
-	game       gameinfo
-	rpishield  *ShieldControl
-	ipc        *InterProcessCom
-	cfg        *Config
-	gameStopCh chan bool
-	log        *zap.SugaredLogger
+	sidePanels     [4]*SideControl
+	modules        [10]module
+	multicast      multicast
+	game           gameinfo
+	rpishield      *ShieldControl
+	ipc            *InterProcessCom
+	cfg            *Config
+	timerStopCh    chan bool
+	btnWatchStopCh chan bool
+	log            *zap.SugaredLogger
+	rnd            *rand.Rand
 }
 
 func NewGameCtrlr() *GameController {
@@ -60,9 +71,11 @@ func NewGameCtrlr() *GameController {
 
 	// Create the GameController Object
 	gc := &GameController{
-		rpishield: rpis,
-		cfg:       cfg,
-		log:       logger,
+		rpishield:      rpis,
+		cfg:            cfg,
+		log:            logger,
+		btnWatchStopCh: make(chan bool),
+		timerStopCh:    make(chan bool),
 		game: gameinfo{
 			run:        false,
 			numStrike:  0,
@@ -99,11 +112,20 @@ func NewGameCtrlr() *GameController {
 		gc.multicast.useMulti = false
 	}
 
+	// Initalize RNG
+	var src util.CryptoSource
+	rnd := rand.New(src)
+	gc.rnd = rnd
+
+	go gc.buttonWatcher()
+
 	return gc
 }
 
 // Safe Shutdown of all components
 func (self *GameController) Close() {
+	go func() { self.timerStopCh <- true }()
+	self.btnWatchStopCh <- true
 	// flush the logger
 	self.log.Sync()
 	// Close all of the modules
@@ -121,7 +143,6 @@ func (self *GameController) Close() {
 	if self.multicast.useMulti {
 		self.multicast.mnetc.Close()
 	}
-
 	//Close the IPC
 	self.ipc.Close()
 }
@@ -271,6 +292,7 @@ func (self *GameController) SetSerial(serial string) error {
 	}
 	return nil
 }
+
 func (self *GameController) GetSerial() string {
 	return string(self.game.serialnum[0:])
 }
@@ -284,9 +306,9 @@ func (self *GameController) StartGame() error {
 			self.modules[i].mctrl.StartGame()
 		}
 	}
-	self.gameStopCh = make(chan bool)
+	self.timerStopCh = make(chan bool)
 	self.game.run = true
-	go self.timer(self.gameStopCh)
+	go self.timer(self.timerStopCh)
 	return nil
 }
 
@@ -300,10 +322,12 @@ func (self *GameController) StopGame() error {
 			}
 		}
 
-		self.gameStopCh <- true
+		self.timerStopCh <- true
 	}
 	return nil
 }
+
+// Update the specified module with all of the game values
 func (self *GameController) ModFullUpdate(modnum int) {
 	var litindi [][3]rune
 	for i := range self.game.indicators {
@@ -319,6 +343,67 @@ func (self *GameController) ModFullUpdate(modnum int) {
 	)
 	self.modules[modnum].mctrl.SetStrikeReductionRate(self.game.strikerate)
 	self.modules[modnum].mctrl.SetSolvedStatus(self.game.numStrike)
+}
+
+// MFB tracker
+func (self *GameController) buttonWatcher() {
+	mfb := self.rpishield.RegisterMFBConsumer()
+	for {
+		select {
+		case presstimeint := <-mfb:
+			// wait for a button press
+			presstime := time.Duration(presstimeint) * time.Millisecond
+			if presstime > 50 {
+				if !self.game.run {
+					self.randomPopulate()
+					self.StartGame()
+				} else {
+					self.timerRunOut()
+				}
+			} else if presstime > 5*time.Second {
+				self.Close()
+				syscall.Shutdown(0, 0)
+			}
+		case <-self.btnWatchStopCh:
+			break
+		}
+	}
+}
+
+func (self *GameController) randomPopulate() {
+	// Serial number generation
+	serialLen := self.rnd.Intn(8-6) + 6
+	serial := make([]byte, serialLen)
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	for i := range serial {
+		serial[i] = charset[self.rnd.Intn(len(charset))]
+	}
+	self.SetSerial(string(serial))
+
+	// Indicator Generation
+	numIndicator := self.rnd.Intn(GAMEPLAYMAXTINDICATOR)
+	self.ClearIndicators()
+	for i := 0; i < numIndicator; i++ {
+		indilbl := VALID_INDICATORS[self.rnd.Intn(len(VALID_INDICATORS))]
+		indilit := self.rnd.Intn(2) == 1
+		var indilblrn [3]rune
+		for i := range indilblrn {
+			indilblrn[i] = rune(indilbl[i])
+		}
+		indi := Indicator{
+			label: indilblrn,
+			lit:   indilit,
+		}
+		self.AddIndicator(indi)
+	}
+
+	// Port Generation
+	numPort := self.rnd.Intn(GAMEPLAYMAXNUMPORT)
+	self.ClearPorts()
+	for i := 0; i < numPort; i++ {
+		port := VALID_PORTS_TRANSLATED[self.rnd.Intn(len(VALID_PORT_ID))]
+		self.AddPort(port)
+	}
 }
 
 // this function is the timekeeper for the game
