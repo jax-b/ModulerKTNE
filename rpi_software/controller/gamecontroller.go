@@ -321,11 +321,11 @@ func (self *GameController) ModFullUpdate(modnum int) {
 	self.modules[modnum].mctrl.SetSolvedStatus(self.game.numStrike)
 }
 
-// ******** Will have to have a bunch of work done on it to include all of the necessary functions
 // this function is the timekeeper for the game
 func (self *GameController) timer(StopCh chan bool) {
 	ticker := time.NewTicker(time.Millisecond)
 	countTicker := time.NewTicker(time.Second * 30)
+	extratick := 0
 	for {
 		select {
 		case <-StopCh:
@@ -333,6 +333,15 @@ func (self *GameController) timer(StopCh chan bool) {
 		case <-ticker.C:
 			// Need to add reduction rate
 			self.game.time--
+			if self.game.numStrike < 0 {
+				everyrate := int((1 / self.game.strikerate) / (-1 * float32(self.game.numStrike)))
+				if extratick >= everyrate {
+					self.game.time--
+					extratick = 0
+				} else {
+					extratick++
+				}
+			}
 		case <-countTicker.C:
 			go self.UpdateModTime()
 			go self.ipc.SyncStatus(self.game.time, self.game.numStrike, false, false)
