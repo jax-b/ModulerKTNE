@@ -32,35 +32,35 @@ func NewMultiCastCountdown(logger *zap.SugaredLogger, cfg *Config) (*MultiCastCo
 	return &MultiCastCountdown{con: newcon, log: logger}, nil
 }
 
-func (self *MultiCastCountdown) Close() {
-	self.con.Close()
+func (smcc *MultiCastCountdown) Close() {
+	smcc.con.Close()
 }
 
-func (self *MultiCastCountdown) ChangeIP(ip string) error {
+func (smcc *MultiCastCountdown) ChangeIP(ip string) error {
 	nip := net.IP(ip)
 	if !nip.IsMulticast() {
 		return errors.New("IP is not a multicast address: " + ip)
 	}
-	port := strings.Split(self.con.LocalAddr().String(), ":")[1]
+	port := strings.Split(smcc.con.LocalAddr().String(), ":")[1]
 	portint, err := strconv.ParseInt(port, 10, 16)
 	if err != nil {
 		return err
 	}
-	self.con.Close()
-	self.con, err = net.DialUDP("udp", nil, &net.UDPAddr{IP: nip, Port: int(portint)})
+	smcc.con.Close()
+	smcc.con, err = net.DialUDP("udp", nil, &net.UDPAddr{IP: nip, Port: int(portint)})
 	return err
 }
 
-func (self *MultiCastCountdown) ChangePort(port int) error {
-	ip := strings.Split(self.con.LocalAddr().String(), ":")[0]
-	self.con.Close()
+func (smcc *MultiCastCountdown) ChangePort(port int) error {
+	ip := strings.Split(smcc.con.LocalAddr().String(), ":")[0]
+	smcc.con.Close()
 	var err error
-	self.con, err = net.DialUDP("udp", nil, &net.UDPAddr{IP: net.IP(ip), Port: port})
+	smcc.con, err = net.DialUDP("udp", nil, &net.UDPAddr{IP: net.IP(ip), Port: port})
 	return err
 }
 
 // Sends current status as a json string to the multicast address
-func (self *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom bool, win bool) error {
+func (smcc *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom bool, win bool) error {
 	wins := "false"
 	booms := "false"
 	if win {
@@ -69,12 +69,12 @@ func (self *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom boo
 	if boom {
 		booms = "true"
 	}
-	_, err := self.con.Write([]byte(fmt.Sprintf("{timeleft:%d,strike:%d,win:%s,boom:%s}", time, numStrike, wins, booms)))
+	_, err := smcc.con.Write([]byte(fmt.Sprintf("{timeleft:%d,strike:%d,win:%s,boom:%s}", time, numStrike, wins, booms)))
 	return err
 }
 
 // Resets the segments to zero via a json string to the multicast address
-func (self *MultiCastCountdown) SendReset() error {
-	_, err := self.con.Write([]byte("{win:false,boom:false,timeleft:0,strike:0}"))
+func (smcc *MultiCastCountdown) SendReset() error {
+	_, err := smcc.con.Write([]byte("{win:false,boom:false,timeleft:0,strike:0}"))
 	return err
 }

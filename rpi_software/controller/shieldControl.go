@@ -56,84 +56,87 @@ func NewShieldControl(logger *zap.SugaredLogger, cfg *Config) *ShieldControl {
 	sc.modInterruptPin.PullUp()
 	sc.modInterruptPin.Detect(rpio.FallEdge)
 
+	return sc
+}
+
+func (ssc *ShieldControl) Run() {
 	// Start Input checker
 	go func() {
 		stop := false
 		for !stop {
-			sc.btnCheck()
+			ssc.btnCheck()
 			select {
-			case stop = <-sc.stopBtnCheck:
+			case stop = <-ssc.stopBtnCheck:
 			default:
 			}
 		}
 	}()
-	return sc
 }
 
 // Closes out all functions that are running safely
-func (self *ShieldControl) Close() {
-	self.stopBtnCheck <- true
-	self.ClearDisplay()
-	self.seg.Close()
+func (ssc *ShieldControl) Close() {
+	ssc.stopBtnCheck <- true
+	ssc.ClearDisplay()
+	ssc.seg.Close()
 	rpio.Close()
 }
 
 // Adds a strike to the display system and plays a sound
-func (self *ShieldControl) AddStrike() {
-	self.strikecount++
+func (ssc *ShieldControl) AddStrike() {
+	ssc.strikecount++
 	// span strike sound in a seprate concurent
-	go self.buzzStrikeSound()
-	if self.strikecount == 1 {
-		self.strike1Pin.High()
-		self.strike2Pin.Low()
-	} else if self.strikecount == 2 {
-		self.strike1Pin.High()
-		self.strike2Pin.High()
+	go ssc.buzzStrikeSound()
+	if ssc.strikecount == 1 {
+		ssc.strike1Pin.High()
+		ssc.strike2Pin.Low()
+	} else if ssc.strikecount == 2 {
+		ssc.strike1Pin.High()
+		ssc.strike2Pin.High()
 	} else {
-		self.strike1Pin.Low()
-		self.strike2Pin.High()
+		ssc.strike1Pin.Low()
+		ssc.strike2Pin.High()
 	}
 }
 
 // Resets the strike to zero
-func (self *ShieldControl) ResetStrike() {
-	self.strikecount = 0
-	self.strike1Pin.Low()
-	self.strike2Pin.Low()
+func (ssc *ShieldControl) ResetStrike() {
+	ssc.strikecount = 0
+	ssc.strike1Pin.Low()
+	ssc.strike2Pin.Low()
 }
 
 // plays the sound of a strike
-func (self *ShieldControl) buzzStrikeSound() {
-	self.buzzerPin.Freq(64000)
-	self.buzzerPin.DutyCycle(16, 32)
+func (ssc *ShieldControl) buzzStrikeSound() {
+	ssc.buzzerPin.Freq(64000)
+	ssc.buzzerPin.DutyCycle(16, 32)
 	time.Sleep(time.Millisecond * 500)
-	self.buzzerPin.DutyCycle(0, 32)
+	ssc.buzzerPin.DutyCycle(0, 32)
 }
 
 // TimeClockSignal
-func (self *ShieldControl) TimeSigBeep(multiplier float32) {
-	self.buzzerPin.Freq(600)
-	self.buzzerPin.DutyCycle(16, 32)
+func (ssc *ShieldControl) TimeSigBeep(multiplier float32) {
+	ssc.buzzerPin.Freq(600)
+	ssc.buzzerPin.DutyCycle(16, 32)
 	time.Sleep(time.Millisecond * time.Duration(350*multiplier))
-	self.buzzerPin.Freq(60)
+	ssc.buzzerPin.Freq(60)
 	time.Sleep(time.Millisecond * time.Duration(250*multiplier))
-	self.buzzerPin.DutyCycle(0, 32)
+	ssc.buzzerPin.DutyCycle(0, 32)
 }
 
 // Writes the name of the game to the display
-func (self *ShieldControl) WriteIdle() {
-	self.seg.Clear()
-	self.seg.WriteAsciiChar(0, 'K', false)
-	self.seg.WriteAsciiChar(1, 'T', true)
-	self.seg.WriteAsciiChar(3, 'N', false)
-	self.seg.WriteAsciiChar(4, 'E', true)
-	self.seg.WriteDisplay()
+func (ssc *ShieldControl) WriteIdle() {
+	ssc.seg.Clear()
+	ssc.seg.WriteAsciiChar(0, 'K', false)
+	ssc.seg.WriteAsciiChar(1, 'T', true)
+	ssc.seg.WriteAsciiChar(3, 'N', false)
+	ssc.seg.WriteAsciiChar(4, 'E', true)
+	ssc.seg.WriteDisplay()
 }
 
 // Converts and writes the time to the display max it can display is 99:60
 // Will move to 49.50 when time is less then 1 minute
-func (self *ShieldControl) WriteTime(timemilis uint32) {
-	self.seg.Clear()
+func (ssc *ShieldControl) WriteTime(timemilis uint32) {
+	ssc.seg.Clear()
 	var tstring string
 	timemilisf := float32(timemilis)
 	MinutesRemaining := int(timemilisf*0.001) / 60
@@ -145,81 +148,81 @@ func (self *ShieldControl) WriteTime(timemilis uint32) {
 		tstring = fmt.Sprintf("%2d:%02d", MinutesRemaining, SecondsRemaining)
 		trune := []rune(tstring)
 		for i := uint8(0); i < 5; i++ {
-			self.seg.WriteAsciiChar(i, byte(trune[i]), false)
+			ssc.seg.WriteAsciiChar(i, byte(trune[i]), false)
 		}
-		self.seg.DrawColon(true)
+		ssc.seg.DrawColon(true)
 	} else {
 		hundtensec := int(timemilisf*0.1) % 100
 		tstring = fmt.Sprintf("%2d.%02d", SecondsRemaining, hundtensec)
 
 		trune := []rune(tstring)
-		self.seg.WriteAsciiChar(0, byte(trune[0]), false)
-		self.seg.WriteAsciiChar(1, byte(trune[1]), true)
-		self.seg.WriteAsciiChar(3, byte(trune[3]), false)
-		self.seg.WriteAsciiChar(4, byte(trune[4]), false)
+		ssc.seg.WriteAsciiChar(0, byte(trune[0]), false)
+		ssc.seg.WriteAsciiChar(1, byte(trune[1]), true)
+		ssc.seg.WriteAsciiChar(3, byte(trune[3]), false)
+		ssc.seg.WriteAsciiChar(4, byte(trune[4]), false)
 	}
-	self.seg.WriteDisplay()
+	ssc.seg.WriteDisplay()
 }
 
 // Clears the display
-func (self *ShieldControl) ClearDisplay() {
-	self.seg.Clear()
-	self.seg.WriteDisplay()
+func (ssc *ShieldControl) ClearDisplay() {
+	ssc.seg.Clear()
+	ssc.seg.WriteDisplay()
 }
 
 // Registers a consumer of the module to controller interrupt line
 // The consumer will have a true sent down it when the interupt line is triggered
-func (self *ShieldControl) RegisterM2CConsumer() chan bool {
+func (ssc *ShieldControl) RegisterM2CConsumer() chan bool {
 	c := make(chan bool)
-	self.m2cCallbackConsumer = append(self.m2cCallbackConsumer, c)
+	ssc.m2cCallbackConsumer = append(ssc.m2cCallbackConsumer, c)
 
 	return c
 }
 
 // Registers a consumer of the module to the multifunction button
 // Sends how long the button was held for
-func (self *ShieldControl) RegisterMFBConsumer() chan uint16 {
+func (ssc *ShieldControl) RegisterMFBConsumer() chan uint16 {
 	c := make(chan uint16)
-	self.mfbCallbackConsumer = append(self.mfbCallbackConsumer, c)
+	ssc.mfbCallbackConsumer = append(ssc.mfbCallbackConsumer, c)
 
 	return c
 }
 
 // Function for checking if the external inputs were pressed and will signal consumers when ready
-func (self *ShieldControl) btnCheck() {
+func (ssc *ShieldControl) btnCheck() {
 	// if we have a signal from a downstream controller signal all consumers (nonblocking)
-	if self.modInterruptPin.EdgeDetected() {
-		for _, c := range self.m2cCallbackConsumer {
+	if ssc.modInterruptPin.EdgeDetected() {
+		for _, c := range ssc.m2cCallbackConsumer {
 			go func(c chan bool) {
 				c <- true
 			}(c)
 		}
 	}
 	// if the button state is changed, and we are looking for a press
-	if self.mfbPin.EdgeDetected() && self.mfbEdge == rpio.RiseEdge {
+	if ssc.mfbPin.EdgeDetected() && ssc.mfbEdge == rpio.RiseEdge {
 		// Span a new concurent to wait for release
 		go func() {
 			// Set up the edge detection
-			self.mfbEdge = rpio.FallEdge
-			self.mfbPin.Detect(rpio.FallEdge)
+			ssc.mfbEdge = rpio.FallEdge
+			ssc.mfbPin.Detect(rpio.FallEdge)
 			// Record time of press
 			mfbPush := time.Now()
 			// Wait for release
-			for !self.mfbPin.EdgeDetected() {
+			for !ssc.mfbPin.EdgeDetected() {
 			}
 			// Record time of release and compute difference
 			mfbRelease := time.Now()
 			mfbPushTime := uint16(mfbRelease.Sub(mfbPush).Milliseconds())
 			// Signal all consumers for how long the button was pressed
-			for _, c := range self.mfbCallbackConsumer {
+			for _, c := range ssc.mfbCallbackConsumer {
 				// Non blocking channel update
 				go func(c chan uint16) {
 					c <- mfbPushTime
 				}(c)
 			}
 			// Reset edge detection
-			self.mfbEdge = rpio.RiseEdge
-			self.mfbPin.Detect(rpio.RiseEdge)
+			ssc.mfbEdge = rpio.RiseEdge
+			ssc.mfbPin.Detect(rpio.RiseEdge)
 		}()
 	}
 }

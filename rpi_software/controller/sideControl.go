@@ -34,17 +34,17 @@ func NewSideControl(logger *zap.SugaredLogger, address byte, bus int) *SideContr
 	return sc
 }
 
-func (self *SideControl) Close() {
-	self.ClearAll()
-	self.i2c.Close()
+func (ssc *SideControl) Close() {
+	ssc.ClearAll()
+	ssc.i2c.Close()
 }
 
 // Sends 1 byte of data to the module
 // If the byte is not writen then the module is not installed
-func (self *SideControl) TestIfPresent() bool {
-	bytesWritten, err := self.i2c.WriteBytes([]byte{0x00})
+func (ssc *SideControl) TestIfPresent() bool {
+	bytesWritten, err := ssc.i2c.WriteBytes([]byte{0x00})
 	if err != nil {
-		self.log.Error("Error writing to i2c bus", err)
+		ssc.log.Error("Error writing to i2c bus", err)
 	}
 	if bytesWritten < 1 {
 		return false
@@ -53,15 +53,15 @@ func (self *SideControl) TestIfPresent() bool {
 }
 
 // Set Serial Number
-func (self *SideControl) SetSerialNumber(serialnumber [8]rune) error {
-	if self.i2c.GetAddr() != RIGHT_PANEL {
+func (ssc *SideControl) SetSerialNumber(serialnumber [8]rune) error {
+	if ssc.i2c.GetAddr() != RIGHT_PANEL {
 		return errors.New("Serial Number is not supported on this side")
 	}
 	buff := []byte{0x10}
 	for i := 0; i < 8; i++ {
 		buff = append(buff, byte(serialnumber[i]))
 	}
-	_, err := self.i2c.WriteBytes(buff)
+	_, err := ssc.i2c.WriteBytes(buff)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (self *SideControl) SetSerialNumber(serialnumber [8]rune) error {
 // Max 2 per side
 // Once one it set caling this function again will set the other indicator for that panel
 // If both are set the last one will be replaced with the new value
-func (self *SideControl) SetIndicator(lit bool, indlabel [3]rune) error {
+func (ssc *SideControl) SetIndicator(lit bool, indlabel [3]rune) error {
 	var bitlit byte
 	if lit {
 		bitlit = 1
@@ -81,7 +81,7 @@ func (self *SideControl) SetIndicator(lit bool, indlabel [3]rune) error {
 	for i := 0; i < 3; i++ {
 		buff = append(buff, byte(indlabel[i]))
 	}
-	_, err := self.i2c.WriteBytes(buff)
+	_, err := ssc.i2c.WriteBytes(buff)
 	if err != nil {
 		return err
 	}
@@ -113,8 +113,8 @@ func (self *SideControl) SetIndicator(lit bool, indlabel [3]rune) error {
 // 1 = Serial
 // 1 = SteroRCA
 // 0x8b would be a parallel port with PS/2 and RJ45
-func (self *SideControl) SetSideArt(artcode byte) error {
-	_, err := self.i2c.WriteBytes([]byte{0x12, artcode})
+func (ssc *SideControl) SetSideArt(artcode byte) error {
+	_, err := ssc.i2c.WriteBytes([]byte{0x12, artcode})
 	if err != nil {
 		return err
 	}
@@ -123,11 +123,11 @@ func (self *SideControl) SetSideArt(artcode byte) error {
 
 // Clears the serial number
 // only works if the address of this instance is the RIGHT_PANEL address
-func (self *SideControl) ClearSerialNumber() error {
-	if self.i2c.GetAddr() != RIGHT_PANEL {
+func (ssc *SideControl) ClearSerialNumber() error {
+	if ssc.i2c.GetAddr() != RIGHT_PANEL {
 		return errors.New("Serial Number is not supported on this side")
 	}
-	_, err := self.i2c.WriteBytes([]byte{0x20})
+	_, err := ssc.i2c.WriteBytes([]byte{0x20})
 	if err != nil {
 		return err
 	}
@@ -135,8 +135,8 @@ func (self *SideControl) ClearSerialNumber() error {
 }
 
 // Clears all set indicators from the panel
-func (self *SideControl) ClearAllIndicator() error {
-	_, err := self.i2c.WriteBytes([]byte{0x21})
+func (ssc *SideControl) ClearAllIndicator() error {
+	_, err := ssc.i2c.WriteBytes([]byte{0x21})
 	if err != nil {
 		return err
 	}
@@ -144,8 +144,8 @@ func (self *SideControl) ClearAllIndicator() error {
 }
 
 // Clears all SideArt from the panel
-func (self *SideControl) ClearAllSideArt() error {
-	_, err := self.i2c.WriteBytes([]byte{0x22})
+func (ssc *SideControl) ClearAllSideArt() error {
+	_, err := ssc.i2c.WriteBytes([]byte{0x22})
 	if err != nil {
 		return err
 	}
@@ -153,18 +153,18 @@ func (self *SideControl) ClearAllSideArt() error {
 }
 
 // Clears Everything from the panel
-func (self *SideControl) ClearAll() error {
-	if self.i2c.GetAddr() == RIGHT_PANEL {
-		err := self.ClearSerialNumber()
+func (ssc *SideControl) ClearAll() error {
+	if ssc.i2c.GetAddr() == RIGHT_PANEL {
+		err := ssc.ClearSerialNumber()
 		if err != nil {
 			return err
 		}
 	}
-	err := self.ClearAllIndicator()
+	err := ssc.ClearAllIndicator()
 	if err != nil {
 		return err
 	}
-	err = self.ClearAllSideArt()
+	err = ssc.ClearAllSideArt()
 	if err != nil {
 		return err
 	}
