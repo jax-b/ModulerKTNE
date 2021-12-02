@@ -56,11 +56,9 @@ type GameController struct {
 	rnd            *rand.Rand
 }
 
-func NewGameCtrlr() *GameController {
+func NewGameCtrlr(runAsDamon bool) *GameController {
 	// Set up the program logger
-	zapl, _ := zap.NewProduction()
-	logger := zapl.Sugar()
-	logger = logger.Named("MKTNE")
+	logger := NewLogger(runAsDamon)
 
 	// Load the configuration
 	cfg := NewConfig(logger)
