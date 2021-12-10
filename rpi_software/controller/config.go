@@ -7,7 +7,7 @@ import (
 
 const (
 	// Default Config
-	defaultMultiCastIP        = "228.246.151.248"
+	defaultMultiCastIP        = "228.74.66.248"
 	defaultMultiCastPort      = "26960"
 	defaultI2cBusNumber       = 1
 	defaultbuzzerPinNum       = 18

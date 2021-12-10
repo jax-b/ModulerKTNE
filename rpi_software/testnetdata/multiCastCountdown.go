@@ -1,4 +1,4 @@
-package controller
+package testnetdata
 
 import (
 	"errors"
@@ -27,7 +27,7 @@ func NewMultiCastCountdown(logger *zap.SugaredLogger, cfg *Config) (*MultiCastCo
 			return nil, err
 		}
 	} else {
-		return nil, errors.New("IP is not a multicast address")
+		return nil, errors.New("IP is not a multicast address: " + ip.String())
 	}
 	return &MultiCastCountdown{con: newcon, log: logger}, nil
 }
