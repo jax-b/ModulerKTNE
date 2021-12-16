@@ -153,7 +153,7 @@ func (sgc *GameController) Close() {
 
 	// Close multicast if used
 	if sgc.multicast.useMulti {
-		sgc.multicast.mnetc.SendStatus(0, 0, false, false)
+		sgc.multicast.mnetc.SendStatus(0, 0, false, false, false, sgc.game.strikerate)
 		sgc.multicast.mnetc.Close()
 	}
 	//Close the IPC
@@ -177,7 +177,7 @@ func (sgc *GameController) solvedCheck() {
 				sgc.StopGame()
 				sgc.ipc.SyncStatus(sgc.game.time, sgc.game.numstrike, false, true)
 				if sgc.multicast.useMulti {
-					sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, true)
+					sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, true, false, sgc.game.strikerate)
 				}
 			}
 		}
@@ -258,7 +258,7 @@ func (sgc *GameController) AddStrike() {
 	sgc.game.numstrike--
 	if sgc.game.numstrike > sgc.game.maxstrike {
 		if sgc.multicast.useMulti {
-			sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, true, false)
+			sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, true, false, sgc.game.run, sgc.game.strikerate)
 		}
 		sgc.ipc.SyncStatus(sgc.game.time, sgc.game.numstrike, true, false)
 	} else {
@@ -272,7 +272,7 @@ func (sgc *GameController) AddStrike() {
 		}
 		sgc.rpishield.AddStrike()
 		if sgc.multicast.useMulti {
-			sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, false)
+			sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, false, sgc.game.run, sgc.game.strikerate)
 		}
 		sgc.ipc.SyncStatus(sgc.game.time, sgc.game.numstrike, false, false)
 	}
@@ -499,7 +499,7 @@ func (sgc *GameController) randomPopulate() {
 // it will stop the game when the time runs out
 func (sgc *GameController) timer(StopCh chan bool) {
 	ticker := time.NewTicker(time.Millisecond)
-	countTicker := time.NewTicker(time.Second * 30)
+	countTicker := time.NewTicker(time.Second * 10)
 	extratick := 0
 	for {
 		select {
@@ -521,7 +521,7 @@ func (sgc *GameController) timer(StopCh chan bool) {
 			go sgc.UpdateModTime()
 			go sgc.ipc.SyncStatus(sgc.game.time, sgc.game.numstrike, false, false)
 			if sgc.multicast.useMulti {
-				go sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, false)
+				go sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, false, sgc.game.run, sgc.game.strikerate)
 			}
 		}
 		if sgc.game.time == 0 {
@@ -535,7 +535,7 @@ func (sgc *GameController) timer(StopCh chan bool) {
 func (sgc *GameController) timerRunOut() {
 	sgc.StopGame()
 	if sgc.multicast.useMulti {
-		sgc.multicast.mnetc.SendStatus(0, sgc.game.numstrike, true, false)
+		sgc.multicast.mnetc.SendStatus(0, sgc.game.numstrike, true, false, false, sgc.game.strikerate)
 	}
 	sgc.ipc.SyncStatus(0, sgc.game.numstrike, true, false)
 }

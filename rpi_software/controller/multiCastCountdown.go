@@ -60,16 +60,20 @@ func (smcc *MultiCastCountdown) ChangePort(port int) error {
 }
 
 // Sends current status as a json string to the multicast address
-func (smcc *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom bool, win bool) error {
+func (smcc *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom bool, win bool, run bool, strikerate float32) error {
 	wins := "false"
 	booms := "false"
+	runs := "false"
 	if win {
 		wins = "true"
 	}
 	if boom {
 		booms = "true"
 	}
-	_, err := smcc.con.Write([]byte(fmt.Sprintf("{timeleft:%d,strike:%d,win:%s,boom:%s}", time, numStrike, wins, booms)))
+	if run {
+		runs = "true"
+	}
+	_, err := smcc.con.Write([]byte(fmt.Sprintf("{timeleft:%d,strike:%d,win:%s,boom:%s,strikerate:%f,gamerun:%s}", time, numStrike, wins, booms, runs, strikerate)))
 	return err
 }
 
