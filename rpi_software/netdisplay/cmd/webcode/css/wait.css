@@ -1,0 +1,28 @@
+#WaitingScreen {
+    height: 95%;
+    overflow: hidden;
+}
+.waitinggear {
+    height: 100%;
+    animation-name: spin;
+    animation-duration: 3000ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    filter: invert(85%) sepia(12%) saturate(555%) hue-rotate(149deg) brightness(94%) contrast(97%);
+}
+.waitname {
+    font-size: 70px;
+    font-weight: bold;
+    color: #FFFFFF;
+    text-shadow: 0px 0px 10px #000000;
+    text-align: center;
+    margin-top: 10px;
+}
+@keyframes spin {
+    from {
+        transform:rotate(0deg);
+    }
+    to {
+        transform:rotate(360deg);
+    }
+}

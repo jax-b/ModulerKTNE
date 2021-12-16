@@ -1,0 +1,24 @@
+.strikelight.on {
+    filter: invert(10%) sepia(100%) saturate(7485%) hue-rotate(2deg) brightness(105%) contrast(106%);
+}
+.strikelight.off {
+    filter: invert(100%);
+    opacity: 0.1;
+	filter: alpha(opacity=10);
+}
+.strikelight {
+    width: 50px;
+    height: 50px;
+    position: relative;
+    float: left;
+}
+#strikes-container {
+    width: 115px;
+    height: 50px;
+    background-color: #000000;
+    margin-left: auto;
+    margin-right: auto;
+}
+#strike2 {
+    margin-left: 15px;
+}

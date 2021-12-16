@@ -1,0 +1,27 @@
+@keyframes teeterGrow {
+    0% {
+        transform: rotate(-5deg) scale(1);
+        transform-origin: center;
+    }
+    25% {
+        transform: rotate(5deg) scale(1.25);
+        transform-origin: center;
+    }
+    50% {
+        transform: rotate(-5deg) scale(1.35);
+        transform-origin: center;
+    }
+    75% {
+        transform: rotate(5deg) scale(1.45);
+        transform-origin: center;
+    }
+    100% {
+        transform: rotate(-5deg) scale(1);
+        transform-origin: center;
+    }
+}
+.boomimg {
+    animation-name: teeterGrow;
+    animation-duration: 7s;
+    animation-iteration-count: infinite;
+}

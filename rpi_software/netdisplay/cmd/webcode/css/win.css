@@ -1,0 +1,23 @@
+@keyframes teeter {
+    0% {
+        transform: rotate(-15deg);
+        transform-origin: center;
+    }
+    50% {
+        transform: rotate(15deg);
+        transform-origin: center;
+    }
+    100% {
+        transform: rotate(-15deg);
+        transform-origin: center;
+    }
+}
+.wintext {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 150px;
+    color: #FFD700;
+    text-align: center;
+    animation-name: teeter;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+}
