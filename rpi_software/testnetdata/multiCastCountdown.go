@@ -73,7 +73,7 @@ func (smcc *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom boo
 	if run {
 		runs = "true"
 	}
-	_, err := smcc.con.Write([]byte(fmt.Sprintf("{timeleft:%d,strike:%d,win:%s,boom:%s,strikerate:%f,gamerun:%s}", time, numStrike, wins, booms, runs, strikerate)))
+	_, err := smcc.con.Write([]byte(fmt.Sprintf("{timeleft:%x,strike:%x,win:%s,boom:%s,strikerate:%f,gamerun:%s}", time, numStrike, wins, booms, runs, strikerate)))
 	return err
 }
 

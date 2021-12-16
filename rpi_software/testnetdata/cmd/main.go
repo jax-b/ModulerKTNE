@@ -18,10 +18,13 @@ var (
 	logger        *zap.SugaredLogger
 	mcastCount    *testnetdata.MultiCastCountdown
 	countdowntime time.Duration
+	strikerate    = float32(0.25)
+	trunning      = true
 )
 
 func startupInstructions() {
 	fmt.Println("Press B to toggle boom")
+	fmt.Println("Press T to toggle timmer run")
 	fmt.Println("Press R to reset the timer and strikes")
 	fmt.Println("Press S to add a strike")
 	fmt.Println("Press W to toggle win")
@@ -39,20 +42,23 @@ func consolCMD() {
 		case "b":
 			boom = !boom
 			logger.Info("Toggled boom: ", boom)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win)
+			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
 		case "w":
 			win = !win
 			logger.Info("Toggled win: ", win)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win)
+			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
 		case "s":
 			strikes++
 			logger.Info("Added strike: ", strikes)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win)
+			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
+		case "t":
+			logger.Info("Toggled timer: ", trunning)
+			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
 		case "r":
 			strikes = 0
 			countdowntime = 10 * time.Minute
 			logger.Info("reset time an strikes: ", strikes)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win)
+			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
 		case "e":
 			os.Exit(0)
 		}
@@ -65,20 +71,22 @@ func gTimer() {
 	for {
 		select {
 		case <-timeticker.C:
-			countdowntime = countdowntime - time.Millisecond
-			if strikes < 0 {
-				everyrate := int((1 / 0.25) / float32(strikes))
-				if extratick >= everyrate {
-					countdowntime = countdowntime - time.Millisecond
-					extratick = 0
-				} else {
-					extratick++
+			if trunning {
+				countdowntime = countdowntime - time.Millisecond
+				if strikes < 0 {
+					everyrate := int((1 / 0.25) / float32(strikes))
+					if extratick >= everyrate {
+						countdowntime = countdowntime - time.Millisecond
+						extratick = 0
+					} else {
+						extratick++
+					}
 				}
 			}
 		case <-timeanounceticker.C:
 			inttime := uint32(countdowntime.Milliseconds())
-			mcastCount.SendStatus(inttime, int8(strikes), boom, win)
-			logger.Infof("Announce: Timeleft: %d, Strikes: %d, Boom: %t, Win: %t", inttime, strikes, boom, win)
+			mcastCount.SendStatus(inttime, int8(strikes), boom, win, trunning, strikerate)
+			logger.Infof("Announce: Timeleft: %d, Strikes: %d, Boom: %t, Win: %t, trunning: %t, strikerate: %f ", inttime, strikes, boom, win, trunning, strikerate)
 		}
 	}
 }
