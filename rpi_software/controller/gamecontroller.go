@@ -441,7 +441,7 @@ func (sgc *GameController) buttonWatcher() {
 		case presstimeint := <-mfb:
 			// wait for a button press
 			presstime := time.Duration(presstimeint) * time.Millisecond
-			if presstime > 50 {
+			if presstime > 50*time.Millisecond && presstime < 200*time.Millisecond {
 				if !sgc.game.run {
 					sgc.randomPopulate()
 					sgc.StartGame()
