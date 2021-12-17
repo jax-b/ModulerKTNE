@@ -1,8 +1,8 @@
 package testnetdata
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -61,19 +61,26 @@ func (smcc *MultiCastCountdown) ChangePort(port int) error {
 
 // Sends current status as a json string to the multicast address
 func (smcc *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom bool, win bool, run bool, strikerate float32) error {
-	wins := "false"
-	booms := "false"
-	runs := "false"
-	if win {
-		wins = "true"
+	type msg struct {
+		Time                uint32  `json:"timeleft"`
+		NumStrike           int8    `json:"strike"`
+		Boom                bool    `json:"boom"`
+		Win                 bool    `json:"win"`
+		Gamerun             bool    `json:"gamerun"`
+		Strikereductionrate float32 `json:"strikerate"`
 	}
-	if boom {
-		booms = "true"
+	json, err := json.Marshal(msg{
+		Time:                time,
+		NumStrike:           numStrike,
+		Boom:                boom,
+		Win:                 win,
+		Gamerun:             run,
+		Strikereductionrate: strikerate,
+	})
+	if err != nil {
+		return err
 	}
-	if run {
-		runs = "true"
-	}
-	_, err := smcc.con.Write([]byte(fmt.Sprintf("{timeleft:%x,strike:%x,win:%s,boom:%s,strikerate:%f,gamerun:%s}", time, numStrike, wins, booms, runs, strikerate)))
+	_, err = smcc.con.Write(json)
 	return err
 }
 
