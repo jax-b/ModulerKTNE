@@ -1,4 +1,4 @@
-function switchscreen(screen) {
+function switchScreen(screen) {
     homescreen = document.querySelector("#WaitingScreen");
     boomscreen = document.querySelector("#GameBoom");
     winscreen = document.querySelector("#GameWin");
@@ -32,7 +32,7 @@ function switchscreen(screen) {
             console.log("Unknown screen: " + screen)
     }
 }
-function updatestrikes(strikes) {
+function updateStrikes(strikes) {
     strike1 = document.querySelector("#strike1");
     strike2 = document.querySelector("#strike2");
     strikeText = document.querySelector("#strikeText");

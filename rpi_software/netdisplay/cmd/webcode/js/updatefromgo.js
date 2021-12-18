@@ -4,8 +4,9 @@ document.addEventListener('astilectron-ready', function() {
     astilectron.onMessage(function(message) {
         decmsg = DecodeMessage(message);
         console.log(decmsg);
-        switchscreen(decmsg.screen)
-        updatestrikes(decmsg.strike)
+        switchScreen(decmsg.screen)
+        updateStrikes(decmsg.strike)
+        updateClock(parseTimeToString(decmsg.time));
     });
 })
 
