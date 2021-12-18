@@ -2,8 +2,10 @@
 document.addEventListener('astilectron-ready', function() {
     // This will listen to messages sent by GO
     astilectron.onMessage(function(message) {
-        console.log(DecodeMessage(message));
-        
+        decmsg = DecodeMessage(message);
+        console.log(decmsg);
+        switchscreen(decmsg.screen)
+        updatestrikes(decmsg.strike)
     });
 })
 

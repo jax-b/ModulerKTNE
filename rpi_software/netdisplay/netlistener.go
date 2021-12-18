@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/net/ipv4"
@@ -21,7 +22,8 @@ type MultiCastListener struct {
 	listpac     net.PacketConn
 }
 type Status struct {
-	Time                uint32  `json:"timeleft"`
+	IntTime             uint32 `json:"timeleft"`
+	Time                time.Duration
 	NumStrike           uint8   `json:"strike"`
 	Boom                bool    `json:"boom"`
 	Win                 bool    `json:"win"`
@@ -143,6 +145,7 @@ func (smcl *MultiCastListener) getStatus() (*Status, net.Addr, error) {
 			smcl.log.Error("Error unmarshalling json: " + err.Error())
 			return nil, nil, err
 		}
+		status.Time = time.Duration(status.IntTime) * time.Millisecond
 		// Return the status message
 		return status, src, nil
 	} else {

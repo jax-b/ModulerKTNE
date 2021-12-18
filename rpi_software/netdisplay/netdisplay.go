@@ -2,6 +2,7 @@ package netdisplay
 
 import (
 	"os"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -33,18 +34,18 @@ func NewNetDisplay(log *zap.SugaredLogger) *netdisplay {
 
 	// Create the current status tracker
 	cstatus := Status{
-		Time:                0,
+		Time:                (5 * time.Minute),
 		NumStrike:           0,
 		Boom:                false,
 		Win:                 false,
-		Gamerun:             false,
+		Gamerun:             true,
 		Strikereductionrate: 0,
 	}
 
 	tstop := make(chan bool)
 	return &netdisplay{
 		cstatus: &cstatus,
-		cscreen: "home",
+		cscreen: "gametime",
 		net:     listener,
 		log:     log,
 		tstop:   tstop,
@@ -55,7 +56,7 @@ func NewNetDisplay(log *zap.SugaredLogger) *netdisplay {
 func (snd *netdisplay) Run() {
 	snd.UI.StartUI()
 	snd.net.Run()
-	go GameTimer(snd.tstop, snd)
+	// go GameTimer(snd)
 	go snd.incomingPacketTree()
 }
 
@@ -86,7 +87,11 @@ func (snd *netdisplay) incomingPacketTree() {
 		}
 		if snd.cstatus.Gamerun != status.Gamerun {
 			snd.cstatus.Gamerun = status.Gamerun
-			snd.cscreen = "gametime"
+			if snd.cstatus.Gamerun {
+				snd.cscreen = "gametime"
+			} else {
+				snd.cscreen = "home"
+			}
 		}
 		if snd.cstatus.Win != status.Win {
 			snd.cstatus.Win = status.Win
@@ -107,5 +112,7 @@ func (snd *netdisplay) incomingPacketTree() {
 		if snd.cstatus.NumStrike != status.NumStrike {
 			snd.cstatus.NumStrike = status.NumStrike
 		}
+		newmsg, _ := snd.UI.createMSG(snd.cstatus.Time, snd.cscreen, snd.cstatus.NumStrike)
+		snd.UI.UpdateUI(newmsg)
 	}
 }

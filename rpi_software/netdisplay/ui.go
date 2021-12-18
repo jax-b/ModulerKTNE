@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"time"
 
 	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astilectron"
@@ -61,13 +62,13 @@ func (sui *UI) Wait() {
 	sui.Asel.Wait()
 }
 
-func (sui *UI) createMSG(time string, activescreen string, numstrike uint8) ([]byte, error) {
+func (sui *UI) createMSG(itime time.Duration, activescreen string, numstrike uint8) ([]byte, error) {
 	type msg struct {
 		Time   string `json:"time"`
 		Screen string `json:"screen"`
 		Strike uint8  `json:"strike"`
 	}
-	message, err := json.Marshal(msg{time, activescreen, numstrike})
+	message, err := json.Marshal(msg{itime.String(), activescreen, numstrike})
 	return message, err
 }
 

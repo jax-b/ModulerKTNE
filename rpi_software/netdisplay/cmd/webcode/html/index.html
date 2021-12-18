@@ -9,24 +9,27 @@
 <link rel="stylesheet" href="../css/win.css">
 <link rel="stylesheet" href="../css/boom.css">
 <link rel="stylesheet" href="../css/wait.css">
+<script src="../js/uiupdaters.js"></script>
 <script src="../js/updatefromgo.js"></script>
 </head>
 <body>
-    <div id="WaitingScreen" class="vhcenter" >
+    <div id="WaitingScreen" class="vhcenter">
         <h1 class="waitname vhcenter">
             MKTNE
         </h1>
         <img src="../images/211751_gear_icon.svg" alt="waiting" class="waitinggear"/>
-    <div id="GameBoom" class="vhcenter hide">
+        </div>
+    <div id="GameBoom" class="vhcenter" hidden>
         <img src="../images/boom.png" alt="boom" class="boomimg"/>
     </div>
-    <div id="GameWin" class="vhcenter hide">
+    <div id="GameWin" class="vhcenter" hidden>
         <h1 class="wintext"> You <br> Win! </h1>
     </div>
-    <div id="GameRunClock" class="vhcenter hide">
+    <div id="GameRunClock" class="vhcenter" hidden>
         <div id="strikes-container">
-            <img id="strike1" class="strikelight on" src="../images/strikelight.svg" alt="Strike 1">
-            <img id="strike2" class="strikelight on" src="../images/strikelight.svg" alt="Strike 1">
+            <img id="strike1" class="strikelight off" src="../images/strikelight.svg" alt="Strike 1">
+            <img id="strike2" class="strikelight off" src="../images/strikelight.svg" alt="Strike 1">
+            <h1 id="strikeText" hidden>0</h1>
         </img>
         </div>
         <div id="clock-container">
