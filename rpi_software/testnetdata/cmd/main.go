@@ -106,7 +106,7 @@ func main() {
 	}
 	defer mcastCount.Close()
 
-	countdowntime = 5 * time.Minute
+	countdowntime = 1 * time.Minute
 	go consolCMD()
 	gTimer()
 }

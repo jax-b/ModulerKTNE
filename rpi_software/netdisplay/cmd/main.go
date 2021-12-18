@@ -14,7 +14,7 @@ func main() {
 	zaplogger = netdisplay.NewLogger()
 	netdisp := netdisplay.NewNetDisplay(zaplogger)
 	netdisp.Run()
-	netdisp.UI.OpenDevTools()
+	// netdisp.UI.OpenDevTools()
 	// Blocking pattern
 	netdisp.UI.Asel.Wait()
 	netdisp.Close()

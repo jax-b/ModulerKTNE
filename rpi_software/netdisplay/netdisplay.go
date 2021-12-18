@@ -34,18 +34,18 @@ func NewNetDisplay(log *zap.SugaredLogger) *netdisplay {
 
 	// Create the current status tracker
 	cstatus := Status{
-		Time:                (5 * time.Minute),
+		Time:                time.Hour,
 		NumStrike:           0,
 		Boom:                false,
 		Win:                 false,
-		Gamerun:             true,
+		Gamerun:             false,
 		Strikereductionrate: 0,
 	}
 
 	tstop := make(chan bool)
 	return &netdisplay{
 		cstatus: &cstatus,
-		cscreen: "gametime",
+		cscreen: "home",
 		net:     listener,
 		log:     log,
 		tstop:   tstop,
@@ -56,7 +56,7 @@ func NewNetDisplay(log *zap.SugaredLogger) *netdisplay {
 func (snd *netdisplay) Run() {
 	snd.UI.StartUI()
 	snd.net.Run()
-	// go GameTimer(snd)
+	go GameTimer(snd)
 	go snd.incomingPacketTree()
 }
 
