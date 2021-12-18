@@ -52,11 +52,12 @@ func consolCMD() {
 			logger.Info("Added strike: ", strikes)
 			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
 		case "t":
+			trunning = !trunning
 			logger.Info("Toggled timer: ", trunning)
 			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
 		case "r":
 			strikes = 0
-			countdowntime = 10 * time.Minute
+			countdowntime = 5 * time.Minute
 			logger.Info("reset time an strikes: ", strikes)
 			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
 		case "e":
@@ -105,7 +106,7 @@ func main() {
 	}
 	defer mcastCount.Close()
 
-	countdowntime = 10 * time.Minute
+	countdowntime = 5 * time.Minute
 	go consolCMD()
 	gTimer()
 }
