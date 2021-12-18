@@ -11,6 +11,7 @@ require (
 	github.com/spf13/viper v1.9.0
 	github.com/stianeikeland/go-rpio/v4 v4.5.1
 	go.uber.org/zap v1.17.0
+	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
 )
 
 require (

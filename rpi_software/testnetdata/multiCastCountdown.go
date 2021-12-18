@@ -3,6 +3,7 @@ package testnetdata
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -21,8 +22,10 @@ func NewMultiCastCountdown(logger *zap.SugaredLogger, cfg *Config) (*MultiCastCo
 	var err error
 	logger = logger.Named("MulticastUtil")
 	ip := net.ParseIP(cfg.Network.MultiCastIP)
+	udpaddr, _ := net.ResolveUDPAddr("udp", ip.String()+":"+fmt.Sprint(cfg.Network.MultiCastPort))
 	if ip.IsMulticast() {
-		newcon, err = net.DialUDP("udp", nil, &net.UDPAddr{IP: ip, Port: cfg.Network.MultiCastPort})
+		newcon, err = net.DialUDP("udp", nil, udpaddr)
+		logger.Info("Multicasting on: ", udpaddr)
 		if err != nil {
 			return nil, err
 		}

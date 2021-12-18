@@ -4,33 +4,43 @@ import "time"
 
 // this function is the timekeeper for the game
 // it will stop the game when the time runs out
-func Timer(StopCh chan bool, cstatus *Status) {
+func GameTimer(StopCh chan bool, nd *netdisplay) {
 	ticker := time.NewTicker(time.Millisecond)
 	extratick := 0
 	for {
-		if cstatus.Gamerun {
+		if nd.cstatus.Gamerun {
 			select {
 			case <-StopCh:
 				return
 			case <-ticker.C:
 				// Need to add reduction rate
-				cstatus.Time--
-				if cstatus.NumStrike < 0 {
-					everyrate := int((1 / cstatus.Strikereductionrate) / (-1 * float32(cstatus.Strikereductionrate)))
+				nd.cstatus.Time--
+				if nd.cstatus.NumStrike < 0 {
+					everyrate := int((1 / nd.cstatus.Strikereductionrate) / (-1 * float32(nd.cstatus.Strikereductionrate)))
 					if extratick >= everyrate {
-						if cstatus.Time > 0 {
-							cstatus.Time--
+						if nd.cstatus.Time > 0 {
+							nd.cstatus.Time--
 							extratick = 0
 						} else {
-							cstatus.Boom = true
-							cstatus.Gamerun = false
+							nd.cstatus.Boom = true
+							nd.cstatus.Gamerun = false
+							nd.cscreen = "boom"
 						}
 					} else {
 						extratick++
 					}
 				}
 			}
+			if nd.cstatus.Time <= 0 {
+				nd.cstatus.Boom = true
+				nd.cstatus.Gamerun = false
+				nd.cscreen = "boom"
+			}
 		}
-
+		newmsg, _ := nd.UI.createMSG(timetostring(nd.cstatus.Time), nd.cscreen, nd.cstatus.NumStrike)
+		if nd.lastmsg != string(newmsg[:]) {
+			nd.UI.UpdateUI(newmsg)
+			nd.lastmsg = string(newmsg[:])
+		}
 	}
 }

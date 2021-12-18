@@ -11,7 +11,7 @@ import (
 )
 
 type UI struct {
-	asel *astilectron.Astilectron
+	Asel *astilectron.Astilectron
 	awin *astilectron.Window
 	log  *zap.SugaredLogger
 }
@@ -26,18 +26,17 @@ func NewUI(logger *zap.SugaredLogger) *UI {
 	if err != nil {
 		log.Fatal("Error initializing astilectron", zap.Error(err))
 	}
-	// Handle signals
 	asel.HandleSignals()
-	return &UI{asel: asel, log: log}
+	return &UI{Asel: asel, log: log}
 }
 func (sui *UI) StartUI() {
 	var err error
 	// Start astilectron
-	if err = sui.asel.Start(); err != nil {
+	if err = sui.Asel.Start(); err != nil {
 		sui.log.Fatal("main: starting astilectron failed: %w", err)
 	}
 
-	if sui.awin, err = sui.asel.NewWindow("webcode/html/index.html", &astilectron.WindowOptions{
+	if sui.awin, err = sui.Asel.NewWindow("webcode/html/index.html", &astilectron.WindowOptions{
 		Center: astikit.BoolPtr(true),
 		Height: astikit.IntPtr(720),
 		Width:  astikit.IntPtr(1080),
@@ -51,7 +50,7 @@ func (sui *UI) StartUI() {
 }
 
 func (sui *UI) Close() {
-	sui.asel.Close()
+	sui.Asel.Close()
 }
 
 func (sui *UI) OpenDevTools() {
@@ -59,17 +58,19 @@ func (sui *UI) OpenDevTools() {
 }
 
 func (sui *UI) Wait() {
-	sui.asel.Wait()
+	sui.Asel.Wait()
 }
 
-func (sui *UI) UpdateUI(time string, activescreen string, numstrike uint8) error {
+func (sui *UI) createMSG(time string, activescreen string, numstrike uint8) ([]byte, error) {
 	type msg struct {
 		Time   string `json:"time"`
 		Screen string `json:"screen"`
 		Strike uint8  `json:"strike"`
 	}
 	message, err := json.Marshal(msg{time, activescreen, numstrike})
-	sui.awin.SendMessage(message)
+	return message, err
+}
 
-	return err
+func (sui *UI) UpdateUI(message []byte) {
+	sui.awin.SendMessage(message)
 }

@@ -5,8 +5,8 @@ import "fmt"
 func timetostring(cmiltime uint32) string {
 	var tstring string
 	timemilisf := float32(cmiltime)
-	MinutesRemaining := int(cmiltime*0.001) / 60
-	SecondsRemaining := int(cmiltime*0.001) % 60
+	MinutesRemaining := int(timemilisf*0.001) / 60
+	SecondsRemaining := int(timemilisf*0.001) % 60
 	if MinutesRemaining > 0 {
 		if MinutesRemaining > 99 {
 			MinutesRemaining = 99
