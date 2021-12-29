@@ -14,7 +14,7 @@
 <script src="../js/updatefromgo.js"></script>
 </head>
 <body>
-    <div id="WaitingScreen" class="vhcenter">
+    <div id="WaitingScreen" class="vhcenter" hidden>
         <h1 class="waitname vhcenter">
             MKTNE
         </h1>
@@ -26,11 +26,11 @@
     <div id="GameWin" class="vhcenter" hidden>
         <h1 class="wintext"> You <br> Win! </h1>
     </div>
-    <div id="GameRunClock" class="vhcenter" hidden>
+    <div id="GameRunClock" class="vhcenter" >
         <div id="strikes-container">
             <img id="strike1" class="strikelight off" src="../images/strikelight.svg" alt="Strike 1">
-            <img id="strike2" class="strikelight off" src="../images/strikelight.svg" alt="Strike 1">
-            <h1 id="strikeText" hidden>0</h1>
+            <img id="strike2" class="strikelight off" src="../images/strikelight.svg" alt="Strike 2">
+            <div id="strikeText" hidden>0</div>
         </img>
         </div>
         <div id="clock-container">

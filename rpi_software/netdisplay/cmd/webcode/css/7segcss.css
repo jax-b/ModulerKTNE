@@ -24,67 +24,67 @@
 }
 
 .display-container.display-size-12 {
-	width: 122px;
-	height: 220px;
+	width: 234px;
+	height: 440px;
 }
 
 .display-container.display-size-12-indicator {
-	width: 50px;
-	height: 220px;
+	width: 100px;
+	height: 440px;
 }
 
 .display-container.display-size-12-indicator .segment-dot {
-	width: 10px;
-	height: 10px;
-	margin-left: 6px;
+	width: 20px;
+	height: 20px;
+	margin-left: 24px;
 	background-color: #FF0000;
 	border-radius: 50%;
-	border: 12px solid #FF0000;
+	border: 24px solid #FF0000;
 }
 
 .display-container.display-size-12 .segment-x {
-	width: 72px;
-	left: 13px;
-	border-bottom: 12px solid #FF0000;
-	border-left: 12px solid transparent;
-	border-right: 12px solid transparent;
+	width: 114px;
+	left: 26px;
+	border-bottom: 24px solid #FF0000;
+	border-left: 24px solid transparent;
+	border-right: 24px solid transparent;
 }
 
 .display-container.display-size-12 .segment-x .segment-border {
-	top: 12px;
-	left: -12px;
-	right: -12px;
-	border-top: 12px solid #FF0000;
-	border-left: 12px solid transparent;
-	border-right: 12px solid transparent;
+	top: 24px;
+	left: -24px;
+	right: -24px;
+	border-top: 24px solid #FF0000;
+	border-left: 24px solid transparent;
+	border-right: 24px solid transparent;
 }
 
 .display-container.display-size-12 .segment-y {
-	height: 72px;
+	height: 114px;
 	width: 0;
-	border-right: 12px solid #FF0000;
-	border-top: 12px solid transparent;
-	border-bottom: 12px solid transparent;
+	border-right: 24px solid #FF0000;
+	border-top: 24px solid transparent;
+	border-bottom: 24px solid transparent;
 }
 
 .display-container.display-size-12 .segment-y .segment-border {
 	position: relative;
-	left: 12px;
-	height: 72px;
-	margin-top: -12px;
-	border-left: 12px solid #FF0000;
-	border-top: 12px solid transparent;
-	border-bottom: 12px solid transparent;
+	left: 24px;
+	height: 114px;
+	margin-top: -24px;
+	border-left: 24px solid #FF0000;
+	border-top: 24px solid transparent;
+	border-bottom: 24px solid transparent;
 }
 
 .display-container.display-size-12-indicator .segment-colon-a {
-	margin-top: 50px;
+	margin-top: 100px;
 }
 .display-container.display-size-12-indicator .segment-colon-b {
-	margin-top: 50px;
+	margin-top: 100px;
 }
 .display-container.display-size-12-indicator .segment-colon-c {
-	margin-top: 20px;
+	margin-top: 40px;
 }
 
 .display-container.display-size-12 .segment-a {
@@ -92,31 +92,31 @@
 }
 
 .display-container.display-size-12 .segment-b {
-	top: 13px;
-	left: 98px;
+	top: 24px;
+	left: 196px;
 }
 
 .display-container.display-size-12 .segment-c {
-	top: 111px;
-	left: 98px;
+	top: 222px;
+	left: 196px;
 }
 
 .display-container.display-size-12 .segment-d {
-	top: 196px;
+	top: 392px;
 }
 
 .display-container.display-size-12 .segment-e {
-	top: 111px;
+	top: 222px;
 	left: 0px;
 }
 
 .display-container.display-size-12 .segment-f {
-	top: 13px;
+	top: 26px;
 	left: 0px;
 }
 
 .display-container.display-size-12 .segment-g {
-	top: 98px;
+	top: 196px;
 }
 
 .display-colon .segment-colon-c{
@@ -204,8 +204,8 @@
 }
 
 #clock-container {
-	width: 634px;
-	height: 220px;
+	width: 1183px;
+	height: 440px;
 	background-color: #000000;
 	margin-top: 15px;
 	margin-left: auto;
