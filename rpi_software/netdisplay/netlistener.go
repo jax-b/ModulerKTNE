@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	mktnecf "github.com/jax-b/ModulerKTNE/rpi_software/commonfiles"
 	"go.uber.org/zap"
 	"golang.org/x/net/ipv4"
 )
@@ -17,18 +18,9 @@ type MultiCastListener struct {
 	log         *zap.SugaredLogger
 	conf        *Config
 	exitLoop    chan bool
-	subscribers []chan Status
+	subscribers []chan mktnecf.Status
 	interfaces  []net.Interface
 	listpac     net.PacketConn
-}
-type Status struct {
-	IntTime             uint32 `json:"timeleft"`
-	Time                time.Duration
-	NumStrike           uint8   `json:"strike"`
-	Boom                bool    `json:"boom"`
-	Win                 bool    `json:"win"`
-	Gamerun             bool    `json:"gamerun"`
-	Strikereductionrate float32 `json:"strikerate"`
 }
 
 // Creates a new multicast connection
@@ -79,8 +71,8 @@ func NewMultiCastListener(logger *zap.SugaredLogger, cfg *Config) (*MultiCastLis
 }
 
 // Creates a new Status subscriber and returns the status chanel
-func (smcl *MultiCastListener) Subscribe() chan Status {
-	newchan := make(chan Status)
+func (smcl *MultiCastListener) Subscribe() chan mktnecf.Status {
+	newchan := make(chan mktnecf.Status)
 	smcl.subscribers = append(smcl.subscribers, newchan)
 	return newchan
 }
@@ -92,17 +84,23 @@ func (smcl *MultiCastListener) Run() {
 		for {
 			select {
 			case <-smcl.exitLoop:
+				close(smcl.exitLoop)
+				return
 			default:
 				smcl.log.Info("Waiting for status")
 				status, srcaddr, err := smcl.getStatus()
 
 				if err != nil {
+					if err.(net.Error).Error() == "use of closed network connection" {
+						return
+					}
 					smcl.log.Error("Failed to Process Status Message: ", err)
-				}
-				if status != nil {
+				} else if status != nil {
 					smcl.log.Debug("Got status from "+srcaddr.String()+": ", status)
 					for _, subscriber := range smcl.subscribers {
-						subscriber <- *status
+						go func(sub chan mktnecf.Status) {
+							sub <- *status
+						}(subscriber)
 					}
 				}
 			}
@@ -111,6 +109,9 @@ func (smcl *MultiCastListener) Run() {
 }
 
 func (smcl *MultiCastListener) Close() {
+	go func() {
+		smcl.exitLoop <- true
+	}()
 	// Tear down IGMP multicast on each interface
 	for _, infa := range smcl.interfaces {
 		if infa.Flags == (net.FlagMulticast & net.FlagUp) {
@@ -124,11 +125,10 @@ func (smcl *MultiCastListener) Close() {
 }
 
 // Gets current status as a json string from the multicast address
-func (smcl *MultiCastListener) getStatus() (*Status, net.Addr, error) {
+func (smcl *MultiCastListener) getStatus() (*mktnecf.Status, net.Addr, error) {
 	buffer := make([]byte, 100)
 	numread, _, src, err := smcl.con.ReadFrom(buffer)
 	if err != nil {
-		smcl.log.Error("Error reading from multicast address: " + err.Error())
 		return nil, nil, err
 	}
 
@@ -139,13 +139,13 @@ func (smcl *MultiCastListener) getStatus() (*Status, net.Addr, error) {
 		smcl.log.Debug("Buffer Contents: ", string(buffer[:]))
 
 		// Unmarshal the json data from the buffer
-		status := &Status{}
+		status := &mktnecf.Status{}
 		err = json.Unmarshal(buffer[:numread], status)
 		if err != nil {
 			smcl.log.Error("Error unmarshalling json: " + err.Error())
 			return nil, nil, err
 		}
-		status.Time = time.Duration(status.IntTime) * time.Millisecond
+		status.Time, _ = time.ParseDuration(status.StrTime)
 		// Return the status message
 		return status, src, nil
 	} else {

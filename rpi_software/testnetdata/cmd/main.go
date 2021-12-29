@@ -7,19 +7,16 @@ import (
 	"strings"
 	"time"
 
+	mktnecf "github.com/jax-b/ModulerKTNE/rpi_software/commonfiles"
 	"github.com/jax-b/ModulerKTNE/rpi_software/testnetdata"
 	"go.uber.org/zap"
 )
 
 var (
-	boom          = false
-	win           = false
-	strikes       = 0
-	logger        *zap.SugaredLogger
-	mcastCount    *testnetdata.MultiCastCountdown
-	countdowntime time.Duration
-	strikerate    = float32(0.25)
-	trunning      = true
+	logger      *zap.SugaredLogger
+	mcastCount  *mktnecf.MultiCastCountdown
+	stat        *mktnecf.Status
+	nextAnounce time.Time
 )
 
 func startupInstructions() {
@@ -40,55 +37,49 @@ func consolCMD() {
 		}
 		switch strings.ToLower(string(input)) {
 		case "b":
-			boom = !boom
-			logger.Info("Toggled boom: ", boom)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
+			stat.Boom = !stat.Boom
+			logger.Info("Toggled boom: ", stat.Boom)
+			mcastCount.SendStatus(stat)
 		case "w":
-			win = !win
-			logger.Info("Toggled win: ", win)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
+			stat.Win = !stat.Win
+			if stat.Win {
+				stat.Gamerun = false
+				stat.Boom = false
+			}
+			logger.Info("Toggled win: ", stat.Win)
+			mcastCount.SendStatus(stat)
 		case "s":
-			strikes++
-			logger.Info("Added strike: ", strikes)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
+			stat.NumStrike++
+			logger.Info("Added strike: ", stat.NumStrike)
+			mcastCount.SendStatus(stat)
 		case "t":
-			trunning = !trunning
-			logger.Info("Toggled timer: ", trunning)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
+			stat.Gamerun = !stat.Gamerun
+			nextAnounce = time.Now().Add(5 * time.Second)
+			logger.Info("Toggled timer: ", stat.Gamerun)
+			mcastCount.SendStatus(stat)
 		case "r":
-			strikes = 0
-			countdowntime = 5 * time.Minute
-			logger.Info("reset time an strikes: ", strikes)
-			mcastCount.SendStatus(uint32(countdowntime.Milliseconds()), int8(strikes), boom, win, trunning, strikerate)
+			stat.NumStrike = 0
+			stat.Time = 90 * time.Second
+			stat.Boom = false
+			stat.Win = false
+			logger.Info("reset time to 90 seconds and strikes to 0")
+			mcastCount.SendStatus(stat)
 		case "e":
 			os.Exit(0)
 		}
 	}
 }
-func gTimer() {
-	timeticker := time.NewTicker(time.Millisecond * 1)
-	timeanounceticker := time.NewTicker(time.Second * 5)
-	extratick := 0
-	for {
-		select {
-		case <-timeticker.C:
-			if trunning {
-				countdowntime = countdowntime - time.Millisecond
-				if strikes < 0 {
-					everyrate := int((1 / 0.25) / float32(strikes))
-					if extratick >= everyrate {
-						countdowntime = countdowntime - time.Millisecond
-						extratick = 0
-					} else {
-						extratick++
-					}
-				}
-			}
-		case <-timeanounceticker.C:
-			inttime := uint32(countdowntime.Milliseconds())
-			mcastCount.SendStatus(inttime, int8(strikes), boom, win, trunning, strikerate)
-			logger.Infof("Announce: Timeleft: %d, Strikes: %d, Boom: %t, Win: %t, trunning: %t, strikerate: %f ", inttime, strikes, boom, win, trunning, strikerate)
-		}
+
+func callbackfunc(tsb time.Time, tsa time.Time, stat mktnecf.Status) {
+	logger.Debug("Timeleft: ", stat.Time)
+	if stat.Boom {
+		logger.Info("Boom!")
+		mcastCount.SendStatus(&stat)
+	}
+	if nextAnounce.Before(time.Now()) {
+		logger.Infof("Announce: Timeleft: %s, Strikes: %d, Boom: %t, Win: %t, trunning: %t, strikerate: %f ", stat.Time.String(), stat.NumStrike, stat.Boom, stat.Win, stat.Gamerun, stat.Strikereductionrate)
+		mcastCount.SendStatus(&stat)
+		nextAnounce = time.Now().Add(5 * time.Second)
 	}
 }
 
@@ -98,15 +89,30 @@ func main() {
 	config := testnetdata.NewConfig(logger)
 	config.Load()
 	logger.Info("Config:", config)
+	stat = &mktnecf.Status{
+		Time:                15 * time.Second,
+		NumStrike:           0,
+		Boom:                false,
+		Win:                 false,
+		Gamerun:             true,
+		Strikereductionrate: float32(0.25),
+	}
+
 	var err error
-	mcastCount, err = testnetdata.NewMultiCastCountdown(logger, config)
+	mcastCount, err = mktnecf.NewMultiCastCountdown(logger, config.Network.MultiCastIP, config.Network.MultiCastPort)
 	if err != nil {
 		logger.Error("Error:", err)
 		os.Exit(1)
 	}
 	defer mcastCount.Close()
-
-	countdowntime = 1 * time.Minute
+	tmr := mktnecf.NewGameTimer(logger, stat)
+	tmr.AddCallbackFunction(callbackfunc)
+	defer tmr.Close()
 	go consolCMD()
-	gTimer()
+
+	logger.Infof("Announce: Timeleft: %s, Strikes: %d, Boom: %t, Win: %t, trunning: %t, strikerate: %f ", stat.Time.String(), stat.NumStrike, stat.Boom, stat.Win, stat.Gamerun, stat.Strikereductionrate)
+	nextAnounce = time.Now().Add(5 * time.Second)
+	mcastCount.SendStatus(stat)
+
+	tmr.Run()
 }

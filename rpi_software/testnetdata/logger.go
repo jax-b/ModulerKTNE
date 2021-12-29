@@ -13,6 +13,7 @@ func NewLogger() *zap.SugaredLogger {
 	var config zap.Config
 
 	config = zap.NewDevelopmentConfig()
+	// config.Level.SetLevel(zap.InfoLevel)
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	config.EncoderConfig.EncodeCaller = nil
 	config.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {

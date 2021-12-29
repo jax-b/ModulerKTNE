@@ -1,4 +1,4 @@
-package testnetdata
+package commonfiles
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -17,12 +18,12 @@ type MultiCastCountdown struct {
 }
 
 // Creates a new multicast connection
-func NewMultiCastCountdown(logger *zap.SugaredLogger, cfg *Config) (*MultiCastCountdown, error) {
+func NewMultiCastCountdown(logger *zap.SugaredLogger, MultiCastIP string, MulticastPort int) (*MultiCastCountdown, error) {
 	var newcon net.Conn
 	var err error
 	logger = logger.Named("MulticastUtil")
-	ip := net.ParseIP(cfg.Network.MultiCastIP)
-	udpaddr, _ := net.ResolveUDPAddr("udp", ip.String()+":"+fmt.Sprint(cfg.Network.MultiCastPort))
+	ip := net.ParseIP(MultiCastIP)
+	udpaddr, _ := net.ResolveUDPAddr("udp", ip.String()+":"+fmt.Sprint(MulticastPort))
 	if ip.IsMulticast() {
 		newcon, err = net.DialUDP("udp", nil, udpaddr)
 		logger.Info("Multicasting on: ", udpaddr)
@@ -63,23 +64,24 @@ func (smcc *MultiCastCountdown) ChangePort(port int) error {
 }
 
 // Sends current status as a json string to the multicast address
-func (smcc *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom bool, win bool, run bool, strikerate float32) error {
+func (smcc *MultiCastCountdown) SendStatus(stat *Status) error {
 	type msg struct {
-		Time                uint32  `json:"timeleft"`
+		Time                string  `json:"timeleft"`
 		NumStrike           int8    `json:"strike"`
 		Boom                bool    `json:"boom"`
 		Win                 bool    `json:"win"`
 		Gamerun             bool    `json:"gamerun"`
 		Strikereductionrate float32 `json:"strikerate"`
 	}
-	json, err := json.Marshal(msg{
-		Time:                time,
-		NumStrike:           numStrike,
-		Boom:                boom,
-		Win:                 win,
-		Gamerun:             run,
-		Strikereductionrate: strikerate,
-	})
+	omsg := msg{
+		Time:                stat.Time.String(),
+		NumStrike:           int8(stat.NumStrike),
+		Boom:                stat.Boom,
+		Win:                 stat.Win,
+		Gamerun:             stat.Gamerun,
+		Strikereductionrate: stat.Strikereductionrate,
+	}
+	json, err := json.Marshal(omsg)
 	if err != nil {
 		return err
 	}
@@ -89,6 +91,13 @@ func (smcc *MultiCastCountdown) SendStatus(time uint32, numStrike int8, boom boo
 
 // Resets the segments to zero via a json string to the multicast address
 func (smcc *MultiCastCountdown) SendReset() error {
-	_, err := smcc.con.Write([]byte("{win:false,boom:false,timeleft:0,strike:0}"))
+	err := smcc.SendStatus(&Status{
+		Time:                time.Duration(0),
+		NumStrike:           0,
+		Boom:                false,
+		Win:                 false,
+		Gamerun:             false,
+		Strikereductionrate: 0.25,
+	})
 	return err
 }

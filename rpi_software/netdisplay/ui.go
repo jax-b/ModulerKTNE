@@ -38,16 +38,61 @@ func (sui *UI) StartUI() {
 	}
 
 	if sui.awin, err = sui.Asel.NewWindow("webcode/html/index.html", &astilectron.WindowOptions{
-		Center: astikit.BoolPtr(true),
-		Height: astikit.IntPtr(720),
-		Width:  astikit.IntPtr(1080),
+		Center:         astikit.BoolPtr(true),
+		Height:         astikit.IntPtr(720),
+		Width:          astikit.IntPtr(1080),
+		Fullscreenable: astikit.BoolPtr(true),
 	}); err != nil {
 		sui.log.Fatal("main: new window failed: %w", err)
 	}
+
 	// Create windows
 	if err = sui.awin.Create(); err != nil {
 		sui.log.Fatal("main: creating window failed: %w", err)
 	}
+	m := sui.awin.NewMenu([]*astilectron.MenuItemOptions{
+		{
+			Label: astikit.StrPtr("Menu"),
+			SubMenu: []*astilectron.MenuItemOptions{
+				{
+					Label: astikit.StrPtr("Quit"),
+					OnClick: func(e astilectron.Event) (deleteListener bool) {
+						sui.Asel.Stop()
+						os.Exit(0)
+						return
+					},
+				},
+				{
+					Label:   astikit.StrPtr("DevTools"),
+					Checked: astikit.BoolPtr(false),
+					Type:    astilectron.MenuItemTypeCheckbox,
+					OnClick: func(e astilectron.Event) (deleteListener bool) {
+						if *e.MenuItemOptions.Checked {
+							sui.OpenDevTools()
+						} else {
+							sui.awin.CloseDevTools()
+						}
+						return
+					},
+				},
+				// {
+				// 	Label:   astikit.StrPtr("Fullscreen"),
+				// 	Checked: astikit.BoolPtr(false),
+				// 	Type:    astilectron.MenuItemTypeCheckbox,
+				// 	OnClick: func(e astilectron.Event) (deleteListener bool) {
+				// 		if *e.MenuItemOptions.Checked {
+				// 			sui.awin.SetFullScreen(True)
+				// 		} else {
+				// 			sui.awin.SetFullScreen(False)
+				// 		}
+				// 		return
+				// 	},
+				// },
+			},
+		},
+	})
+	m.Create()
+	sui.awin.Maximize()
 }
 
 func (sui *UI) Close() {
