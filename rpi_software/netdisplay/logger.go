@@ -14,6 +14,7 @@ func NewLogger() *zap.SugaredLogger {
 
 	config = zap.NewDevelopmentConfig()
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	config.Level.SetLevel(zap.InfoLevel)
 	config.EncoderConfig.EncodeCaller = nil
 	config.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.Format("2006-01-02 15:04:05.000"))
