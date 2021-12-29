@@ -65,6 +65,12 @@ func consolCMD() {
 			logger.Info("reset time to 90 seconds and strikes to 0")
 			mcastCount.SendStatus(stat)
 		case "e":
+			stat.NumStrike = 0
+			stat.Time = 1 * time.Hour
+			stat.Boom = false
+			stat.Win = false
+			stat.Gamerun = false
+			mcastCount.SendStatus(stat)
 			os.Exit(0)
 		}
 	}

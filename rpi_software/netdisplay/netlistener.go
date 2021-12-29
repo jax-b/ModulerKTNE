@@ -96,7 +96,7 @@ func (smcl *MultiCastListener) Run() {
 					}
 					smcl.log.Error("Failed to Process Status Message: ", err)
 				} else if status != nil {
-					smcl.log.Debug("Got status from "+srcaddr.String()+": ", status)
+					smcl.log.Info("Got status from "+srcaddr.String()+": ", status)
 					for _, subscriber := range smcl.subscribers {
 						go func(sub chan mktnecf.Status) {
 							sub <- *status

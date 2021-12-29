@@ -39,8 +39,8 @@ func (sui *UI) StartUI() {
 
 	if sui.awin, err = sui.Asel.NewWindow("webcode/html/index.html", &astilectron.WindowOptions{
 		Center:         astikit.BoolPtr(true),
-		Height:         astikit.IntPtr(720),
-		Width:          astikit.IntPtr(1080),
+		Height:         astikit.IntPtr(1080),
+		Width:          astikit.IntPtr(1920),
 		Fullscreenable: astikit.BoolPtr(true),
 	}); err != nil {
 		sui.log.Fatal("main: new window failed: %w", err)

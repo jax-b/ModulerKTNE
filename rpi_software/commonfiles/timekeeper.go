@@ -40,11 +40,23 @@ func (sgt *GameTimer) Run() {
 		// Store the current time
 		tstart := time.Now()
 		// Subtract the time
+		// if tstart.Sub(tlast) > time.Second {
+		// 	continue
+		// }
 		sgt.stat.Time -= tstart.Sub(tlast)
+
 		// If we have stikes calculate the number of extra time to remove per strike and remove it
 		if sgt.stat.NumStrike > 0 {
-			everyrate := int((1 / 0.25) / float32(sgt.stat.NumStrike))
-			sgt.stat.Time -= tstart.Sub(tlast) / time.Duration(everyrate)
+			everyrate := (1 / sgt.stat.Strikereductionrate) / float32(sgt.stat.NumStrike)
+			var textra time.Duration
+			if everyrate < 1 {
+				textra = tstart.Sub(tlast) / time.Duration(1)
+				textra += time.Duration(float32(textra.Nanoseconds()) * (1 - everyrate))
+			} else {
+				textra = tstart.Sub(tlast) / time.Duration(everyrate)
+			}
+			sgt.log.Infof("Rate: %.2f,Time Extra: %s", everyrate, textra.String())
+			sgt.stat.Time -= textra
 		}
 		// Save the time that we did all this math
 		tlast = tstart
