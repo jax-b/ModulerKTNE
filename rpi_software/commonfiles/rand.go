@@ -1,4 +1,4 @@
-package util
+package commonfiles
 
 import (
 	crand "crypto/rand"

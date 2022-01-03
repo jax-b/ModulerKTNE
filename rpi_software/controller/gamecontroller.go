@@ -2,10 +2,10 @@ package controller
 
 import (
 	"math/rand"
-	"syscall"
 	"time"
 
-	"github.com/jax-b/ModulerKTNE/rpi_software/util"
+	mktnecf "github.com/jax-b/ModulerKTNE/rpi_software/commonfiles"
+
 	"go.uber.org/zap"
 )
 
@@ -27,22 +27,19 @@ type module struct {
 }
 type multicast struct {
 	useMulti bool
-	mnetc    *MultiCastCountdown
+	mnetc    *mktnecf.MultiCastCountdown
 }
 type Indicator struct {
 	lit   bool    `json:lit`
 	label [3]rune `json:label`
 }
 type gameinfo struct {
-	time       uint32
-	numstrike  int8 //Works just like mod 1 is solved anything negative is a strike
-	run        bool
-	strikerate float32
+	comStat    mktnecf.Status
 	indicators []Indicator
 	port       []uint8
 	serialnum  [8]rune
 	numbat     int
-	maxstrike  int8
+	maxstrike  uint8
 }
 type GameController struct {
 	sidePanels     [4]*SideControl
@@ -60,37 +57,40 @@ type GameController struct {
 	rnd            *rand.Rand
 }
 
-func NewGameCtrlr(runAsDamon bool) *GameController {
-	// Set up the program logger
-	logger := NewLogger(runAsDamon)
-
+// Creates a new game controller takes in a variable called runAsDamon Which is a bool
+// runAsDamon controls whether or not the
+func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 	// Load the configuration
-	cfg := NewConfig(logger)
+	cfg := NewConfig(log)
 	cfg.Load()
 
 	// Try to open the RPI Shield Control
-	rpis := NewShieldControl(logger, cfg)
+	rpis := NewShieldControl(log, cfg)
 
 	// Create the GameController Object
 	gc := &GameController{
 		rpishield:      rpis,
 		cfg:            cfg,
-		log:            logger,
+		log:            log,
 		btnWatchStopCh: make(chan bool),
 		timerStopCh:    make(chan bool),
 		interStopCh:    make(chan bool),
 		solvedStopCh:   make(chan bool),
 		game: gameinfo{
-			run:        false,
-			numstrike:  0,
-			maxstrike:  2,
-			time:       0,
-			strikerate: 0.25,
+			comStat: mktnecf.Status{
+				Time:                time.Hour,
+				NumStrike:           0,
+				Gamerun:             false,
+				Boom:                false,
+				Strikereductionrate: 0.25,
+				Win:                 false,
+			},
+			maxstrike: 2,
 		},
 	}
 
 	// Create the inter process communicator object
-	gc.ipc = NewIPC(logger, gc)
+	gc.ipc = NewIPC(log, gc)
 
 	//Loop through the side panels and create their control objects
 	SPADDR := [4]byte{TOP_PANEL, RIGHT_PANEL, BOTTOM_PANEL, LEFT_PANEL}
@@ -108,7 +108,7 @@ func NewGameCtrlr(runAsDamon bool) *GameController {
 	if gc.cfg.Network.UseMulticast {
 		gc.multicast.useMulti = true
 		var err error
-		gc.multicast.mnetc, err = NewMultiCastCountdown(gc.log, gc.cfg)
+		gc.multicast.mnetc, err = mktnecf.NewMultiCastCountdown(gc.log, gc.cfg.Network.MultiCastIP, gc.cfg.Network.MultiCastPort)
 		if err != nil {
 			gc.log.Error("Failed to create multicast countdown, proceeding without multicast", err)
 			gc.multicast.useMulti = false
@@ -118,17 +118,19 @@ func NewGameCtrlr(runAsDamon bool) *GameController {
 	}
 
 	// Initalize RNG
-	var src util.CryptoSource
+	var src mktnecf.CryptoSource
 	rnd := rand.New(src)
 	gc.rnd = rnd
 
 	return gc
 }
+
+// Starts Game Controller Monitoring components
 func (sgc *GameController) Run() {
 	sgc.ipc.Run()
 	sgc.rpishield.Run()
 	go sgc.buttonWatcher()
-	go sgc.interruptHandler()
+	go sgc.m2cInterruptHandler()
 	go sgc.solvedCheck()
 }
 
@@ -153,7 +155,14 @@ func (sgc *GameController) Close() {
 
 	// Close multicast if used
 	if sgc.multicast.useMulti {
-		sgc.multicast.mnetc.SendStatus(0, 0, false, false, false, sgc.game.strikerate)
+		sgc.multicast.mnetc.SendStatus(&mktnecf.Status{
+			Time:                time.Hour,
+			NumStrike:           0,
+			Gamerun:             false,
+			Boom:                false,
+			Strikereductionrate: 0.25,
+			Win:                 false,
+		})
 		sgc.multicast.mnetc.Close()
 	}
 	//Close the IPC
@@ -167,17 +176,20 @@ func (sgc *GameController) solvedCheck() {
 		case <-sgc.solvedStopCh:
 			return
 		default:
-			notSolved := false
+			notSolved := true
 			for i := range sgc.modules {
 				if sgc.modules[i].present && !sgc.modules[i].solved {
-					notSolved = true
+					notSolved = false
 				}
 			}
-			if notSolved {
+			if !notSolved {
+				sgc.game.comStat.Win = true
+				sgc.game.comStat.Gamerun = false
+				sgc.game.comStat.Boom = false
 				sgc.StopGame()
-				sgc.ipc.SyncStatus(sgc.game.time, sgc.game.numstrike, false, true)
+				sgc.ipc.SyncStatus(&sgc.game.comStat)
 				if sgc.multicast.useMulti {
-					sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, true, false, sgc.game.strikerate)
+					sgc.multicast.mnetc.SendStatus(&sgc.game.comStat)
 				}
 			}
 		}
@@ -185,7 +197,7 @@ func (sgc *GameController) solvedCheck() {
 }
 
 // Handles the interrupt from the a modules updating its status in the game controller and updating strikes
-func (sgc *GameController) interruptHandler() {
+func (sgc *GameController) m2cInterruptHandler() {
 	interupt := sgc.rpishield.RegisterM2CConsumer()
 	for {
 		select {
@@ -197,7 +209,7 @@ func (sgc *GameController) interruptHandler() {
 					if err != nil {
 						sgc.log.Error("Failed to get solved status", err)
 					}
-					if solvedStat < sgc.game.numstrike {
+					if int16(solvedStat) < (int16(sgc.game.comStat.NumStrike) * -1) {
 						sgc.AddStrike()
 					} else if solvedStat > 0 {
 						sgc.modules[i].solved = true
@@ -210,252 +222,31 @@ func (sgc *GameController) interruptHandler() {
 	}
 }
 
-// Gets the current game time
-func (sgc *GameController) GetGameTime() uint32 {
-	return sgc.game.time
-}
-
-// Sets the game time to the given time
-func (sgc *GameController) SetGameTime(time uint32) error {
-	sgc.game.time = time
-	sgc.UpdateModTime()
-	return nil
-}
-
-// Updates the time on a module to the current game time
-func (sgc *GameController) UpdateModTime() error {
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			err := sgc.modules[i].mctrl.SyncGameTime(sgc.game.time)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// Gets the current amount of strikes
-func (sgc *GameController) GetStrikes() int8 {
-	return sgc.game.numstrike
-}
-
-// Set the number of strikes
-func (sgc *GameController) SetStrikes(strikes int8) error {
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			err := sgc.modules[i].mctrl.SetSolvedStatus(strikes)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	sgc.game.numstrike = strikes
-	return nil
-}
-
-func (sgc *GameController) AddStrike() {
-	sgc.game.numstrike--
-	if sgc.game.numstrike > sgc.game.maxstrike {
-		if sgc.multicast.useMulti {
-			sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, true, false, sgc.game.run, sgc.game.strikerate)
-		}
-		sgc.ipc.SyncStatus(sgc.game.time, sgc.game.numstrike, true, false)
-	} else {
-		for i := range sgc.modules {
-			if sgc.modules[i].present && !sgc.modules[i].solved {
-				err := sgc.modules[i].mctrl.SetSolvedStatus(sgc.game.numstrike)
-				if err != nil {
-					sgc.log.Error("Failed to set solved status", err)
-				}
-			}
-		}
-		sgc.rpishield.AddStrike()
-		if sgc.multicast.useMulti {
-			sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, false, sgc.game.run, sgc.game.strikerate)
-		}
-		sgc.ipc.SyncStatus(sgc.game.time, sgc.game.numstrike, false, false)
-	}
-}
-
-// Get the srike reduction rate
-func (sgc *GameController) GetStrikeRate() float32 {
-	return sgc.game.strikerate
-}
-
-// Set the strike reduction rate
-func (sgc *GameController) SetStrikeRate(rate float32) error {
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			err := sgc.modules[i].mctrl.SetStrikeReductionRate(rate)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	sgc.game.strikerate = rate
-	return nil
-}
-
-// Adds a indicator to the list
-func (sgc *GameController) AddIndicator(indi Indicator) {
-	if len(sgc.game.indicators) > GAMEPLAYMAXTINDICATOR {
-		sgc.game.indicators[len(sgc.game.indicators)] = indi
-	} else {
-		sgc.game.indicators = append(sgc.game.indicators, indi)
-	}
-	if indi.lit {
-		for i := range sgc.modules {
-			if sgc.modules[i].present {
-				sgc.modules[i].mctrl.SetGameLitIndicator(indi.label)
-			}
-		}
-	}
-}
-
-// Gets the currently configured indicators
-func (sgc *GameController) GetIndicators() []Indicator {
-	return sgc.game.indicators
-}
-
-// Clears out the current indicators
-func (sgc *GameController) ClearIndicators() {
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			sgc.modules[i].mctrl.ClearGameLitIndicator()
-		}
-	}
-	sgc.game.indicators = make([]Indicator, 0)
-}
-
-// Adds a port to the list
-func (sgc *GameController) AddPort(port byte) error {
-	sgc.game.port = append(sgc.game.port, port)
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			err := sgc.modules[i].mctrl.SetGamePortID(port)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// returns all of the ports that are configured for the game
-func (sgc *GameController) GetPorts() []byte {
-	return sgc.game.port
-}
-
-// clears all of the ports that are configured for the game
-func (sgc *GameController) ClearPorts() error {
-	sgc.game.port = make([]byte, 0)
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			err := sgc.modules[i].mctrl.ClearGamePortIDS()
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// Sets the current game serial number
-func (sgc *GameController) SetSerial(serial string) error {
-	for i := range serial {
-		if i > len(sgc.game.serialnum) {
-			break
-		}
-		sgc.game.serialnum[i] = rune(serial[i])
-	}
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			err := sgc.modules[i].mctrl.SetGameSerialNumber(sgc.game.serialnum)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (sgc *GameController) GetSerial() string {
-	return string(sgc.game.serialnum[0:])
-}
-
 // Starts the game
 func (sgc *GameController) StartGame() error {
 	// for all the modules that are present, start the game
-	sgc.scanModules()
+	sgc.scanAllModules()
 	for i := range sgc.modules {
 		if sgc.modules[i].present {
 			sgc.modules[i].solved = false
 			sgc.modules[i].mctrl.StartGame()
 		}
 	}
-	sgc.timerStopCh = make(chan bool)
-	sgc.game.run = true
-	go sgc.timer(sgc.timerStopCh)
+	sgc.game.comStat.Gamerun = true
 	return nil
 }
 
 // Stops the game
 func (sgc *GameController) StopGame() error {
-	if sgc.game.run {
+	if sgc.game.comStat.Gamerun {
 		// for all the modules that are present, stop the game
 		for i := range sgc.modules {
 			if sgc.modules[i].present {
 				sgc.modules[i].mctrl.StopGame()
 			}
 		}
-
-		sgc.timerStopCh <- true
 	}
 	return nil
-}
-
-// Update the specified module with all of the game values
-func (sgc *GameController) ModFullUpdate(modnum int) {
-	var litindi [][3]rune
-	for i := range sgc.game.indicators {
-		if sgc.game.indicators[i].lit {
-			litindi = append(litindi, sgc.game.indicators[i].label)
-		}
-	}
-	sgc.modules[modnum].mctrl.SetupAllGameData(
-		sgc.game.serialnum,
-		litindi,
-		uint8(sgc.game.numbat),
-		sgc.game.port,
-	)
-	sgc.modules[modnum].mctrl.SetStrikeReductionRate(sgc.game.strikerate)
-	sgc.modules[modnum].mctrl.SetSolvedStatus(sgc.game.numstrike)
-}
-
-// MFB tracker
-func (sgc *GameController) buttonWatcher() {
-	mfb := sgc.rpishield.RegisterMFBConsumer()
-	for {
-		select {
-		case presstimeint := <-mfb:
-			// wait for a button press
-			presstime := time.Duration(presstimeint) * time.Millisecond
-			if presstime > 50*time.Millisecond && presstime < 200*time.Millisecond {
-				if !sgc.game.run {
-					sgc.randomPopulate()
-					sgc.StartGame()
-				} else {
-					sgc.timerRunOut()
-				}
-			} else if presstime > 5*time.Second {
-				sgc.Close()
-				syscall.Shutdown(0, 0)
-			}
-		case <-sgc.btnWatchStopCh:
-			break
-		}
-	}
 }
 
 // populates each module with a random game
@@ -492,61 +283,5 @@ func (sgc *GameController) randomPopulate() {
 	for i := 0; i < numPort; i++ {
 		port := VALID_PORTS_TRANSLATED[sgc.rnd.Intn(len(VALID_PORT_ID))]
 		sgc.AddPort(port)
-	}
-}
-
-// this function is the timekeeper for the game
-// it will stop the game when the time runs out
-func (sgc *GameController) timer(StopCh chan bool) {
-	ticker := time.NewTicker(time.Millisecond)
-	countTicker := time.NewTicker(time.Second * 10)
-	extratick := 0
-	for {
-		select {
-		case <-StopCh:
-			return
-		case <-ticker.C:
-			// Need to add reduction rate
-			sgc.game.time--
-			if sgc.game.numstrike < 0 {
-				everyrate := int((1 / sgc.game.strikerate) / (-1 * float32(sgc.game.numstrike)))
-				if extratick >= everyrate {
-					sgc.game.time--
-					extratick = 0
-				} else {
-					extratick++
-				}
-			}
-		case <-countTicker.C:
-			go sgc.UpdateModTime()
-			go sgc.ipc.SyncStatus(sgc.game.time, sgc.game.numstrike, false, false)
-			if sgc.multicast.useMulti {
-				go sgc.multicast.mnetc.SendStatus(sgc.game.time, sgc.game.numstrike, false, false, sgc.game.run, sgc.game.strikerate)
-			}
-		}
-		if sgc.game.time == 0 {
-			sgc.timerRunOut()
-			return
-		}
-	}
-}
-
-// If the timer is to run out here is how we handle it
-func (sgc *GameController) timerRunOut() {
-	sgc.StopGame()
-	if sgc.multicast.useMulti {
-		sgc.multicast.mnetc.SendStatus(0, sgc.game.numstrike, true, false, false, sgc.game.strikerate)
-	}
-	sgc.ipc.SyncStatus(0, sgc.game.numstrike, true, false)
-}
-
-// Polls all possible module addresses and sees if something is their. Updates the class variables
-func (sgc *GameController) scanModules() {
-	for i := range sgc.modules {
-		laststate := sgc.modules[i].present
-		sgc.modules[i].present = sgc.modules[i].mctrl.TestIfPresent()
-		if laststate != sgc.modules[i].present && sgc.modules[i].present {
-			sgc.ModFullUpdate(i)
-		}
 	}
 }

@@ -2,13 +2,13 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	ipc "github.com/james-barrow/golang-ipc"
+	mktnecf "github.com/jax-b/ModulerKTNE/rpi_software/commonfiles"
 
 	"go.uber.org/zap"
 )
@@ -95,13 +95,13 @@ func (sipc *InterProcessCom) commandTree() {
 						ipcwerr = sipc.ipc.Write(1, []byte("mktne.game.stop.error"))
 					}
 				case "set_time": // Attempts to set the time. This command will be automatically followed by get_time
-					gametime, err := strconv.ParseInt(messagesCMDDTA[1], 10, 32)
+					gametime, err := time.ParseDuration(messagesCMDDTA[1])
 					if err != nil {
-						sipc.log.Error("Failed to convert time:", err)
+						sipc.log.Errorf("Failed to convert time: %e", err)
 						ipcwerr = sipc.ipc.Write(1, []byte("mktne.game.set_time.error"))
 						break
 					}
-					err = sipc.game.SetGameTime(uint32(gametime))
+					err = sipc.game.SetGameTime(gametime)
 					if err == nil {
 						sipc.log.Info("Set game time to:", gametime)
 						ipcwerr = sipc.ipc.Write(1, []byte("mktne.game.set_time.ok"))
@@ -287,7 +287,7 @@ func (sipc *InterProcessCom) commandTree() {
 					sipc.log.Info("Closed multicast")
 				case "open":
 					sipc.game.multicast.useMulti = true
-					sipc.game.multicast.mnetc, err = NewMultiCastCountdown(sipc.game.log, sipc.game.cfg)
+					sipc.game.multicast.mnetc, err = mktnecf.NewMultiCastCountdown(sipc.game.log, sipc.game.cfg.Network.MultiCastIP, sipc.game.cfg.Network.MultiCastPort)
 					if err != nil {
 						sipc.log.Error("Failed to open multicast:", err)
 						ipcwerr = sipc.ipc.Write(1, []byte("mktne.network.open.error"))
@@ -331,18 +331,32 @@ func (sipc *InterProcessCom) commandTree() {
 	}
 }
 
-func (sipc *InterProcessCom) SyncStatus(time uint32, numStrike int8, boom bool, win bool) {
-	wins := "false"
-	booms := "false"
-	if win {
-		wins = "true"
+func (sipc *InterProcessCom) SyncStatus(stat *mktnecf.Status) error {
+	type msg struct {
+		Time                string  `json:"timeleft"`
+		NumStrike           int8    `json:"strike"`
+		Boom                bool    `json:"boom"`
+		Win                 bool    `json:"win"`
+		Gamerun             bool    `json:"gamerun"`
+		Strikereductionrate float32 `json:"strikerate"`
 	}
-	if boom {
-		booms = "true"
+	omsg := msg{
+		Time:                stat.Time.String(),
+		NumStrike:           int8(stat.NumStrike),
+		Boom:                stat.Boom,
+		Win:                 stat.Win,
+		Gamerun:             stat.Gamerun,
+		Strikereductionrate: stat.Strikereductionrate,
 	}
-	statusjson := fmt.Sprintf("mktne.status:{timeleft:%d,strike:%d,win:%s,boom:%s}", time, numStrike, wins, booms)
-	ipcwerr := sipc.ipc.Write(9, []byte(statusjson))
+	json, err := json.Marshal(omsg)
+	if err != nil {
+		sipc.log.Warn("Failed to marshal status: ", err)
+		return err
+	}
+	ipcwerr := sipc.ipc.Write(9, json)
 	if ipcwerr != nil {
 		sipc.log.Fatal("Failed to write to IPC:", ipcwerr)
+		return ipcwerr
 	}
+	return nil
 }
