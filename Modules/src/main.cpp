@@ -7,53 +7,61 @@
 #include "basemodule\basemodule.h"
 BaseModule mod;
 
+// *************** External Communications Controller/Player *****************
+/// Pins
 #define AddressInPin A0
 #define SuccessLEDPin 5
 #define FailureLEDPin 6
 #define S2MInteruptPin  7
 #define MinMaxStable 5
 
-// Gameplay variables
-// Most modules will have a seed that it can be set to in order to load a specific module
-uint16_t gameplaySeed = NULL;
-
-// the specific module will might not use the following variables
-// each run will have a serial number that is used in that run
-#define GAMEPLAYSERIALNUMBERLENGTH 8
-char gameplaySerialNumber[GAMEPLAYSERIALNUMBERLENGTH];
-// The device can have a number of lit indicators on the sides but gameplay only cares if they are lit
-#define GAMEPLAYMAXLITINDICATOR 6
-char gameplayLitIndicators[GAMEPLAYMAXLITINDICATOR][3];
-uint8_t gameplayLitIndicatorCount = 0;
-// Self explanitory
-uint8_t gameplayNumBattery = 0;
-// There is only six possible ports in the game and they have a number assigned to them.
-// See reference chart in typed notes for more information about which is which
-#define GAMEPLAYMAXNUMPORT 6
-uint8_t gameplayPorts[GAMEPLAYMAXNUMPORT]; 
-uint8_t gameplayPortCount = 0;
-
-// All most modules will have a state that they can be set to
-// if a module is failed it will be set to a negative number
-// it will decrement by 1 each time it is failed
-int8_t moduleSolved = 0;
-
-// Timekeeping variables for external pins
+/// Timekeeping variables for external pins for their reset
 unsigned long S2MInteruptCallTime = 0;
 unsigned long FailureLEDCallTime = 0;
 
-// Timekeeping and gameplay variables
-unsigned long gameplayCountdownTime;
-bool timerRunning = false;
-float StrikeReductionRate = 0.25;
-
-// Buffers and data tracking for I2C communication
+/// Buffers and data tracking for I2C communication
 byte incomeingI2CData[10];
 byte outgoingI2CData[10];
 uint8_t bytesToSend = 0;
 uint8_t bytesReceived = 0;
+// **********************************************************************
 
-// Address Table
+// In side of the desired module use the following to acctivate the timer
+#define TIMER_ENABLE True
+
+// ************** Default Variable Sizes ******************
+#define GAMEPLAYSERIALNUMBERLENGTH 8
+#define GAMEPLAYMAXLITINDICATOR 6
+#define GAMEPLAYMAXNUMPORT 6
+
+// *************** Gameplay Variables *****************
+// the specific module  might not use the following variables but they will get set 
+// by the master controller so we want to keep trac of them for the module specific code 
+/// each run will have a serial number that is used in that run
+char gameplaySerialNumber[GAMEPLAYSERIALNUMBERLENGTH];
+/// The device can have a number of lit indicators on the sides but gameplay only cares if they are lit
+char gameplayLitIndicators[GAMEPLAYMAXLITINDICATOR][3];
+uint8_t gameplayLitIndicatorCount = 0;
+/// Most modules will have a seed that it can be set to in order to load a specific module configuration
+uint16_t gameplaySeed = NULL;
+/// Number of battery's that esists on the entire device
+uint8_t gameplayNumBattery = 0;
+/// There is only six possible ports in the game and they have a number assigned to them.
+/// See reference chart in typed notes for more information about which is which
+uint8_t gameplayPorts[GAMEPLAYMAXNUMPORT]; 
+uint8_t gameplayPortCount = 0;
+/// Timekeeping and gameplay variables
+unsigned long gameplayCountdownTime;
+bool gameplayTimerRunning = false;
+float gameplayStrikeReductionRate = 0.25;
+/// All most modules will have a state that they can be set to
+/// if a module is failed it will be set to a negative number
+/// it will decrement by 1 each time it is failed
+int8_t gameplayModuleSolved = 0;
+// ****************************************************
+
+
+// I2C from AIN Address Table
 uint8_t convertToAddress(uint16_t addrVIn){
     // Top
     if (addrVIn >= 93 && addrVIn < 186){
@@ -138,27 +146,42 @@ void FlagModuleFailed() {
     digitalWrite(S2MInteruptPin, LOW);
 }
 
-float timekeeperLastRun = 0;
+#ifdef TIMER_ENABLE
+unsigned long timekeeperLastRun = 0;
 // Updates to defused time of the module
 void decrementCounter() {
-    // Calculate our reduction rate based on current number of strikes
-    int BaseReductionRate = 10;
-    int reductionRate;
-    if (moduleSolved == 0) {
-        reductionRate = BaseReductionRate;
-    } else if (moduleSolved < 0) {
-        reductionRate = (moduleSolved * -1 * StrikeReductionRate + 1) * BaseReductionRate;
-    } else {
+    if !gameplayTimerRunning || gameplayModuleSolved > 0) {
         return;
     }
-    
-    // Calculate the current time minus how fast the clock is running
-    if (millis() - reductionRate > timekeeperLastRun && timerRunning) {
-        timekeeperLastRun = millis();
-        // Reduce the clock
-        gameplayCountdownTime -= reductionRate;
+    unsigned long currentTime = millis();
+    // Calculate how long it has been since the last run
+    unsigned long timesincelastrun = timekeeperLastRun - currentTime;
+    // Subtrack it out
+    gameplayCountdownTime -= timesincelastrun;
+
+    // If we have a strike
+    if (gameplayModuleSolved <= 0) {
+        float everyrate = (1 / gameplayStrikeReductionRate) / (gameplayModuleSolved * -1);
+        unsigned long textra;
+        if (everyrate > 1) {
+            textra = gameplayCountdownTime % (unsigned long)everyrate;
+            if everyrate < 1 {
+				textra = currentTime - timekeeperLastRun
+				textra += textra * (1 - everyrate)
+			} else {
+				textra = (currentTime - timekeeperLastRun) / everyrate
+			}
+            gameplayCountdownTime -= textra
+        }
     }
+    if (gameplayCountdownTime = 0 || gameplayModuleSolved >= 18000000) {
+        gameplayModuleSolved = 0;
+        gameplayTimerRunning = false;
+        FlagModuleFailed();
+    }
+    timekeeperLastRun = millis();
 }
+#endif
 
 // Sends out our output buffer
 void requestEvent() {
@@ -404,6 +427,9 @@ void loop(){
         processCommands();
     }
 
+
+# ifdef TIMER_ENABLE
     // Timekeeping 
     decrementCounter();
+# endif
 }
