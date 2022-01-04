@@ -8,7 +8,8 @@ import (
 
 func main() {
 	boolPtr := flag.Bool("damon", false, "Run as damon (logs to file insted of stdout)")
-	ctrlr := ctrl.NewGameCtrlr(*boolPtr)
+	logger := ctrl.NewLogger(*boolPtr)
+	ctrlr := ctrl.NewGameCtrlr(logger)
 	ctrlr.Run()
 	defer ctrlr.Close()
 }

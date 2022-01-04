@@ -78,9 +78,9 @@ func (sgc *GameController) ModFullUpdate(modnum int) error {
 	mod.present = mod.mctrl.TestIfPresent()
 	if mod.present {
 		var litindi [][3]rune
-		for i := range sgc.game.indicators {
-			if sgc.game.indicators[i].lit {
-				litindi = append(litindi, sgc.game.indicators[i].label)
+		for _, lbl := range sgc.game.indicators {
+			if lbl.Lit {
+				litindi = append(litindi, lbl.Label)
 			}
 		}
 		err := mod.mctrl.SetupAllGameData(

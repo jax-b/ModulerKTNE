@@ -50,7 +50,7 @@ func (sgt *GameTimer) Run() {
 			everyrate := (1 / sgt.stat.Strikereductionrate) / float32(sgt.stat.NumStrike)
 			var textra time.Duration
 			if everyrate < 1 {
-				textra = tstart.Sub(tlast) / time.Duration(1)
+				textra = tstart.Sub(tlast)
 				textra += time.Duration(float32(textra.Nanoseconds()) * (1 - everyrate))
 			} else {
 				textra = tstart.Sub(tlast) / time.Duration(everyrate)

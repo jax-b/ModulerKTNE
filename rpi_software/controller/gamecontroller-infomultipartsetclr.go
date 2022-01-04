@@ -7,10 +7,10 @@ func (sgc *GameController) AddIndicator(indi Indicator) {
 	} else {
 		sgc.game.indicators = append(sgc.game.indicators, indi)
 	}
-	if indi.lit {
+	if indi.Lit {
 		for i := range sgc.modules {
 			if sgc.modules[i].present {
-				sgc.modules[i].mctrl.SetGameLitIndicator(indi.label)
+				sgc.modules[i].mctrl.SetGameLitIndicator(indi.Label)
 			}
 		}
 	}

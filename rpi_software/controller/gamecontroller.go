@@ -21,7 +21,7 @@ const (
 )
 
 type module struct {
-	mctrl   *ModControl
+	mctrl   *mktnecf.ModControl
 	present bool
 	solved  bool
 }
@@ -30,8 +30,8 @@ type multicast struct {
 	mnetc    *mktnecf.MultiCastCountdown
 }
 type Indicator struct {
-	lit   bool    `json:lit`
-	label [3]rune `json:label`
+	Lit   bool    `json:"lit"`
+	Label [3]rune `json:"label"`
 }
 type gameinfo struct {
 	comStat    mktnecf.Status
@@ -99,9 +99,9 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 	}
 
 	//Loop through the modules and create their control objects
-	MCADDR := [10]byte{FRONT_MOD_1, FRONT_MOD_2, FRONT_MOD_3, FRONT_MOD_4, FRONT_MOD_5, BACK_MOD_1, BACK_MOD_2, BACK_MOD_3, BACK_MOD_4, BACK_MOD_5}
+	MCADDR := [10]byte{mktnecf.FRONT_MOD_1, mktnecf.FRONT_MOD_2, mktnecf.FRONT_MOD_3, mktnecf.FRONT_MOD_4, mktnecf.FRONT_MOD_5, mktnecf.BACK_MOD_1, mktnecf.BACK_MOD_2, mktnecf.BACK_MOD_3, mktnecf.BACK_MOD_4, mktnecf.BACK_MOD_5}
 	for i := range gc.modules {
-		gc.modules[i].mctrl = NewModControl(gc.log, MCADDR[i], int(gc.cfg.Shield.I2cBusNumber))
+		gc.modules[i].mctrl = mktnecf.NewModControl(gc.log, MCADDR[i], int(gc.cfg.Shield.I2cBusNumber))
 	}
 
 	// Check if multicast is enabled then create its object
@@ -271,8 +271,8 @@ func (sgc *GameController) randomPopulate() {
 			indilblrn[i] = rune(indilbl[i])
 		}
 		indi := Indicator{
-			label: indilblrn,
-			lit:   indilit,
+			Label: indilblrn,
+			Lit:   indilit,
 		}
 		sgc.AddIndicator(indi)
 	}
