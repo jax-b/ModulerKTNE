@@ -122,20 +122,20 @@ uint16_t getStableVoltage(int pin) {
 // This function is called when the module code determines that the module has been solved
 void FlagModuleSolved() {
     // Set the module solved flag to 1
-    moduleSolved = 1;
+    gameplayModuleSolved = 1;
     // Turn on the success LED
     digitalWrite(SuccessLEDPin, HIGH);
     // Turn off the failure LED
     S2MInteruptCallTime = millis();
     // Turn off the failure LED
     digitalWrite(S2MInteruptPin, LOW);
-    timerRunning = false;
+    gameplayTimerRunning = false;
 }
 
 // This function is called when the module code determines that the module has been failed
 void FlagModuleFailed() {
     // Set the module solved flag to -1
-    moduleSolved -= 1;
+    gameplayModuleSolved -= 1;
     // Record the on time of the failure LED
     FailureLEDCallTime = millis();
     // Turn on the failure LED
@@ -204,13 +204,13 @@ void receiveEvent(int numBytes) {
 }
 
 // Processe a command from the controller and if necessary copy data into the output buffer
-void processCommands(){
+void I2CCommandProcessor(){
     switch (incomeingI2CData[0] >> 4) {
     case 0x4: 
         switch (incomeingI2CData[0] & 0xF)
         {
         case 0x0:
-            timerRunning = false;
+            gameplayTimerRunning = false;
             break;
         
         default:
@@ -221,7 +221,7 @@ void processCommands(){
         switch (incomeingI2CData[0] & 0xF) {
         //start
         case 0x0:
-            timerRunning = true;
+            gameplayTimerRunning = true;
             if (gameplaySeed == NULL) {
                 gameplaySeed = random(1, 65535);
             }
@@ -275,7 +275,7 @@ void processCommands(){
             case 0x1:
                 // greater than 1 bytes because bytes received includes the command byte
                 if (bytesReceived > 1) {
-                    moduleSolved = incomeingI2CData[1];
+                    gameplayModuleSolved = incomeingI2CData[1];
                 }
                 break;
             // Sync Time between the module and the device
@@ -291,7 +291,7 @@ void processCommands(){
                 // Reduction Rate should be a float so 4 bytes
                 // greater than 4 bytes because bytes received includes the command byte
                 if (bytesReceived > 4){
-                    StrikeReductionRate = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
+                    gameplayStrikeReductionRate = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 }
                 break;
             // Set Serial Number
@@ -353,7 +353,7 @@ void processCommands(){
             // Get the modules ID
             case 0x0:
                 bytesToSend = 4;
-                modID = mod.getID();
+                char modID[] = mod.getID();
                 for (int i = 0; i < bytesToSend; i++) {
                     outgoingI2CData[i] = modID[i];
                 }
@@ -361,7 +361,7 @@ void processCommands(){
             // Get the Solved Status
             case 0x1:
                 bytesToSend = 1;
-                outgoingI2CData[0] = moduleSolved;
+                outgoingI2CData[0] = gameplayModuleSolved;
                 break;
         }
     }
@@ -386,7 +386,7 @@ void setup() {
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
     
-    mod = new BaseModule(*gameplayCountdownTime);
+    mod = new BaseModule(&gameplayCountdownTime);
 
     mod.setupModule();
 
@@ -408,12 +408,12 @@ void loop(){
     }
 
     // Success LED should be on for only module success
-    if (moduleSolved != 1) {
+    if (gameplayModuleSolved != 1) {
         digitalWrite(SuccessLEDPin, LOW);
     }
 
     // Module Specific Code
-    if (moduleSolved != 1) {
+    if (gameplayModuleSolved != 1) {
         if (mod.checkSuccess()) {
             FlagModuleSolved();
         }
@@ -424,7 +424,7 @@ void loop(){
     }
 
     if (bytesReceived != 0) {
-        processCommands();
+        I2CCommandProcessor();
     }
 
 
