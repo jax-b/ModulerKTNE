@@ -10,6 +10,9 @@
 #define EPD_DC     5
 #define EPD_BUSY   A1
 
+// Enable the timer in the main software loop
+#define TIMER_ENABLE True
+
 class OTS_Button : public baseModule
 {
 protected:

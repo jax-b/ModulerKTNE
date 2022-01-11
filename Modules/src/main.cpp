@@ -27,7 +27,7 @@ uint8_t bytesReceived = 0;
 // **********************************************************************
 
 // In side of the desired module use the following to acctivate the timer
-#define TIMER_ENABLE True
+// #define TIMER_ENABLE True
 
 // ************** Default Variable Sizes ******************
 #define GAMEPLAYSERIALNUMBERLENGTH 8
