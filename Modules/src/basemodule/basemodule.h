@@ -1,16 +1,25 @@
 namespace N
 {
-    class BaseModule
+    class baseModule
     {
     public:
-        bool checkSuccess();
+        bool checkSuccess(); 
         bool checkFailure();
-        void runModule();
-        void setupModule();
-        char[] modID();
+        void tickModule(uint16_t); // Needs to be set by the child class to preform loop specific tasks
+        void setupModule(); // Needs to be set by the child class to preform startup code 
+        char[] getModuleName();
+        void setIndicators(char[][3]);
+        void setBatteries(uint8_t);
+        void setNumStrike(uint8_t);
+        void setSeed(uint16_t); // Needs to be set by the child class as it might set up viewer related stuff
     protected:
-        bool successtriggered;
-        bool failuretriggered;
-        char[] modID = "base";
+        bool successTriggered;
+        bool failureTriggered;
+        char[] modID; // Needs to be set by the child class for identification
+        char[][3] litIndicators;
+        uint8_t numBatteries;
+        uint8_t numStrike;
+        uint16_t seed;
+        bool checkIndicator(char[3]);
     };
 }

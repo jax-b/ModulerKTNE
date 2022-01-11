@@ -386,7 +386,7 @@ void setup() {
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
     
-    mod = new BaseModule(&gameplayCountdownTime);
+    mod = new BaseModule();
 
     mod.setupModule();
 
@@ -407,20 +407,17 @@ void loop(){
         FailureLEDCallTime = 0;
     }
 
-    // Success LED should be on for only module success
-    if (gameplayModuleSolved != 1) {
-        digitalWrite(SuccessLEDPin, LOW);
-    }
-
     // Module Specific Code
-    if (gameplayModuleSolved != 1) {
+    if (gameplayModuleSolved != 1 && gameplayTimerRunning == true) {
+        // Success LED should be on for only module success
+        digitalWrite(SuccessLEDPin, LOW);
         if (mod.checkSuccess()) {
             FlagModuleSolved();
         }
-        if (mod.checkfss()) {
-            FlagModuleSolved();
+        if (mod.checkFailure()) {
+            FlagModuleFailed();
         }
-        mod.runModule();
+        mod.tickModule(gameplayCountdownTime);
     }
 
     if (bytesReceived != 0) {
