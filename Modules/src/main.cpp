@@ -4,8 +4,10 @@
 // ********************************
 // Include the type of module that we use
 // ********************************
-#include "basemodule\basemodule.h"
-BaseModule mod;
+// #include "basemodule\basemodule.h"
+// BaseModule mod = BaseModule();
+#include "OTS_Button\OTS_Button.h"
+baseModule mod = OTS_Button();
 
 // *************** External Communications Controller/Player *****************
 /// Pins
@@ -14,6 +16,8 @@ BaseModule mod;
 #define FailureLEDPin 6
 #define S2MInteruptPin  7
 #define MinMaxStable 5
+
+#define DEBUG_MODE True
 
 /// Timekeeping variables for external pins for their reset
 unsigned long S2MInteruptCallTime = 0;
@@ -32,7 +36,6 @@ uint8_t bytesReceived = 0;
 // ************** Default Variable Sizes ******************
 #define GAMEPLAYSERIALNUMBERLENGTH 8
 #define GAMEPLAYMAXLITINDICATOR 6
-#define GAMEPLAYMAXNUMPORT 6
 
 // *************** Gameplay Variables *****************
 // the specific module  might not use the following variables but they will get set 
@@ -46,10 +49,9 @@ uint8_t gameplayLitIndicatorCount = 0;
 uint16_t gameplaySeed = NULL;
 /// Number of battery's that esists on the entire device
 uint8_t gameplayNumBattery = 0;
-/// There is only six possible ports in the game and they have a number assigned to them.
+/// There is only six possible ports in the game and they have a bit possition assigned to them.
 /// See reference chart in typed notes for more information about which is which
-uint8_t gameplayPorts[GAMEPLAYMAXNUMPORT]; 
-uint8_t gameplayPortCount = 0;
+byte gameplayPorts; 
 /// Timekeeping and gameplay variables
 unsigned long gameplayCountdownTime;
 bool gameplayTimerRunning = false;
@@ -150,7 +152,7 @@ void FlagModuleFailed() {
 unsigned long timekeeperLastRun = 0;
 // Updates to defused time of the module
 void decrementCounter() {
-    if !gameplayTimerRunning || gameplayModuleSolved > 0) {
+    if (!gameplayTimerRunning || gameplayModuleSolved > 0) {
         return;
     }
     unsigned long currentTime = millis();
@@ -165,13 +167,13 @@ void decrementCounter() {
         unsigned long textra;
         if (everyrate > 1) {
             textra = gameplayCountdownTime % (unsigned long)everyrate;
-            if everyrate < 1 {
-				textra = currentTime - timekeeperLastRun
-				textra += textra * (1 - everyrate)
+            if (everyrate < 1) {
+				textra = currentTime - timekeeperLastRun;
+				textra += textra * (1 - everyrate);
 			} else {
-				textra = (currentTime - timekeeperLastRun) / everyrate
+				textra = (currentTime - timekeeperLastRun) / everyrate;
 			}
-            gameplayCountdownTime -= textra
+            gameplayCountdownTime -= textra;
         }
     }
     if (gameplayCountdownTime = 0 || gameplayModuleSolved >= 18000000) {
@@ -208,8 +210,8 @@ void I2CCommandProcessor(){
     switch (incomeingI2CData[0] >> 4) {
     case 0x4: 
         switch (incomeingI2CData[0] & 0xF)
-        {
-        case 0x0:
+        { 
+        case 0x0: // Stop
             gameplayTimerRunning = false;
             break;
         
@@ -218,9 +220,8 @@ void I2CCommandProcessor(){
         }
         break;
     case 0x3:
-        switch (incomeingI2CData[0] & 0xF) {
-        //start
-        case 0x0:
+        switch (incomeingI2CData[0] & 0xF) {   
+        case 0x0: // Start
             gameplayTimerRunning = true;
             if (gameplaySeed == NULL) {
                 gameplaySeed = random(1, 65535);
@@ -255,9 +256,7 @@ void I2CCommandProcessor(){
                 break;
             // Clear Port Identities
             case 0x7:
-                for (int i = 0; i < GAMEPLAYMAXNUMPORT; i++){
-                    gameplayPorts[i] = 0x0;
-                }
+                gameplayPorts = 0x0;
                 break;
             // Clear Seed
             case 0x8:
@@ -329,10 +328,7 @@ void I2CCommandProcessor(){
                 // Port Identities should be a byte
                 // greater than 1 bytes because bytes received includes the command byte
                 if (bytesReceived > 1){
-                    gameplayPorts[gameplayPortCount] = incomeingI2CData[1];
-                    if (gameplayPortCount < GAMEPLAYMAXNUMPORT - 1){
-                        gameplayPortCount++;
-                    }
+                    gameplayPorts = incomeingI2CData[1];
                 }
                 break;
             // Set Seed
@@ -353,9 +349,8 @@ void I2CCommandProcessor(){
             // Get the modules ID
             case 0x0:
                 bytesToSend = 4;
-                char modID[] = mod.getID();
                 for (int i = 0; i < bytesToSend; i++) {
-                    outgoingI2CData[i] = modID[i];
+                    outgoingI2CData[i] = mod.getModuleName()[i];
                 }
                 break;
             // Get the Solved Status
@@ -369,6 +364,10 @@ void I2CCommandProcessor(){
 }
 
 void setup() {
+    #ifdef DEBUG_MODE
+        Serial.begin(9600);
+        while (!Serial) // wait for serial port to connect.
+    #endif
     // Setup LED's
     pinMode(SuccessLEDPin, OUTPUT);
     pinMode(FailureLEDPin, OUTPUT);
@@ -378,15 +377,16 @@ void setup() {
     digitalWrite(SuccessLEDPin, HIGH);
     digitalWrite(FailureLEDPin, HIGH);
 
-    randomSeed(AnalogRead(A5));
+    randomSeed(analogRead(A5));
 
     // Setup I2C
     // Start Listening for address
     Wire.begin(convertToAddress(getStableVoltage(AddressInPin)));
+    #ifdef DEBUG_MODE 
+        Serial.println("I2C Listening on ADDR: " + String(convertToAddress(getStableVoltage(AddressInPin))));
+    #endif
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
-    
-    mod = new BaseModule();
 
     mod.setupModule();
 
@@ -428,5 +428,9 @@ void loop(){
 # ifdef TIMER_ENABLE
     // Timekeeping 
     decrementCounter();
+    #ifdef DEBUG_MODE
+        Serial.print("Time: ");
+        Serial.println(gameplayCountdownTime);
+    #endif
 # endif
 }

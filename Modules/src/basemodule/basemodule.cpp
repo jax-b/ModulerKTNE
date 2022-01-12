@@ -2,41 +2,60 @@
 
 // Check if there is a failure in the module and if so, clear it
 bool baseModule::checkFailure()
-{   
-    bool out = failureTriggered;
-    failureTriggered = false;
+{
+    bool out = baseModule::failureTriggered;
+    baseModule::failureTriggered = false;
     return out;
 }
 // Check if the module is successfully solved
 bool baseModule::checkSuccess()
 {
-    return successTriggered;
+    return baseModule::successTriggered;
 }
-char[] baseModule::getID()
+char *baseModule::getModuleName()
 {
-    return modID;
+    return baseModule::modID;
 }
-void baseModule::setIndicators(char[][3] inIndicator) {
-    for (uint8_t i = 0; i < sizeof(inIndicator); i++) {
-        litIndicators[i] = inIndicator[i];
+void baseModule::setIndicators(char inIndicators[GAMEPLAYMAXLITINDICATOR][3])
+{
+    for (uint8_t  i = 0; i < GAMEPLAYMAXLITINDICATOR; i++)
+    {
+        for (uint8_t  j = 0; j < 3; j++)
+        {
+            baseModule::litIndicators[i][j] = inIndicators[i][j];
+        }
     }
 }
-void baseModule::setBatteries(uint8_t inNumBattery) {
-    numBatteries = inNumBattery;
+void baseModule::setBatteries(uint8_t inNumBattery)
+{
+    baseModule::numBatteries = inNumBattery;
 }
-void baseModule::setNumStrike(uint8_t inNumStrike) {
-    numStrike = inNumStrike;
-}
-
-void baseModule::setSerialNumber(char[8] inSerialNumber) {
-    serialNumber = inSerialNumber;
+void baseModule::setNumStrike(uint8_t inNumStrike)
+{
+    baseModule::numStrike = inNumStrike;
 }
 
-bool baseModule::checkIndicator(char[3] inIndicator) {
-    for (uint8_t i = 0; i < sizeof(litIndicators); i++) {
-        if (litIndicators[i] == inIndicator) {
+void baseModule::setSerialNumber(char inSerialNumber[GAMEPLAYSERIALNUMBERLENGTH])
+{
+    for (uint8_t i = 0; i < GAMEPLAYSERIALNUMBERLENGTH; i++)
+    {
+        baseModule::serialNumber[i] = inSerialNumber[i];
+    }
+}
+
+void baseModule::setPorts(uint8_t inPorts)
+{
+    baseModule::activePorts = inPorts;
+}
+
+bool baseModule::checkIndicator(const char inIndicator[3])
+{
+    for (uint8_t i = 0; i < sizeof(baseModule::litIndicators); i++)
+    {
+        if (baseModule::litIndicators[i] == inIndicator)
+        {
             return true;
         }
     }
-    return false
+    return false;
 }

@@ -5,7 +5,7 @@ OTS_Wires::OTS_Wires()
     modID = "wire"
 }
 
-void OTS_Wires::setupModule() override
+void OTS_Wires::setupModule() 
 {
     // Setup Button Pin States
     for (uint8_t i = 0; i < 6; i++)
@@ -28,28 +28,28 @@ void OTS_Wires::processButtons()
     for (uint8_t ButtonNumber = 0; ButtonNumber < 6; ButtonNumber++)
     {
         // read the state of the switch/button:
-        bool currentState = digitalRead(ButtonOrder[ButtonNumber]);
+        bool currentState = digitalRead(OTS_Wires::wireButtonPins[ButtonNumber]);
 
-        if (currentState != buttonStatesFlicker[ButtonNumber])
+        if (currentState != OTS_Wires::buttonStatesFlicker[ButtonNumber])
         {
-            lastDebounceTime[ButtonNumber] = millis();
-            buttonStatesFlicker[ButtonNumber] = currentState;
+            OTS_Wires::lastDebounceTime[ButtonNumber] = millis();
+            OTS_Wires::buttonStatesFlicker[ButtonNumber] = currentState;
         }
 
-        if ((millis() - lastDebounceTime[ButtonNumber]) > 5)
+        if ((millis() - OTS_Wires::lastDebounceTime[ButtonNumber]) > 5)
         {
             // save the the last state
-            buttonStates[ButtonNumber] = currentState;
+            OTS_Wires::buttonStates[ButtonNumber] = currentState;
         }
     }
 }
 
-void OTS_Wires::setSeed(uint16_t inSeed) override
+void OTS_Wires::setSeed(uint16_t inSeed) 
 {
     seed = inSeed;
 }
 
-void OTS_Wires::tickModule(uint16_t currentGameTime) override
+void OTS_Wires::tickModule(uint16_t currentGameTime) 
 {
     processButtons();
 

@@ -59,9 +59,13 @@
 
 ## Gameplay port ID's
 There are 6 types of ports in the game here is the id's we use to keep track of them
-  - 0x1 = DVI-D
-  - 0x2 = Parallel
-  - 0x3 = PS2
-  - 0x4 = RJ-45
-  - 0x5 = Serial
-  - 0x6 = Stereo RCA
+```
+  1 = Port
+  0 = not used
+  1 = DVI
+  1 = Parallel
+  1 = PS/2
+  1 = RJ45
+  1 = Serial
+  1 = SteroRCA
+```

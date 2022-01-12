@@ -11,6 +11,12 @@
 
 class OTS_Wires : public baseModule
 {
+public:
+    // inherated from baseModule
+    virtual void setupModule();
+    virtual void setSeed(uint16_t);
+    virtual void tickModule(uint16_t);
+
 protected:
     Adafruit_NeoPixel *_pixels;
     uint8_t wireButtonPins[6] = {
@@ -19,11 +25,10 @@ protected:
         WIRE_BUTTON_PIN_3,
         WIRE_BUTTON_PIN_4,
         WIRE_BUTTON_PIN_5,
-        WIRE_BUTTON_PIN_6
-    };
-    bool buttonStates[] = {0, 0, 0, 0, 0, 0};
-    bool buttonStatesFlicker[] = {0, 0, 0, 0, 0, 0};
-    unsigned long lastDebounceTime[] = {0, 0, 0, 0, 0, 0};
-    
+        WIRE_BUTTON_PIN_6};
+    bool buttonStates[6] = {0, 0, 0, 0, 0, 0};
+    bool buttonStatesFlicker[6] = {0, 0, 0, 0, 0, 0};
+    unsigned long lastDebounceTime[6] = {0, 0, 0, 0, 0, 0};
+
     void processButtons();
-}
+};
