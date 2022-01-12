@@ -28,6 +28,10 @@ void baseModule::setNumStrike(uint8_t inNumStrike) {
     numStrike = inNumStrike;
 }
 
+void baseModule::setSerialNumber(char[8] inSerialNumber) {
+    serialNumber = inSerialNumber;
+}
+
 bool baseModule::checkIndicator(char[3] inIndicator) {
     for (uint8_t i = 0; i < sizeof(litIndicators); i++) {
         if (litIndicators[i] == inIndicator) {

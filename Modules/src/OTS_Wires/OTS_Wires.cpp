@@ -1,9 +1,10 @@
 #include "OTS_Wires.h"
 
-void OTS_Wires::OTS_Wires()
+OTS_Wires::OTS_Wires()
 {
     modID = "wire"
 }
+
 void OTS_Wires::setupModule() override
 {
     // Setup Button Pin States
@@ -35,7 +36,7 @@ void OTS_Wires::processButtons()
             buttonStatesFlicker[ButtonNumber] = currentState;
         }
 
-        if ((millis() - lastDebounceTime[ButtonNumber]) > DEBOUNCE_DELAY)
+        if ((millis() - lastDebounceTime[ButtonNumber]) > 5)
         {
             // save the the last state
             buttonStates[ButtonNumber] = currentState;
@@ -48,6 +49,13 @@ void OTS_Wires::setSeed(uint16_t inSeed) override
     seed = inSeed;
 }
 
-void OTS_Wires::tickModule(uint16_t currentGameTime) override {
+void OTS_Wires::tickModule(uint16_t currentGameTime) override
+{
+    processButtons();
 
+    // We need to wait if the master controller has not cleared out the failure flag
+    if (failureTriggered)
+    {
+        return;
+    }
 }
