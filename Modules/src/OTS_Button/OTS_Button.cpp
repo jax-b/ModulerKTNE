@@ -1,5 +1,7 @@
 #include "OTS_Button.h"
 
+#define DEBUG_MODE true
+
 OTS_Button::OTS_Button()
 {
     OTS_Button::modID[0] = "b";
@@ -104,6 +106,7 @@ void OTS_Button::setSeed(uint16_t inSeed)
         OTS_Button::_pixels->setPixelColor(3, 0xFFFF00);
         break;
     default:
+        // button display purple
         OTS_Button::_pixels->setPixelColor(2, 0xFF00FF);
         OTS_Button::_pixels->setPixelColor(3, 0xFF00FF);
         break;
@@ -112,6 +115,10 @@ void OTS_Button::setSeed(uint16_t inSeed)
     // Display the word on the screen
     int16_t x1, y1;
     uint16_t w, h;
+    #ifdef DEBUG_MODE
+        Serial.print("Chosen word: ");
+        Serial.println(possibleButtonWords[chosenWord]);
+    #endif
     OTS_Button::_display.getTextBounds(possibleButtonWords[chosenWord], 0, 0, &x1, &y1, &w, &h);
     uint16_t x = ((OTS_Button::_display.width() - w) / 2) - x1;
     uint16_t y = ((OTS_Button::_display.height() - h) / 2) - y1;
@@ -165,7 +172,7 @@ void OTS_Button::relHeldButton(uint16_t currentGameTime)
 {
     uint16_t hundrethsTime = currentGameTime / 10;
     // I am assuming the timer is in seconds
-    int releaseDigit;
+    uint8_t releaseDigit;
     switch (stripColor)
     {
     case 0:
