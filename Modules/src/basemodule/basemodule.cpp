@@ -59,3 +59,7 @@ bool baseModule::checkIndicator(const char inIndicator[3])
     }
     return false;
 }
+
+void baseModule::setupModule(){}
+void baseModule::tickModule(uint16_t inTime){}
+void baseModule::setSeed(uint16_t inSeed){}
