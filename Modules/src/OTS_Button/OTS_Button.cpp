@@ -2,7 +2,10 @@
 
 OTS_Button::OTS_Button()
 {
-    OTS_Button::modID = "bttn"
+    OTS_Button::modID[0] = "b";
+    OTS_Button::modID[1] = "t";
+    OTS_Button::modID[2] = "t";
+    OTS_Button::modID[3] = "n";
 }
 
 void OTS_Button::setupModule()
@@ -18,7 +21,6 @@ void OTS_Button::setupModule()
     }
     OTS_Button::_pixels->show();
     // Set up the Eink Display
-
     OTS_Button::_display.init();
     OTS_Button::_display.setRotation(1);
     OTS_Button::_display.setFont(&FreeMonoBold12pt7b);
@@ -47,7 +49,7 @@ uint16_t OTS_Button::btnDebounce()
             { // if the button is pressed return the press time
                 OTS_Button::_pixels->setPixelColor(0, OTS_Button::stripColorHex);
                 OTS_Button::_pixels->setPixelColor(1, OTS_Button::stripColorHex);
-                return tpress
+                return tpress;
             }
             else
             {
@@ -59,6 +61,11 @@ uint16_t OTS_Button::btnDebounce()
     return 0;
 }
 
+const char PROGMEM possibleButtonWords[4][8] = {
+    {'A', 'b', 'o', 'r', 't', '\0', '\0', '\0'},
+    {'D', 'e', 't', 'o', 'n', 'a', 't', 'e'},
+    {'H', 'o', 'l', 'd', '\0', '\0', '\0', '\0'},
+    {'P', 'r', 'e', 's', 's', '\0', '\0', '\0'}};
 void OTS_Button::setSeed(uint16_t inSeed)
 {
     OTS_Button::seed = inSeed;
@@ -118,6 +125,7 @@ void OTS_Button::setSeed(uint16_t inSeed)
     } while (OTS_Button::_display.nextPage());
 }
 
+const PROGMEM char step4indiLabel[3] = {'F', 'R', 'K'};
 void OTS_Button::tickModule(uint16_t currentGameTime)
 {
     uint16_t timeBTNPressed = btnDebounce();
@@ -129,7 +137,6 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
     }
 
     // Instructions 2, 4 and 6: end results are the same
-    const PROGMEM char step4indiLabel[3] = {'F', 'R', 'K'};
     if ((OTS_Button::numBatteries > 1 && OTS_Button::chosenWord == 1) || (OTS_Button::numBatteries > 2 && this->checkIndicator(step4indiLabel)) || (OTS_Button::buttonColor == 1 && OTS_Button::chosenWord == 4)) // See 1/3 in set seed line 74
     {
         if (timeBTNPressed >= 1 && timeBTNPressed < 300)

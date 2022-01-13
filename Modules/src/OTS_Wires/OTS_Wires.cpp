@@ -2,10 +2,20 @@
 
 OTS_Wires::OTS_Wires()
 {
-    modID = "wire"
+    OTS_Wires::modID[0] = "w";
+    OTS_Wires::modID[1] = "i";
+    OTS_Wires::modID[2] = "r";
+    OTS_Wires::modID[3] = "e";
 }
 
-void OTS_Wires::setupModule() 
+const uint8_t PROGMEM wireButtonPins[6] = {
+    WIRE_BUTTON_PIN_1,
+    WIRE_BUTTON_PIN_2,
+    WIRE_BUTTON_PIN_3,
+    WIRE_BUTTON_PIN_4,
+    WIRE_BUTTON_PIN_5,
+    WIRE_BUTTON_PIN_6};
+void OTS_Wires::setupModule()
 {
     // Setup Button Pin States
     for (uint8_t i = 0; i < 6; i++)
@@ -28,7 +38,7 @@ void OTS_Wires::processButtons()
     for (uint8_t ButtonNumber = 0; ButtonNumber < 6; ButtonNumber++)
     {
         // read the state of the switch/button:
-        bool currentState = digitalRead(OTS_Wires::wireButtonPins[ButtonNumber]);
+        bool currentState = digitalRead(wireButtonPins[ButtonNumber]);
 
         if (currentState != OTS_Wires::buttonStatesFlicker[ButtonNumber])
         {
@@ -44,12 +54,12 @@ void OTS_Wires::processButtons()
     }
 }
 
-void OTS_Wires::setSeed(uint16_t inSeed) 
+void OTS_Wires::setSeed(uint16_t inSeed)
 {
     seed = inSeed;
 }
 
-void OTS_Wires::tickModule(uint16_t currentGameTime) 
+void OTS_Wires::tickModule(uint16_t currentGameTime)
 {
     processButtons();
 
