@@ -21,6 +21,7 @@ public:
     virtual void setupModule();
     virtual void setSeed(uint16_t);
     virtual void tickModule(uint16_t);
+    virtual void clearModule();
 
 protected:
     uint8_t buttonColor = 0x0;
@@ -32,7 +33,7 @@ protected:
     GxEPD2_BW<GxEPD2_154_D67, 32> _display = GxEPD2_154_D67(EPD_CS, EPD_DC, -1, EPD_BUSY);
 
 private:
-    uint16_t timeLastBtn = 0;
+    unsigned long timeLastBtn = 0;
     bool lastBTNState = 0;
     void relHeldButton(uint16_t);
     uint16_t btnDebounce();

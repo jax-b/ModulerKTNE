@@ -51,9 +51,9 @@ uint16_t gameplaySeed = NULL;
 uint8_t gameplayNumBattery = 0;
 /// There is only six possible ports in the game and they have a bit possition assigned to them.
 /// See reference chart in typed notes for more information about which is which
-byte gameplayPorts;
+byte gameplayPorts = 0;
 /// Timekeeping and gameplay variables
-unsigned long gameplayCountdownTime;
+unsigned long gameplayCountdownTime = 0;
 bool gameplayTimerRunning = false;
 float gameplayStrikeReductionRate = 0.25;
 /// All most modules will have a state that they can be set to
@@ -148,6 +148,13 @@ void FlagModuleSolved()
     // Turn off the failure LED
     digitalWrite(S2MInteruptPin, LOW);
     gameplayTimerRunning = false;
+    mod.clearModule();
+    gameplaySeed = NULL;
+    gameplaySerialNumber[0] = '\0';
+    gameplayLitIndicatorCount = 0;
+    gameplayStrikeReductionRate = 0.25;
+    gameplayNumBattery = 0;
+    gameplayPorts = 0;
 }
 
 // This function is called when the module code determines that the module has been failed
@@ -155,6 +162,7 @@ void FlagModuleFailed()
 {
     // Set the module solved flag to -1
     gameplayModuleSolved -= 1;
+    mod.setNumStrike(gameplayModuleSolved * -1);
     // Record the on time of the failure LED
     FailureLEDCallTime = millis();
     // Turn on the failure LED
@@ -176,7 +184,7 @@ void decrementCounter()
     }
     unsigned long currentTime = millis();
     // Calculate how long it has been since the last run
-    unsigned long timesincelastrun = timekeeperLastRun - currentTime;
+    unsigned long timesincelastrun = currentTime - timekeeperLastRun;
     // Subtrack it out
     gameplayCountdownTime -= timesincelastrun;
 
@@ -200,16 +208,25 @@ void decrementCounter()
             gameplayCountdownTime -= textra;
         }
     }
-    if (gameplayCountdownTime = 0 || gameplayModuleSolved >= 18000000)
+    if (gameplayCountdownTime == 0 || gameplayModuleSolved >= 18000000)
     {
         gameplayModuleSolved = 0;
         gameplayTimerRunning = false;
         FlagModuleFailed();
     }
-    timekeeperLastRun = millis();
+    timekeeperLastRun = currentTime;
 #ifdef DEBUG_MODE
+    uint16_t hundrethsTime = gameplayCountdownTime / 10;
     Serial.print("Time: ");
-    Serial.println(gameplayCountdownTime);
+    Serial.print(hundrethsTime / 100 / 60 / 10 % 10);
+    Serial.print(hundrethsTime / 100 / 60 % 10);
+    Serial.print(":");
+    Serial.print(hundrethsTime / 1000 % 10 % 6);
+    Serial.print(hundrethsTime / 100 % 10);
+    Serial.print(".");
+    Serial.print(hundrethsTime % 10);
+    Serial.println(hundrethsTime / 10 % 10);
+    
 #endif
 }
 #endif
@@ -219,6 +236,11 @@ void requestEvent()
 {
     if (bytesToSend > 0)
     {
+        #ifdef DEBUG_MODE
+        Serial.print("Sending: ");
+        Serial.println(bytesToSend);
+        #endif    
+        
         for (size_t i = 0; i < bytesToSend; i++)
         {
             Wire.write(outgoingI2CData, bytesToSend);
@@ -265,7 +287,7 @@ void I2CCommandProcessor()
     Serial.print("I2C cmdgroup:");
     Serial.print(incomeingI2CData[0] >> 4, HEX);
     Serial.print(", cmd:");
-    Serial.println(incomeingI2CData[0] & 0xff, HEX);
+    Serial.println(incomeingI2CData[0] & 0xF, HEX);
 #endif
     switch (incomeingI2CData[0] >> 4)
     {
@@ -390,9 +412,15 @@ void I2CCommandProcessor()
             // greater than 4 bytes because bytes received includes the command byte
             if (bytesReceived > 4)
             {
-                gameplayCountdownTime = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
+                uint16_t data34 = incomeingI2CData[3] << 8 | incomeingI2CData[4];
+                unsigned long data12 = incomeingI2CData[1] << 8 | incomeingI2CData[2];
+                gameplayCountdownTime = data12 << 16 | data34;
 #ifdef DEBUG_MODE
                 Serial.print("SyncTime: ");
+                Serial.print(data12 << 16,HEX);
+                Serial.print(" ");
+                Serial.print(data34, HEX);
+                Serial.print(" ");
                 Serial.println(gameplayCountdownTime);
 #endif
             }
@@ -403,9 +431,15 @@ void I2CCommandProcessor()
             // greater than 4 bytes because bytes received includes the command byte
             if (bytesReceived > 4)
             {
-                gameplayStrikeReductionRate = incomeingI2CData[1] << 24 | incomeingI2CData[2] << 16 | incomeingI2CData[3] << 8 | incomeingI2CData[4];
+                uint16_t data34 = incomeingI2CData[3] << 8 | incomeingI2CData[4];
+                unsigned long data12 = incomeingI2CData[1] << 8 | incomeingI2CData[2];
+                gameplayStrikeReductionRate = data12 << 16 | data34;
 #ifdef DEBUG_MODE
                 Serial.print("StrikeRate: ");
+                Serial.print(data12 << 16,HEX);
+                Serial.print(" ");
+                Serial.print(data34, HEX);
+                Serial.print(" ");
                 Serial.println(gameplayStrikeReductionRate);
 #endif
             }
@@ -446,10 +480,12 @@ void I2CCommandProcessor()
                 Serial.print("LitIndicators: {");
                 for (uint8_t i = 0; i < gameplayLitIndicatorCount; i++)
                 {
-                    Serial.print(gameplayLitIndicators[i]);
+                    for (uint8_t j = 0; j < 3; j++) {
+                        Serial.print(gameplayLitIndicators[i][j]);
+                    }
                     Serial.print(", ");
                 }
-                Serial.println();
+                Serial.println("}");
 #endif
             }
             break;
@@ -564,7 +600,7 @@ void loop()
         S2MInteruptCallTime = 0;
     }
     // Turn off the failure LED after a short delay
-    if (millis() - FailureLEDCallTime > 500 && FailureLEDCallTime != 0)
+    if (millis() - FailureLEDCallTime > 700 && FailureLEDCallTime != 0)
     {
         digitalWrite(FailureLEDPin, LOW);
         FailureLEDCallTime = 0;
