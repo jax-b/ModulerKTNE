@@ -240,6 +240,7 @@ void I2CCommandProcessor(){
                 for (int i = 0; i < GAMEPLAYSERIALNUMBERLENGTH; i++){
                     gameplaySerialNumber[i] = '\0';
                 }
+                mod.setSerialNumber(gameplaySerialNumber);
                 break;
             // Clear LitIndicators
             case 0x5:
@@ -249,24 +250,27 @@ void I2CCommandProcessor(){
                         gameplayLitIndicators[i][j] = '\0';
                     }
                 }
+                mod.setIndicators(gameplayLitIndicators);
                 break;
             // Clear Number Batteries
             case 0x6:
                 gameplayNumBattery = 0;
+                mod.setBatteries(gameplayNumBattery);
                 break;
             // Clear Port Identities
             case 0x7:
                 gameplayPorts = 0x0;
+                mod.setPorts(gameplayPorts);
                 break;
             // Clear Seed
             case 0x8:
                 gameplaySeed = NULL;
+                mod.setSeed(gameplaySeed);
                 break;
             default:
                 break;
         }
         break;
-
     // This is a command to the module for configuration
     case 0x1:
         switch (incomeingI2CData[0] & 0xF) {
@@ -275,6 +279,11 @@ void I2CCommandProcessor(){
                 // greater than 1 bytes because bytes received includes the command byte
                 if (bytesReceived > 1) {
                     gameplayModuleSolved = incomeingI2CData[1];
+                    if (gameplayModuleSolved > 0) {
+                        FlagModuleSolved();
+                    } else {
+                        mod.setNumStrike(gameplayModuleSolved * -1);
+                    }
                 }
                 break;
             // Sync Time between the module and the device
@@ -301,7 +310,9 @@ void I2CCommandProcessor(){
                     for (int i = 0; i < bytesReceived && i < GAMEPLAYSERIALNUMBERLENGTH ; i++){
                         gameplaySerialNumber[i] = (char)incomeingI2CData[i + 1];
                     }
+                    mod.setSerialNumber(gameplaySerialNumber);
                 }
+                break;
             // Set LitIndicator
             case 0x5:
                 // Lit Indicator should be a string of 3 char
@@ -313,6 +324,7 @@ void I2CCommandProcessor(){
                     if (gameplayLitIndicatorCount < GAMEPLAYMAXLITINDICATOR - 1){
                         gameplayLitIndicatorCount++;
                     }
+                    mod.setIndicators(gameplayLitIndicators);
                 }
                 break;
             // Set Number of Batteries
@@ -321,14 +333,16 @@ void I2CCommandProcessor(){
                 // greater than 1 bytes because bytes received includes the command byte
                 if (bytesReceived > 1){
                     gameplayNumBattery = incomeingI2CData[1];
+                    mod.setBatteries(gameplayNumBattery);
                 }
                 break;
-            // Set A Port Identity
+            // Set Active Ports
             case 0x7:
                 // Port Identities should be a byte
                 // greater than 1 bytes because bytes received includes the command byte
                 if (bytesReceived > 1){
                     gameplayPorts = incomeingI2CData[1];
+                    mod.setPorts(gameplayPorts);
                 }
                 break;
             // Set Seed
@@ -337,6 +351,7 @@ void I2CCommandProcessor(){
                 // greater than 2 bytes because bytes received includes the command byte
                 if (bytesReceived > 2){
                     gameplaySeed = incomeingI2CData[1] << 8 | incomeingI2CData[2];
+                    mod.setSeed(gameplaySeed);
                 }
                 break;
             default:
