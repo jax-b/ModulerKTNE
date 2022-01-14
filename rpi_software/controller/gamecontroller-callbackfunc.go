@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"syscall"
 	"time"
 
 	mktnecf "github.com/jax-b/ModulerKTNE/rpi_software/commonfiles"
@@ -57,6 +56,7 @@ func (sgc *GameController) buttonWatcher() {
 			// wait for a button press
 			presstime := time.Duration(presstimeint) * time.Millisecond
 			if presstime > 50*time.Millisecond && presstime < 200*time.Millisecond { // Short Press
+				log.Info("MFB Short Press Detected")
 				if !sgc.game.comStat.Gamerun { // If the Game is not running, start a new game
 					sgc.randomPopulate()
 					sgc.StartGame()
@@ -68,8 +68,10 @@ func (sgc *GameController) buttonWatcher() {
 					}
 				}
 			} else if presstime > 5*time.Second { // Long Press
+				log.Info("MFB Long Press Detected")
 				sgc.Close()
-				syscall.Shutdown(0, 0)
+				os.exit(0)
+				// syscall.Shutdown(0, 0)
 			}
 		case <-sgc.btnWatchStopCh:
 			break
