@@ -87,6 +87,10 @@ uint16_t OTS_Button::btnDebounce()
 void OTS_Button::setSeed(uint16_t inSeed)
 {
     OTS_Button::seed = inSeed;
+    if seed = NULL
+    {
+        this->clearModule();
+    }
     // SETUP SEED
     OTS_Button::buttonColor = seed % 5;
     OTS_Button::stripColor = seed + 7 % 4; // adding 7 so when I scale to 10 colors each strip will be different than color. 7 was chosen randomly i just like 7 and will only ever add prime numbers
