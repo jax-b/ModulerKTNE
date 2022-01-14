@@ -23,10 +23,7 @@ type InterProcessCom struct {
 // Creates a new interprocess communicator
 func NewIPC(logger *zap.SugaredLogger, gamectrl *GameController) *InterProcessCom {
 	logger = logger.Named("IPC")
-	scon := &ipc.ServerConfig{
-		Timeout: time.Millisecond * 50,
-	}
-	sv, err := ipc.StartServer("ktne-ipc", scon)
+	sv, err := ipc.StartServer("ktne-ipc", nil)
 	if err != nil {
 		log.Fatal("Failed to start IPC Server", err)
 	}

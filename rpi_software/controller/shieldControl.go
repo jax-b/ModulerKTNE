@@ -26,6 +26,7 @@ type ShieldControl struct {
 
 func NewShieldControl(logger *zap.SugaredLogger, cfg *Config) *ShieldControl {
 	logger = logger.Named("ShieldControl")
+	logger.Info("Starting Shield Control")
 	i2c, err := i2c7Seg.NewSevenSegI2C(cfg.Shield.SevenSegAddress, int(cfg.Shield.I2cBusNumber))
 	if err != nil {
 		logger.Error("Failed to create i2c7Seg", err)
