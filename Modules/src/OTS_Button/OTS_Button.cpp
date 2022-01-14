@@ -1,6 +1,6 @@
 #include "OTS_Button.h"
 
-#define DEBUG_MODE true
+//#define DEBUG_MODE true
 
 OTS_Button::OTS_Button()
 {
@@ -219,19 +219,18 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
 
 void OTS_Button::relHeldButton(uint16_t currentGameTime)
 {
-    uint16_t hundrethsTime = currentGameTime / 10;
     // I am assuming the timer is in seconds
-    uint8_t releaseDigit;
+    char releaseDigit;
     switch (stripColor)
     {
     case 0:
-        releaseDigit = 4;
+        releaseDigit = '4';
         break;
     case 2:
-        releaseDigit = 5;
+        releaseDigit = '5';
         break;
     default: // this is for a white strip or any other color strip so theres no reason to specify white it'll fall in here anyway
-        releaseDigit = 1;
+        releaseDigit = '1';
         break;
     }
 
@@ -239,20 +238,11 @@ void OTS_Button::relHeldButton(uint16_t currentGameTime)
     Serial.print("Release digit: ");
     Serial.println(releaseDigit);
 #endif
-
-    // min:sec.tenhundosec 00:00.00
-    //               0_:00.00                          _0:00.00
-    bool minutesCheck = (hundrethsTime / 100 / 60 % 10 == releaseDigit || hundrethsTime / 100 / 60 / 10 % 10 == releaseDigit);
-    //               00:0_.00                          00:_0.00
-    bool secondsCheck = hundrethsTime / 100 % 10 == releaseDigit || hundrethsTime / 1000 % 10 % 6 == releaseDigit;
-    //               00:00.0_                          00:00._0
-    bool tenthshundoCheck = hundrethsTime % 10 == releaseDigit || hundrethsTime / 10 % 10 == releaseDigit;
-    bool tenthshundoActive = hundrethsTime / 100 / 60 < 1;
-    Serial.print(minutesCheck);
-    Serial.print(secondsCheck);
-    Serial.print(tenthshundoCheck);
-    Serial.print(tenthshundoActive);
-    if (minutesCheck || secondsCheck || (tenthshundoActive && tenthshundoCheck))
+    uint16_t hundrethsTime = currentGameTime / 10;
+    String ctime = String(hundrethsTime / 100 / 60 / 10 % 10) + String(hundrethsTime / 100 / 60 % 10) + ":";
+    ctime += String(hundrethsTime / 1000 % 10) + String(hundrethsTime / 100 % 10) + ".";
+    ctime += String(hundrethsTime / 10 % 10) + String(hundrethsTime % 10);
+    if ( ctime.charAt(ctime.indexOf(releaseDigit)) == releaseDigit)
     {
 #ifdef DEBUG_MODE
         Serial.println("Held Button Successfully");

@@ -1,11 +1,12 @@
 #include "OTS_Wires.h"
 
 OTS_Wires::OTS_Wires()
-{
-    OTS_Wires::modID[0] = "w";
-    OTS_Wires::modID[1] = "i";
-    OTS_Wires::modID[2] = "r";
-    OTS_Wires::modID[3] = "e";
+{   
+    const char realModID[] = "wire";
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        modID[i] = realModID[i];
+    }
 }
 
 const uint8_t PROGMEM wireButtonPins[6] = {

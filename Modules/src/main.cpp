@@ -11,13 +11,22 @@ OTS_Button mod = OTS_Button();
 
 // *************** External Communications Controller/Player *****************
 /// Pins
-#define AddressInPin A0
+// #if defined(__AVR_ATmega32U4__) 
+#define AddressInPin 26
 #define SuccessLEDPin 8
 #define FailureLEDPin 9
 #define S2MInteruptPin 4
 #define MinMaxStable 5
+#define RandSorcePin 27
+// #else 
+// #define AddressInPin A0
+// #define SuccessLEDPin 
+// #define FailureLEDPin 9
+// #define S2MInteruptPin 2
+// #define MinMaxStable 5
+// #endif
 
-#define DEBUG_MODE true
+// #define DEBUG_MODE true
 
 /// Timekeeping variables for external pins for their reset
 unsigned long S2MInteruptCallTime = 0;
@@ -221,7 +230,7 @@ void decrementCounter()
     Serial.print(hundrethsTime / 100 / 60 / 10 % 10);
     Serial.print(hundrethsTime / 100 / 60 % 10);
     Serial.print(":");
-    Serial.print(hundrethsTime / 1000 % 10 % 6);
+    Serial.print(hundrethsTime / 1000 % 10);
     Serial.print(hundrethsTime / 100 % 10);
     Serial.print(".");
     Serial.print(hundrethsTime % 10);
@@ -230,6 +239,7 @@ void decrementCounter()
 #endif
 }
 #endif
+
 
 // Sends out our output buffer
 void requestEvent()
@@ -561,10 +571,12 @@ void setup()
 {
 #ifdef DEBUG_MODE
     Serial.begin(9600);
-    while (!Serial) // wait for serial port to connect.
+    while (!Serial); // wait for serial port to connect.
+    Serial.println("Serial Connected");
+    delay(500);
 #endif
-        // Setup LED's
-        pinMode(SuccessLEDPin, OUTPUT);
+    // Setup LED's
+    pinMode(SuccessLEDPin, OUTPUT);
     pinMode(FailureLEDPin, OUTPUT);
     pinMode(S2MInteruptPin, OUTPUT);
     // Set output pins to inital state
@@ -572,7 +584,7 @@ void setup()
     digitalWrite(SuccessLEDPin, HIGH);
     digitalWrite(FailureLEDPin, HIGH);
 
-    randomSeed(analogRead(A5));
+    randomSeed(analogRead(RandSorcePin));
 
     // Setup I2C
     // Start Listening for address

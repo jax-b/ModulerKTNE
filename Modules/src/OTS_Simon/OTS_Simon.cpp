@@ -2,10 +2,11 @@
 
 OTS_Simon::OTS_Simon()
 {
-    OTS_Simon::modID[0] = "s";
-    OTS_Simon::modID[1] = "m";
-    OTS_Simon::modID[2] = "o";
-    OTS_Simon::modID[3] = "n";
+    const char realModID[] = "smon";
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        modID[i] = realModID[i];
+    }
 }
 
 const uint8_t PROGMEM ButtonOrder[4] = {GREEN_BUTTON_PIN, RED_BUTTON_PIN, BLUE_BUTTON_PIN, YELLOW_BUTTON_PIN};

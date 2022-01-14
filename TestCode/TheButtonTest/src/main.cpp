@@ -1,23 +1,22 @@
 #include <Arduino.h>
-#include <FastLED.h>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold12pt7b.h>
 #include <Adafruit_I2CDevice.h>
+#include <Adafruit_NeoPixel.h>
 
 #define AddressInPin A0
 #define SuccessLEDPin 8
 #define FailureLEDPin 9
 #define MinMaxStable 5
 #define BUTTON_PIN 7
-#define ALED_Pin 10
+#define NEOPIXEL_PIN 10
 
 bool buttonStates = 0;
 bool buttonStatesFlicker = 0;
 unsigned long lastDebounceTime = 0;
 #define DEBOUNCE_DELAY 50
 
-CRGB aleds[4];
-
+Adafruit_NeoPixel *pixels;
 
 #define EPD_CS      6
 #define EPD_DC      5
@@ -172,37 +171,37 @@ void setup()
   }
   while (display.nextPage());
   
-  Serial.println("ledtest");
-  FastLED.addLeds<WS2812B, ALED_Pin, GRB>(aleds, 4);
+  pixels = new Adafruit_NeoPixel(4, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+  pixels->begin();
   for (int i = 0; i < 4; i++)
   {
-    aleds[i] = CRGB::Red;
+    pixels->setPixelColor(i, 0xFF0000);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
   for (int i = 0; i < 4; i++)
   {
-    aleds[i] = CRGB::Green;
+    pixels->setPixelColor(i, 0x00FF00);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
   for (int i = 0; i < 4; i++)
   {
-    aleds[i] = CRGB::Blue;
+    pixels->setPixelColor(i, 0x0000ff);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
   for (int i = 0; i < 4; i++)
   {
-    aleds[i] = CRGB::Yellow;
+    pixels->setPixelColor(i, 0xFFFF00);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
   for (int i = 0; i < 4; i++)
   {
-    aleds[i] = CRGB::Purple;
+    pixels->setPixelColor(i, 0xFF00FF);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
 }
 
@@ -213,16 +212,16 @@ void loop()
   {
     for (int i = 0; i < 4; i++)
     {
-      aleds[i] = CRGB::Black;
+      pixels->setPixelColor(i, 0);
     }
-    FastLED.show();
+    pixels->show();
   }
   else
   {
     for (int i = 0; i < 4; i++)
     {
-      aleds[i] = CRGB::Green;
+      pixels->setPixelColor(i, 0x00FF00);
     }
-    FastLED.show();
+    pixels->show();
   }
 }
