@@ -131,7 +131,7 @@ func (sgc *GameController) Run() {
 	sgc.rpishield.Run()
 	go sgc.buttonWatcher()
 	go sgc.m2cInterruptHandler()
-	go sgc.solvedCheck()
+	sgc.solvedCheck()
 }
 
 // Safe Shutdown of all components
