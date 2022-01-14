@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"os"
 	"time"
 
 	mktnecf "github.com/jax-b/ModulerKTNE/rpi_software/commonfiles"
@@ -70,7 +71,7 @@ func (sgc *GameController) buttonWatcher() {
 			} else if presstime > 5*time.Second { // Long Press
 				log.Info("MFB Long Press Detected")
 				sgc.Close()
-				os.exit(0)
+				os.Exit(0)
 				// syscall.Shutdown(0, 0)
 			}
 		case <-sgc.btnWatchStopCh:

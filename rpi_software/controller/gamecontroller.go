@@ -136,6 +136,7 @@ func (sgc *GameController) Run() {
 
 // Safe Shutdown of all components
 func (sgc *GameController) Close() {
+	sgc.log.Info("Closing Game Controller")
 	go func() { sgc.timerStopCh <- true }()
 	sgc.btnWatchStopCh <- true
 	sgc.interStopCh <- true
@@ -143,8 +144,11 @@ func (sgc *GameController) Close() {
 	// flush the logger
 	sgc.log.Sync()
 	// Close all of the modules
-	for i := range sgc.modules {
-		sgc.modules[i].mctrl.Close()
+	for _, mod := range sgc.modules {
+		if mod.present {
+			mod.mctrl.ClearAllGameData()
+		}
+		mod.mctrl.Close()
 	}
 	// Close the RPI Shield
 	for i := range sgc.sidePanels {

@@ -48,7 +48,6 @@ func NewModControl(logger *zap.SugaredLogger, address byte, bus int) *ModControl
 
 // Safely closes the i2c connection
 func (smc *ModControl) Close() {
-	smc.ClearAllGameData()
 	smc.i2c.Close()
 }
 
