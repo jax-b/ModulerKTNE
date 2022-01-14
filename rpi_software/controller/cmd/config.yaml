@@ -1,0 +1,11 @@
+Network:
+  MultiCastIP: 228.74.66.248
+  MultiCastPort: 26960
+Shield:
+  I2cBusNumber: 1
+  BuzzerPinNum: 18
+  Strike1PinNum: 22
+  Strike2PinNum: 23
+  ModInterruptPinNum: 17
+  MfbStartPinNum: 27
+  SevenSegAddress: 0x70
