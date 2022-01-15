@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/jax-b/go-i2c7Seg"
@@ -37,36 +38,48 @@ func main() {
 	randomStartPin.PullUp()
 	randomStartPin.Detect(rpio.FallEdge)
 
+	fmt.Println("Waiting for button press")
 	for !randomStartPin.EdgeDetected() {
 	}
 	fmt.Println("button pressed")
 
+	fmt.Println("1 Strike")
 	strike1Pin.High()
 	time.Sleep(time.Second * 1)
+	fmt.Println("2 Strike")
 	strike2Pin.High()
 	time.Sleep(time.Second * 1)
+	fmt.Println("3 Strike")
 	strike1Pin.Low()
 	time.Sleep(time.Second * 1)
+	fmt.Println("No Strike")
 	strike2Pin.Low()
 	time.Sleep(time.Second * 1)
 
-	buzzerPin.Freq(64000)
-	buzzerPin.DutyCycle(30, 32)
-	time.Sleep(time.Millisecond * 500)
-	buzzerPin.Freq(500)
-	time.Sleep(time.Millisecond * 500)
-	buzzerPin.DutyCycle(0, 32)
+	if os.Getenv("EUID") == "0" {
+		buzzerPin.Freq(64000)
+		buzzerPin.DutyCycle(30, 32)
+		time.Sleep(time.Millisecond * 500)
+		buzzerPin.Freq(500)
+		time.Sleep(time.Millisecond * 500)
+		buzzerPin.DutyCycle(0, 32)
+	} else {
+		fmt.Println("not sudo: no buzzer")
+	}
 
+	fmt.Println("Setting up 7Seg I2C")
 	sevenSeg, err := i2c7Seg.NewSevenSegI2C(0x70, 1)
 	if err != nil {
 		fmt.Println(err)
 	}
+	fmt.Println("Writing KTNE")
 	sevenSeg.WriteAsciiChar(0, 'K', false)
 	sevenSeg.WriteAsciiChar(1, 'T', true)
 	sevenSeg.WriteAsciiChar(3, 'N', false)
 	sevenSeg.WriteAsciiChar(4, 'E', true)
 	sevenSeg.WriteDisplay()
 	time.Sleep(time.Second * 2)
+	fmt.Println("Writing JAXB")
 	sevenSeg.WriteAsciiChar(0, 'J', true)
 	sevenSeg.WriteAsciiChar(1, 'A', false)
 	sevenSeg.WriteAsciiChar(3, 'X', true)
@@ -77,5 +90,7 @@ func main() {
 	sevenSeg.Clear()
 	sevenSeg.WriteDisplay()
 	sevenSeg.Close()
+
+	fmt.Println("Done")
 
 }
