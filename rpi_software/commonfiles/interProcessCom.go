@@ -1,4 +1,4 @@
-package cmdline
+package commonfiles
 
 import (
 	"fmt"

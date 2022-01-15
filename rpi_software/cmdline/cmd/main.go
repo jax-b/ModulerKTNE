@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	cline "github.com/jax-b/ModulerKTNE/rpi_software/cmdline"
+	ipc "github.com/jax-b/ModulerKTNE/rpi_software/commonfiles"
 )
 
 func main() {
@@ -12,7 +12,7 @@ func main() {
 	customcommandPTR := flag.String("cc", "", "Sends a custom command to the server")
 	flag.Parse()
 	var cmdstr string = *customcommandPTR
-	ipc := cline.NewIPC()
+	ipc := ipc.NewIPC()
 	defer ipc.Close()
 	if len(cmdstr) > 0 {
 		_, err := ipc.SendCustom(*customcommandPTR)
