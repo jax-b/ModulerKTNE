@@ -17,6 +17,7 @@ public:
     void setSeed(uint16_t); // Needs to be set by the child class as it might set up viewer related stuff
     void setSerialNumber(char[8]);
     void setPorts(uint8_t);
+    void clearModule();
 protected:
     bool successTriggered = false;
     bool failureTriggered = false;

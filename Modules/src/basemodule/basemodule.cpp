@@ -10,10 +10,15 @@ bool baseModule::checkFailure()
 // Check if the module is successfully solved
 bool baseModule::checkSuccess()
 {
-    return baseModule::successTriggered;
+    bool out = baseModule::successTriggered;
+    baseModule::successTriggered = false;
+    return out;
 }
 char *baseModule::getModuleName()
 {
+    #ifdef DEBUG_MODE
+        Serial.println("baseModule::modID");
+    #endif
     return baseModule::modID;
 }
 void baseModule::setIndicators(char inIndicators[GAMEPLAYMAXLITINDICATOR][3])

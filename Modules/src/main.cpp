@@ -550,7 +550,7 @@ void I2CCommandProcessor()
         switch (incomeingI2CData[0] & 0xF)
         {
         // Get the modules ID
-        case 0x0:
+        case 0x1:
             bytesToSend = 4;
             for (int i = 0; i < bytesToSend; i++)
             {
@@ -558,7 +558,7 @@ void I2CCommandProcessor()
             }
             break;
         // Get the Solved Status
-        case 0x1:
+        case 0x2:
             bytesToSend = 1;
             outgoingI2CData[0] = gameplayModuleSolved;
             break;
