@@ -55,7 +55,7 @@ char gameplaySerialNumber[GAMEPLAYSERIALNUMBERLENGTH];
 char gameplayLitIndicators[GAMEPLAYMAXLITINDICATOR][3];
 uint8_t gameplayLitIndicatorCount = 0;
 /// Most modules will have a seed that it can be set to in order to load a specific module configuration
-uint16_t gameplaySeed = NULL;
+uint16_t gameplaySeed = 0;
 /// Number of battery's that esists on the entire device
 uint8_t gameplayNumBattery = 0;
 /// There is only six possible ports in the game and they have a bit possition assigned to them.
@@ -158,7 +158,7 @@ void FlagModuleSolved()
     digitalWrite(S2MInteruptPin, LOW);
     gameplayTimerRunning = false;
     mod.clearModule();
-    gameplaySeed = NULL;
+    gameplaySeed = 0;
     gameplaySerialNumber[0] = '\0';
     gameplayLitIndicatorCount = 0;
     gameplayStrikeReductionRate = 0.25;
@@ -320,9 +320,10 @@ void I2CCommandProcessor()
         {
         case 0x0: // Start
             gameplayTimerRunning = true;
-            if (gameplaySeed == NULL)
+            if (gameplaySeed == 0)
             {
                 gameplaySeed = random(1, 65535);
+                mod.setSeed(gameplaySeed);
             }
 #ifdef DEBUG_MODE
             Serial.println("Game Started");
@@ -381,8 +382,9 @@ void I2CCommandProcessor()
             break;
         // Clear Seed
         case 0x8:
-            gameplaySeed = NULL;
+            gameplaySeed = 0;
             mod.setSeed(gameplaySeed);
+            mod.clearModule();
 #ifdef DEBUG_MODE
             Serial.println("Seed Cleared");
 #endif
