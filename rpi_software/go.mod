@@ -10,7 +10,7 @@ require (
 	github.com/james-barrow/golang-ipc v0.0.0-20210227130457-95e7cc81f5e2
 	github.com/jax-b/go-i2c7Seg v0.0.0-20211121015849-022524ad7730
 	github.com/spf13/viper v1.9.0
-	github.com/stianeikeland/go-rpio/v4 v4.5.1
+	github.com/stianeikeland/go-rpio/v4 v4.6.0
 	go.uber.org/zap v1.17.0
 	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
 )

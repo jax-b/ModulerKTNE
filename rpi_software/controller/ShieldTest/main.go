@@ -2,9 +2,8 @@ package main
 
 import (
 	"log"
-	"os"
 	"time"
-
+	"os"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
@@ -14,10 +13,9 @@ import (
 
 func main() {
 	log.Println("Hello world")
-	// const buzzerPinNum uint8 = 18
 	const strike1PinNum uint8 = 22
 	const strike2PinNum uint8 = 23
-	const modInterruptPinNum uint8 = 17
+	// const modInterruptPinNum uint8 = 17
 	const randomStartPinNum uint8 = 27
 
 	err := rpio.Open()
@@ -27,13 +25,11 @@ func main() {
 
 	defer rpio.Close()
 
-	// buzzerPin := rpio.Pin(buzzerPinNum)
 	strike1Pin := rpio.Pin(strike1PinNum)
 	strike2Pin := rpio.Pin(strike2PinNum)
 	// modInterruptPin := rpio.Pin(modInterruptPinNum)
 	randomStartPin := rpio.Pin(randomStartPinNum)
 
-	// buzzerPin.Mode(rpio.Pwm)
 	strike1Pin.Output()
 	strike2Pin.Output()
 
@@ -45,6 +41,7 @@ func main() {
 	for !randomStartPin.EdgeDetected() {
 	}
 	log.Println("button pressed")
+	randomStartPin.Detect(rpio.NoEdge)
 
 	log.Println("1 Strike")
 	strike1Pin.High()
@@ -58,27 +55,6 @@ func main() {
 	log.Println("No Strike")
 	strike2Pin.Low()
 	time.Sleep(time.Second * 1)
-
-	log.Println("Sound Test")
-	soundfile, err := os.Open("audiotst.mp3")
-	if err != nil {
-		log.Fatal(err)
-	}
-	streamer, format, err := mp3.Decode(soundfile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer streamer.Close()
-
-	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
-	ctrl := &beep.Ctrl{Streamer: beep.Loop(-1, streamer), Paused: false}
-	speaker.Play(ctrl)
-
-	time.Sleep(time.Second)
-
-	speaker.Lock()
-	ctrl.Paused = !ctrl.Paused
-	speaker.Unlock()
 
 	log.Println("Setting up 7Seg I2C")
 	sevenSeg, err := i2c7Seg.NewSevenSegI2C(0x70, 1)
@@ -103,6 +79,30 @@ func main() {
 	sevenSeg.Clear()
 	sevenSeg.WriteDisplay()
 	sevenSeg.Close()
+
+	log.Println("Sound Test")
+	soundfile, err := os.Open("./audiotst.mp3")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	streamer, format, err := mp3.Decode(soundfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer streamer.Close()
+
+	sr := format.SampleRate * 2
+	log.Println(sr)
+	speaker.Init(sr, sr.N(time.Second/10))
+
+	resampled := beep.Resample(4, format.SampleRate, sr, streamer)
+	done := make(chan bool)
+	speaker.Play(beep.Seq(resampled, beep.Callback(func() {
+		done <- true
+	})))
+
+	<-done
 
 	log.Println("Done")
 
