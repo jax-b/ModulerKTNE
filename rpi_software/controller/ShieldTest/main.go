@@ -1,17 +1,20 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"time"
 
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/mp3"
+	"github.com/faiface/beep/speaker"
 	"github.com/jax-b/go-i2c7Seg"
 	"github.com/stianeikeland/go-rpio/v4"
 )
 
 func main() {
-	fmt.Println("Hello world")
-	const buzzerPinNum uint8 = 18
+	log.Println("Hello world")
+	// const buzzerPinNum uint8 = 18
 	const strike1PinNum uint8 = 22
 	const strike2PinNum uint8 = 23
 	const modInterruptPinNum uint8 = 17
@@ -19,18 +22,18 @@ func main() {
 
 	err := rpio.Open()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	defer rpio.Close()
 
-	buzzerPin := rpio.Pin(buzzerPinNum)
+	// buzzerPin := rpio.Pin(buzzerPinNum)
 	strike1Pin := rpio.Pin(strike1PinNum)
 	strike2Pin := rpio.Pin(strike2PinNum)
 	// modInterruptPin := rpio.Pin(modInterruptPinNum)
 	randomStartPin := rpio.Pin(randomStartPinNum)
 
-	buzzerPin.Mode(rpio.Pwm)
+	// buzzerPin.Mode(rpio.Pwm)
 	strike1Pin.Output()
 	strike2Pin.Output()
 
@@ -38,48 +41,58 @@ func main() {
 	randomStartPin.PullUp()
 	randomStartPin.Detect(rpio.FallEdge)
 
-	fmt.Println("Waiting for button press")
+	log.Println("Waiting for button press")
 	for !randomStartPin.EdgeDetected() {
 	}
-	fmt.Println("button pressed")
+	log.Println("button pressed")
 
-	fmt.Println("1 Strike")
+	log.Println("1 Strike")
 	strike1Pin.High()
 	time.Sleep(time.Second * 1)
-	fmt.Println("2 Strike")
+	log.Println("2 Strike")
 	strike2Pin.High()
 	time.Sleep(time.Second * 1)
-	fmt.Println("3 Strike")
+	log.Println("3 Strike")
 	strike1Pin.Low()
 	time.Sleep(time.Second * 1)
-	fmt.Println("No Strike")
+	log.Println("No Strike")
 	strike2Pin.Low()
 	time.Sleep(time.Second * 1)
 
-	if os.Getenv("EUID") == "0" {
-		buzzerPin.Freq(64000)
-		buzzerPin.DutyCycle(30, 32)
-		time.Sleep(time.Millisecond * 500)
-		buzzerPin.Freq(500)
-		time.Sleep(time.Millisecond * 500)
-		buzzerPin.DutyCycle(0, 32)
-	} else {
-		fmt.Println("not sudo: no buzzer")
+	log.Println("Sound Test")
+	soundfile, err := os.Open("audiotst.mp3")
+	if err != nil {
+		log.Fatal(err)
 	}
+	streamer, format, err := mp3.Decode(soundfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer streamer.Close()
 
-	fmt.Println("Setting up 7Seg I2C")
+	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
+	ctrl := &beep.Ctrl{Streamer: beep.Loop(-1, streamer), Paused: false}
+	speaker.Play(ctrl)
+
+	time.Sleep(time.Second)
+
+	speaker.Lock()
+	ctrl.Paused = !ctrl.Paused
+	speaker.Unlock()
+
+	log.Println("Setting up 7Seg I2C")
 	sevenSeg, err := i2c7Seg.NewSevenSegI2C(0x70, 1)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
-	fmt.Println("Writing KTNE")
+	log.Println("Writing KTNE")
 	sevenSeg.WriteAsciiChar(0, 'K', false)
 	sevenSeg.WriteAsciiChar(1, 'T', true)
 	sevenSeg.WriteAsciiChar(3, 'N', false)
 	sevenSeg.WriteAsciiChar(4, 'E', true)
 	sevenSeg.WriteDisplay()
 	time.Sleep(time.Second * 2)
-	fmt.Println("Writing JAXB")
+	log.Println("Writing JAXB")
 	sevenSeg.WriteAsciiChar(0, 'J', true)
 	sevenSeg.WriteAsciiChar(1, 'A', false)
 	sevenSeg.WriteAsciiChar(3, 'X', true)
@@ -91,6 +104,6 @@ func main() {
 	sevenSeg.WriteDisplay()
 	sevenSeg.Close()
 
-	fmt.Println("Done")
+	log.Println("Done")
 
 }
