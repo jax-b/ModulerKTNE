@@ -2,31 +2,36 @@ package controller
 
 import (
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/speaker"
+	"github.com/faiface/beep/wav"
 	"github.com/jax-b/go-i2c7Seg"
 	"github.com/stianeikeland/go-rpio/v4"
 	"go.uber.org/zap"
 )
 
 type ShieldControl struct {
-	strikecount         uint8
-	seg                 *i2c7Seg.SevenSegI2C
-	buzzerPin           rpio.Pin
+	strikecount uint8
+	seg         *i2c7Seg.SevenSegI2C
+
 	strike1Pin          rpio.Pin
 	strike2Pin          rpio.Pin
 	modInterruptPin     rpio.Pin
 	mfbPin              rpio.Pin
-	mfbCallbackConsumer []chan uint16
+	mfbCallbackConsumer []chan time.Duration
 	m2cCallbackConsumer []chan bool
-	mfbEdge             rpio.Edge
 	stopBtnCheck        chan bool
 	log                 *zap.SugaredLogger
+	samplerate          beep.SampleRate
 }
 
 func NewShieldControl(logger *zap.SugaredLogger, cfg *Config) *ShieldControl {
 	logger = logger.Named("ShieldControl")
 	logger.Info("Starting Shield Control")
+
 	i2c, err := i2c7Seg.NewSevenSegI2C(cfg.Shield.SevenSegAddress, int(cfg.Shield.I2cBusNumber))
 	if err != nil {
 		logger.Error("Failed to create i2c7Seg", err)
@@ -38,47 +43,48 @@ func NewShieldControl(logger *zap.SugaredLogger, cfg *Config) *ShieldControl {
 	sc := &ShieldControl{
 		seg:             i2c,
 		strikecount:     0,
-		buzzerPin:       rpio.Pin(cfg.Shield.BuzzerPinNum),
 		strike1Pin:      rpio.Pin(cfg.Shield.Strike1PinNum),
 		strike2Pin:      rpio.Pin(cfg.Shield.Strike2PinNum),
 		modInterruptPin: rpio.Pin(cfg.Shield.ModInterruptPinNum),
 		mfbPin:          rpio.Pin(cfg.Shield.MfbStartPinNum),
 		log:             logger,
 	}
+
 	// Configure pins
-	sc.buzzerPin.Mode(rpio.Pwm)
+	logger.Info("Configuring Output Pins")
 	sc.strike1Pin.Output()
 	sc.strike2Pin.Output()
 	sc.mfbPin.Input()
 	sc.mfbPin.PullUp()
-	sc.mfbPin.Detect(rpio.RiseEdge)
-	sc.mfbEdge = rpio.RiseEdge
+	sc.mfbPin.Detect(rpio.FallEdge)
 	sc.modInterruptPin.Input()
 	sc.modInterruptPin.PullUp()
 	sc.modInterruptPin.Detect(rpio.FallEdge)
 
+	// Configure Speaker
+	logger.Info("Configuring Output Speaker")
+	sc.samplerate = beep.SampleRate(48000)
+	speaker.Init(sc.samplerate, sc.samplerate.N(time.Second/10))
+
+	sc.stopBtnCheck = make(chan bool, 1) // Buffered channel so we dont hang on close if run is never called
 	return sc
 }
 
 func (ssc *ShieldControl) Run() {
 	// Start Input checker
-	go func() {
-		stop := false
-		for !stop {
-			ssc.btnCheck()
-			select {
-			case stop = <-ssc.stopBtnCheck:
-			default:
-			}
-		}
-	}()
+	go ssc.btnCheck()
 }
 
 // Closes out all functions that are running safely
 func (ssc *ShieldControl) Close() {
 	ssc.stopBtnCheck <- true
+	time.After(50 * time.Millisecond)
+
+	ssc.mfbPin.Detect(rpio.NoEdge)
+	ssc.modInterruptPin.Detect(rpio.NoEdge)
 	ssc.ClearDisplay()
 	ssc.seg.Close()
+	ssc.ResetStrike()
 	rpio.Close()
 }
 
@@ -108,20 +114,127 @@ func (ssc *ShieldControl) ResetStrike() {
 
 // plays the sound of a strike
 func (ssc *ShieldControl) buzzStrikeSound() {
-	ssc.buzzerPin.Freq(64000)
-	ssc.buzzerPin.DutyCycle(16, 32)
-	time.Sleep(time.Millisecond * 500)
-	ssc.buzzerPin.DutyCycle(0, 32)
+	soundfile, err := os.Open("./audiofiles/strike.wav")
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+
+	streamer, format, err := wav.Decode(soundfile)
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+	defer streamer.Close()
+
+	resampled := beep.Resample(4, format.SampleRate, ssc.samplerate, streamer)
+	done := make(chan bool)
+	speaker.Play(beep.Seq(resampled, beep.Callback(func() {
+		done <- true
+	})))
+
+	<-done
+}
+
+// plays the sound of an explosion
+func (ssc *ShieldControl) ExploadSound() {
+	soundfile, err := os.Open("./audiofiles/explosion_concrete_medium.wav")
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+
+	streamer, format, err := wav.Decode(soundfile)
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+	defer streamer.Close()
+
+	resampled := beep.Resample(4, format.SampleRate, ssc.samplerate, streamer)
+	done := make(chan bool)
+	speaker.Play(beep.Seq(resampled, beep.Callback(func() {
+		done <- true
+	})))
+
+	<-done
+}
+
+// plays the sound of an explosion
+func (ssc *ShieldControl) GameWinSound() {
+	winsoundf, err := os.Open("./audiofiles/mktne-winmix.wav")
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+
+	winsoundstream, format, err := wav.Decode(winsoundf)
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+	defer winsoundstream.Close()
+	winsoundsampled := beep.Resample(4, format.SampleRate, ssc.samplerate, winsoundstream)
+
+	done := make(chan bool)
+	speaker.Play(beep.Seq(winsoundsampled, beep.Callback(func() {
+		done <- true
+	})))
+
+	<-done
 }
 
 // TimeClockSignal
-func (ssc *ShieldControl) TimeSigBeep(multiplier float32) {
-	ssc.buzzerPin.Freq(600)
-	ssc.buzzerPin.DutyCycle(16, 32)
-	time.Sleep(time.Millisecond * time.Duration(350*multiplier))
-	ssc.buzzerPin.Freq(60)
-	time.Sleep(time.Millisecond * time.Duration(250*multiplier))
-	ssc.buzzerPin.DutyCycle(0, 32)
+// returns the channel needed to stop the beep
+func (ssc *ShieldControl) TimerBeep(stopchannel chan bool, timertick chan bool) {
+	go func(stopch chan bool, tmrTick chan bool) {
+		timeBeepf, err := os.Open("./audiofiles/doublebeep.wav")
+		if err != nil {
+			ssc.log.Error("Entering Dead State", err)
+			go func(stopch chan bool, tmrTick chan bool) {
+				select {
+				case <-stopch:
+					return
+				case <-tmrTick:
+				}
+			}(stopchannel, timertick)
+			return
+		}
+
+		timeBeepStreamer, format, err := wav.Decode(timeBeepf)
+		if err != nil {
+			ssc.log.Error("Entering Dead State", err)
+			go func(stopch chan bool, tmrTick chan bool) {
+				select {
+				case <-stopch:
+					return
+				case <-tmrTick:
+				}
+			}(stopchannel, timertick)
+			return
+		}
+		timeBeepResampled := beep.Resample(4, format.SampleRate, ssc.samplerate, timeBeepStreamer)
+
+		buffer := beep.NewBuffer(beep.Format{
+			Precision:   format.Precision,
+			SampleRate:  ssc.samplerate,
+			NumChannels: format.NumChannels,
+		})
+		buffer.Append(timeBeepResampled)
+		timeBeepStreamer.Close()
+
+		for {
+			select {
+			case <-stopch:
+
+				return
+			case <-tmrTick:
+				tone := buffer.Streamer(0, buffer.Len())
+				speaker.Play(tone)
+			}
+		}
+
+	}(stopchannel, timertick)
 }
 
 // Writes the name of the game to the display
@@ -136,12 +249,11 @@ func (ssc *ShieldControl) WriteIdle() {
 
 // Converts and writes the time to the display max it can display is 99:60
 // Will move to 49.50 when time is less then 1 minute
-func (ssc *ShieldControl) WriteTime(timemilis uint32) {
+func (ssc *ShieldControl) WriteTime(intime time.Duration) {
 	ssc.seg.Clear()
 	var tstring string
-	timemilisf := float32(timemilis)
-	MinutesRemaining := int(timemilisf*0.001) / 60
-	SecondsRemaining := int(timemilisf*0.001) % 60
+	MinutesRemaining := int(intime.Minutes())
+	SecondsRemaining := int(intime.Seconds()) % 60
 	if MinutesRemaining > 0 {
 		if MinutesRemaining > 99 {
 			MinutesRemaining = 99
@@ -153,7 +265,7 @@ func (ssc *ShieldControl) WriteTime(timemilis uint32) {
 		}
 		ssc.seg.DrawColon(true)
 	} else {
-		hundtensec := int(timemilisf*0.1) % 100
+		hundtensec := intime.Milliseconds() % 100
 		tstring = fmt.Sprintf("%2d.%02d", SecondsRemaining, hundtensec)
 
 		trune := []rune(tstring)
@@ -182,8 +294,8 @@ func (ssc *ShieldControl) RegisterM2CConsumer() chan bool {
 
 // Registers a consumer of the module to the multifunction button
 // Sends how long the button was held for
-func (ssc *ShieldControl) RegisterMFBConsumer() chan uint16 {
-	c := make(chan uint16)
+func (ssc *ShieldControl) RegisterMFBConsumer() chan time.Duration {
+	c := make(chan time.Duration)
 	ssc.mfbCallbackConsumer = append(ssc.mfbCallbackConsumer, c)
 
 	return c
@@ -191,39 +303,52 @@ func (ssc *ShieldControl) RegisterMFBConsumer() chan uint16 {
 
 // Function for checking if the external inputs were pressed and will signal consumers when ready
 func (ssc *ShieldControl) btnCheck() {
-	// if we have a signal from a downstream controller signal all consumers (nonblocking)
-	if ssc.modInterruptPin.EdgeDetected() {
-		for _, c := range ssc.m2cCallbackConsumer {
-			go func(c chan bool) {
-				c <- true
-			}(c)
-		}
-	}
-	// if the button state is changed, and we are looking for a press
-	if ssc.mfbPin.EdgeDetected() && ssc.mfbEdge == rpio.RiseEdge {
-		// Span a new concurent to wait for release
-		go func() {
-			// Set up the edge detection
-			ssc.mfbEdge = rpio.FallEdge
-			ssc.mfbPin.Detect(rpio.FallEdge)
-			// Record time of press
-			mfbPush := time.Now()
-			// Wait for release
-			for !ssc.mfbPin.EdgeDetected() {
-			}
-			// Record time of release and compute difference
-			mfbRelease := time.Now()
-			mfbPushTime := uint16(mfbRelease.Sub(mfbPush).Milliseconds())
-			// Signal all consumers for how long the button was pressed
-			for _, c := range ssc.mfbCallbackConsumer {
-				// Non blocking channel update
-				go func(c chan uint16) {
-					c <- mfbPushTime
+	mfbEdge := rpio.FallEdge
+	for {
+		// if we have a signal from a downstream controller signal all consumers (nonblocking)
+		if ssc.modInterruptPin.EdgeDetected() {
+			for _, c := range ssc.m2cCallbackConsumer {
+				go func(c chan bool) {
+					c <- true
 				}(c)
 			}
-			// Reset edge detection
-			ssc.mfbEdge = rpio.RiseEdge
-			ssc.mfbPin.Detect(rpio.RiseEdge)
-		}()
+			ssc.modInterruptPin.Detect(rpio.FallEdge)
+		}
+
+		// if the button state is changed, and we are looking for a press
+		if mfbEdge == rpio.FallEdge {
+			if ssc.mfbPin.EdgeDetected() {
+				ssc.log.Info("Detected Button Press, Waiting for Release")
+				// Set up the edge detection
+				mfbEdge = rpio.RiseEdge
+				ssc.mfbPin.Detect(mfbEdge)
+				// Record time of press
+				mfbPush := time.Now()
+				// Span a new concurent to wait for release
+				go func(pushtime time.Time) {
+					// Wait for release
+					for !ssc.mfbPin.EdgeDetected() {
+					}
+
+					// Record time of release and compute difference
+					mfbHeldTime := time.Now().Sub(pushtime)
+					ssc.log.Info("Button Release Detected, Notifiying Consumers of Duration: ", mfbHeldTime)
+
+					// Signal all consumers for how long the button was pressed
+					for _, c := range ssc.mfbCallbackConsumer {
+						// Non blocking channel update
+						go func(c chan time.Duration) {
+							c <- mfbHeldTime
+						}(c)
+					}
+
+					// Reset edge detection
+					mfbEdge = rpio.FallEdge
+					ssc.mfbPin.Detect(mfbEdge)
+				}(mfbPush)
+			} else {
+				ssc.modInterruptPin.Detect(mfbEdge)
+			}
+		}
 	}
 }

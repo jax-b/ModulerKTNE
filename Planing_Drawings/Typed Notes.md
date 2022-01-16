@@ -69,3 +69,16 @@ There are 6 types of ports in the game here is the id's we use to keep track of 
   1 = Serial
   1 = SteroRCA
 ```
+
+## RPI_Setup
+#### go-rpio 
+make sure that the following is set in boot/config.txt
+```dtoverlay=gpio-no-irq```
+#### no sudo access 
+it is recommended that groups and permissions are assigned so that the software does not have to be run as root. Here is a example config for udev assuming that the groups are already created. While SPI is not necessary its here for the future if needed 
+```
+SUBSYSTEM=="spidev" , GROUP="spi" , MODE="0660"
+KERNEL=="i2c-0"     , GROUP="i2c" , MODE="0660"
+KERNEL=="i2c-[1-9]*", GROUP="i2c" , MODE="0660"
+KERNEL=="gpiomem"   , GROUP="gpio", MODE="0660"
+```

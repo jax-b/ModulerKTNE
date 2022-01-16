@@ -30,7 +30,6 @@ type Config struct {
 	}
 	Shield struct {
 		I2cBusNumber       uint8
-		BuzzerPinNum       uint8
 		Strike1PinNum      uint8
 		Strike2PinNum      uint8
 		ModInterruptPinNum uint8
@@ -57,7 +56,6 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 	})
 	c.configReader.SetDefault("Shield", map[string]uint8{
 		"I2cBusNumber":       defaultI2cBusNumber,
-		"BuzzerPinNum":       defaultbuzzerPinNum,
 		"Strike1PinNum":      defaultstrike1PinNum,
 		"Strike2PinNum":      defaultstrike2PinNum,
 		"ModInterruptPinNum": defaultmodInterruptPinNum,
@@ -79,7 +77,6 @@ func (c *Config) populateFromVipers() {
 	c.Network.MultiCastIP = c.configReader.GetString("Network.MultiCastIP")
 	c.Network.MultiCastPort = c.configReader.GetInt("Network.MultiCastPort")
 	c.Shield.I2cBusNumber = uint8(c.configReader.GetInt("Shield.I2cBusNumber"))
-	c.Shield.BuzzerPinNum = uint8(c.configReader.GetInt("Shield.BuzzerPinNum"))
 	c.Shield.Strike1PinNum = uint8(c.configReader.GetInt("Shield.Strike1PinNum"))
 	c.Shield.Strike2PinNum = uint8(c.configReader.GetInt("Shield.Strike2PinNum"))
 	c.Shield.ModInterruptPinNum = uint8(c.configReader.GetInt("Shield.ModInterruptPinNum"))
