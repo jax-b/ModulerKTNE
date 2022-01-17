@@ -46,8 +46,13 @@ func main() {
 	time.Sleep(time.Millisecond * 500)
 	sugar.Info("Playing Game Win")
 	shieldctrl.GameWinSound()
+	time.Sleep(time.Millisecond * 500)
+	sugar.Info("Playing Module Solved")
+	shieldctrl.ModSolvedSound()
+	time.Sleep(time.Millisecond * 500)
+	sugar.Info("Playing Module Solved")
+	shieldctrl.NeedyWantSound()
 
 	sugar.Info("Attempting Close")
 	shieldctrl.Close()
-
 }

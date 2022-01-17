@@ -24,6 +24,7 @@ type module struct {
 	mctrl   *mktnecf.ModControl
 	present bool
 	solved  bool
+	modtype [4]rune
 }
 type multicast struct {
 	useMulti bool
@@ -42,7 +43,7 @@ type gameinfo struct {
 	maxstrike  uint8
 }
 type GameController struct {
-	sidePanels     [4]*SideControl
+	sidePanel      *SideControl
 	modules        [10]module
 	multicast      multicast
 	game           gameinfo
@@ -92,11 +93,9 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 	// Create the inter process communicator object
 	gc.ipc = NewIPC(log, gc)
 
-	//Loop through the side panels and create their control objects
-	SPADDR := [4]byte{TOP_PANEL, RIGHT_PANEL, BOTTOM_PANEL, LEFT_PANEL}
-	for i := range gc.sidePanels {
-		gc.sidePanels[i] = NewSideControl(gc.log, SPADDR[i], int(gc.cfg.Shield.I2cBusNumber))
-	}
+	// Create the Side Panel control object
+
+	gc.sidePanel = NewSideControl(gc.log, int(gc.cfg.Shield.I2cBusNumber))
 
 	//Loop through the modules and create their control objects
 	MCADDR := [10]byte{mktnecf.FRONT_MOD_1, mktnecf.FRONT_MOD_2, mktnecf.FRONT_MOD_3, mktnecf.FRONT_MOD_4, mktnecf.FRONT_MOD_5, mktnecf.BACK_MOD_1, mktnecf.BACK_MOD_2, mktnecf.BACK_MOD_3, mktnecf.BACK_MOD_4, mktnecf.BACK_MOD_5}
@@ -151,9 +150,8 @@ func (sgc *GameController) Close() {
 		mod.mctrl.Close()
 	}
 	// Close the RPI Shield
-	for i := range sgc.sidePanels {
-		sgc.sidePanels[i].Close()
-	}
+	sgc.sidePanel.Close()
+
 	// Close the shield
 	sgc.rpishield.Close()
 

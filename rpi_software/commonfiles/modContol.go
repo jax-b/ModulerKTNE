@@ -46,6 +46,10 @@ func NewModControl(logger *zap.SugaredLogger, address byte, bus int) *ModControl
 	return mc
 }
 
+func (smc *ModControl) GetAddress() byte {
+	return smc.i2c.GetAddr()
+}
+
 // Safely closes the i2c connection
 func (smc *ModControl) Close() {
 	smc.i2c.Close()
@@ -54,7 +58,7 @@ func (smc *ModControl) Close() {
 // Sends 1 byte of data to the module
 // If the byte is not written then the module is not installed
 func (smc *ModControl) TestIfPresent() bool {
-	bytesWritten, err := smc.i2c.WriteBytes([]byte{0x00})
+	bytesWritten, err := smc.i2c.WriteBytes([]byte{0x0})
 	if err != nil {
 		return false
 	}
@@ -160,7 +164,7 @@ func (smc *ModControl) SetSolvedStatus(status int8) error {
 // Set: Sync Game Time
 // Sets the game time to the current time
 func (smc *ModControl) SyncGameTime(value uint32) error {
-	_, err := smc.i2c.WriteBytes([]byte{0x20, byte(value >> 24), byte(value >> 16), byte(value >> 8), byte(value)})
+	_, err := smc.i2c.WriteBytes([]byte{0x12, byte(value >> 24), byte(value >> 16), byte(value >> 8), byte(value)})
 	if err != nil {
 		smc.log.Error("Failed to write Sync Game Time to bus:", err)
 		return err
@@ -174,7 +178,7 @@ func (smc *ModControl) SyncGameTime(value uint32) error {
 // defaults to 0.25
 func (smc *ModControl) SetStrikeReductionRate(rate float32) error {
 	n := math.Float32bits(rate)
-	_, err := smc.i2c.WriteBytes([]byte{0x12, byte(n >> 24), byte(n >> 16), byte(n >> 8), byte(n)})
+	_, err := smc.i2c.WriteBytes([]byte{0x13, byte(n >> 24), byte(n >> 16), byte(n >> 8), byte(n)})
 	if err != nil {
 		smc.log.Error("Failed to write Strike Reduction Rate to bus:", err)
 		return err
@@ -185,7 +189,7 @@ func (smc *ModControl) SetStrikeReductionRate(rate float32) error {
 
 // Set Game Serial Number
 func (smc *ModControl) SetGameSerialNumber(serialnumber [8]rune) error {
-	buff := []byte{0x13}
+	buff := []byte{0x14}
 	for i := 0; i < 8; i++ {
 		buff = append(buff, byte(serialnumber[i]))
 	}
@@ -205,7 +209,7 @@ func (smc *ModControl) SetGameSerialNumber(serialnumber [8]rune) error {
 // use clearGameLitIndicators to clear the list
 // the indicator label is exactly 3 characters long
 func (smc *ModControl) SetGameLitIndicator(indlabel [3]rune) error {
-	buff := []byte{0x14}
+	buff := []byte{0x15}
 	for i := 0; i < 3; i++ {
 		buff = append(buff, byte(indlabel[i]))
 	}
@@ -221,7 +225,7 @@ func (smc *ModControl) SetGameLitIndicator(indlabel [3]rune) error {
 // Set Game Num Batteries
 // 0 - 255
 func (smc *ModControl) SetGameNumBatteries(num uint8) error {
-	_, err := smc.i2c.WriteBytes([]byte{0x15, byte(num)})
+	_, err := smc.i2c.WriteBytes([]byte{0x16, byte(num)})
 	if err != nil {
 		smc.log.Error("Failed to write Game Num Batteries to bus:", err)
 		return err
@@ -237,7 +241,7 @@ func (smc *ModControl) SetGameNumBatteries(num uint8) error {
 // use clearGamePortIDS to clear the list
 // Only send that specific port ID once, thats all that matters for the game logic
 func (smc *ModControl) SetGamePortID(id byte) error {
-	_, err := smc.i2c.WriteBytes([]byte{0x16, id})
+	_, err := smc.i2c.WriteBytes([]byte{0x17, id})
 	if err != nil {
 		smc.log.Error("Failed to write Game Port ID to bus:", err)
 		return err
@@ -249,7 +253,7 @@ func (smc *ModControl) SetGamePortID(id byte) error {
 // Set Game Seed
 // The seed is a 2 byte number, 1-65535
 func (smc *ModControl) SetGameSeed(seed uint16) error {
-	_, err := smc.i2c.WriteBytes([]byte{0x17, byte(seed >> 8), byte(seed)})
+	_, err := smc.i2c.WriteBytes([]byte{0x18, byte(seed >> 8), byte(seed)})
 	if err != nil {
 		smc.log.Error("Failed to write Game Seed to bus:", err)
 		return err
@@ -260,7 +264,7 @@ func (smc *ModControl) SetGameSeed(seed uint16) error {
 
 // Get Module Type
 func (smc *ModControl) GetModuleType() ([4]rune, error) {
-	_, err := smc.i2c.WriteBytes([]byte{0x00})
+	_, err := smc.i2c.WriteBytes([]byte{0x01})
 	if err != nil {
 		nothing := [4]rune{}
 		smc.log.Error("Failed to write Get Module Type to bus:", err)
