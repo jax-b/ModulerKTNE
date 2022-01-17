@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/d2r2/go-i2c"
@@ -10,10 +9,7 @@ import (
 
 const (
 	// Side Panel addresses
-	TOP_PANEL    byte = 0x50
-	RIGHT_PANEL  byte = 0x51
-	BOTTOM_PANEL byte = 0x52
-	LEFT_PANEL   byte = 0x53
+	SIDE_PANEL byte = 0x50
 )
 
 type SideControl struct {
@@ -21,9 +17,9 @@ type SideControl struct {
 	log *zap.SugaredLogger
 }
 
-func NewSideControl(logger *zap.SugaredLogger, address byte, bus int) *SideControl {
-	logger = logger.Named("SideControl-" + fmt.Sprintf("%02X", address))
-	i2c, err := i2c.NewI2C(address, bus)
+func NewSideControl(logger *zap.SugaredLogger, bus int) *SideControl {
+	logger = logger.Named("SideControl-" + fmt.Sprintf("%02X", SIDE_PANEL))
+	i2c, err := i2c.NewI2C(SIDE_PANEL, bus)
 	if err != nil {
 		logger.Error("Error opening i2c bus", err)
 	}
@@ -42,7 +38,7 @@ func (ssc *SideControl) Close() {
 // Sends 1 byte of data to the module
 // If the byte is not writen then the module is not installed
 func (ssc *SideControl) TestIfPresent() bool {
-	bytesWritten, err := ssc.i2c.WriteBytes([]byte{0x00})
+	bytesWritten, err := ssc.i2c.WriteBytes([]byte{0x0})
 	if err != nil {
 		ssc.log.Error("Error writing to i2c bus", err)
 	}
@@ -54,9 +50,6 @@ func (ssc *SideControl) TestIfPresent() bool {
 
 // Set Serial Number
 func (ssc *SideControl) SetSerialNumber(serialnumber [8]rune) error {
-	if ssc.i2c.GetAddr() != RIGHT_PANEL {
-		return errors.New("Serial Number is not supported on this side")
-	}
 	buff := []byte{0x10}
 	for i := 0; i < 8; i++ {
 		buff = append(buff, byte(serialnumber[i]))
@@ -124,9 +117,6 @@ func (ssc *SideControl) SetSideArt(artcode byte) error {
 // Clears the serial number
 // only works if the address of this instance is the RIGHT_PANEL address
 func (ssc *SideControl) ClearSerialNumber() error {
-	if ssc.i2c.GetAddr() != RIGHT_PANEL {
-		return errors.New("Serial Number is not supported on this side")
-	}
 	_, err := ssc.i2c.WriteBytes([]byte{0x20})
 	if err != nil {
 		return err
@@ -154,13 +144,11 @@ func (ssc *SideControl) ClearAllSideArt() error {
 
 // Clears Everything from the panel
 func (ssc *SideControl) ClearAll() error {
-	if ssc.i2c.GetAddr() == RIGHT_PANEL {
-		err := ssc.ClearSerialNumber()
-		if err != nil {
-			return err
-		}
+	err := ssc.ClearSerialNumber()
+	if err != nil {
+		return err
 	}
-	err := ssc.ClearAllIndicator()
+	err = ssc.ClearAllIndicator()
 	if err != nil {
 		return err
 	}

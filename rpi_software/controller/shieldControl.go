@@ -114,12 +114,14 @@ func (ssc *ShieldControl) ResetStrike() {
 
 // plays the sound of a strike
 func (ssc *ShieldControl) buzzStrikeSound() {
+	// Open The Audio file
 	soundfile, err := os.Open("./audiofiles/strike.wav")
 	if err != nil {
 		ssc.log.Error(err)
 		return
 	}
 
+	// Decode its format
 	streamer, format, err := wav.Decode(soundfile)
 	if err != nil {
 		ssc.log.Error(err)
@@ -127,7 +129,10 @@ func (ssc *ShieldControl) buzzStrikeSound() {
 	}
 	defer streamer.Close()
 
+	// Resample it to our standered for output
 	resampled := beep.Resample(4, format.SampleRate, ssc.samplerate, streamer)
+
+	// Play the file and wait for it to finish
 	done := make(chan bool)
 	speaker.Play(beep.Seq(resampled, beep.Callback(func() {
 		done <- true
@@ -138,44 +143,54 @@ func (ssc *ShieldControl) buzzStrikeSound() {
 
 // plays the sound of an explosion
 func (ssc *ShieldControl) ExploadSound() {
-	soundfile, err := os.Open("./audiofiles/explosion_concrete_medium.wav")
+	// Open The Audio file
+	explof, err := os.Open("./audiofiles/explosion_concrete_medium.wav")
 	if err != nil {
 		ssc.log.Error(err)
 		return
 	}
 
-	streamer, format, err := wav.Decode(soundfile)
+	// Decode its format
+	explostreamer, format, err := wav.Decode(explof)
 	if err != nil {
 		ssc.log.Error(err)
 		return
 	}
-	defer streamer.Close()
+	defer explostreamer.Close()
 
-	resampled := beep.Resample(4, format.SampleRate, ssc.samplerate, streamer)
+	// Resample it to our standered for output
+	esxploresampled := beep.Resample(4, format.SampleRate, ssc.samplerate, explostreamer)
+
+	// Play the file and wait for it to finish
 	done := make(chan bool)
-	speaker.Play(beep.Seq(resampled, beep.Callback(func() {
+	speaker.Play(beep.Seq(esxploresampled, beep.Callback(func() {
 		done <- true
 	})))
 
 	<-done
 }
 
-// plays the sound of an explosion
+// plays the sound of an game win
 func (ssc *ShieldControl) GameWinSound() {
+	// Open The Audio file
 	winsoundf, err := os.Open("./audiofiles/mktne-winmix.wav")
 	if err != nil {
 		ssc.log.Error(err)
 		return
 	}
 
+	// Decode its format
 	winsoundstream, format, err := wav.Decode(winsoundf)
 	if err != nil {
 		ssc.log.Error(err)
 		return
 	}
 	defer winsoundstream.Close()
+
+	// Resample it to our standered for output
 	winsoundsampled := beep.Resample(4, format.SampleRate, ssc.samplerate, winsoundstream)
 
+	// Play the file and wait for it to finish
 	done := make(chan bool)
 	speaker.Play(beep.Seq(winsoundsampled, beep.Callback(func() {
 		done <- true
@@ -184,13 +199,74 @@ func (ssc *ShieldControl) GameWinSound() {
 	<-done
 }
 
-// TimeClockSignal
-// returns the channel needed to stop the beep
+// plays the sound of an needy wanting attention
+func (ssc *ShieldControl) NeedyWantSound() {
+	// Open The Audio file
+	needyf, err := os.Open("./audiofiles/needy_activated.wav")
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+
+	// Decode its format
+	needystream, format, err := wav.Decode(needyf)
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+	defer needystream.Close()
+
+	// Resample it to our standered for output
+	needysampled := beep.Resample(4, format.SampleRate, ssc.samplerate, needystream)
+
+	// Play the file and wait for it to finish
+	done := make(chan bool)
+	speaker.Play(beep.Seq(needysampled, beep.Callback(func() {
+		done <- true
+	})))
+
+	<-done
+}
+
+// plays the sound of an module that has been solved
+func (ssc *ShieldControl) ModSolvedSound() {
+	// Open The Audio file
+	modcorf, err := os.Open("./audiofiles/CorrectDigitalChime.wav")
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+
+	// Decode its format
+	modcorstr, format, err := wav.Decode(modcorf)
+	if err != nil {
+		ssc.log.Error(err)
+		return
+	}
+	defer modcorstr.Close()
+
+	// Resample it to our standered for output
+	modcorresamp := beep.Resample(4, format.SampleRate, ssc.samplerate, modcorstr)
+
+	// Play the file and wait for it to finish
+	done := make(chan bool)
+	speaker.Play(beep.Seq(modcorresamp, beep.Callback(func() {
+		done <- true
+	})))
+
+	<-done
+}
+
+// TimeClockSignal Plays the per second beep
+// takes the channel needed to stop the beep and a tick chan to trigger each tone on the game clock
 func (ssc *ShieldControl) TimerBeep(stopchannel chan bool, timertick chan bool) {
 	go func(stopch chan bool, tmrTick chan bool) {
+		// Open The Audio file
 		timeBeepf, err := os.Open("./audiofiles/doublebeep.wav")
 		if err != nil {
 			ssc.log.Error("Entering Dead State", err)
+			// if we have a error we dont want the program to lock because of a waiting chan
+			// so we just constently read each chan and and wait to exit
 			go func(stopch chan bool, tmrTick chan bool) {
 				select {
 				case <-stopch:
@@ -205,6 +281,8 @@ func (ssc *ShieldControl) TimerBeep(stopchannel chan bool, timertick chan bool) 
 		if err != nil {
 			ssc.log.Error("Entering Dead State", err)
 			go func(stopch chan bool, tmrTick chan bool) {
+				// if we have a error we dont want the program to lock because of a waiting chan
+				// so we just constently read each chan and and wait to exit
 				select {
 				case <-stopch:
 					return
@@ -213,24 +291,28 @@ func (ssc *ShieldControl) TimerBeep(stopchannel chan bool, timertick chan bool) 
 			}(stopchannel, timertick)
 			return
 		}
+		// Resample it to our standered for output
 		timeBeepResampled := beep.Resample(4, format.SampleRate, ssc.samplerate, timeBeepStreamer)
 
+		//Create a buffer in memory to hold the audio file
 		buffer := beep.NewBuffer(beep.Format{
 			Precision:   format.Precision,
 			SampleRate:  ssc.samplerate,
 			NumChannels: format.NumChannels,
 		})
+		// load the audio file into the buffer
 		buffer.Append(timeBeepResampled)
+		// close the file and streamer
 		timeBeepStreamer.Close()
 
-		for {
+		for { // Wait to either close the playback system or for a tick from the timer to play the sound file
 			select {
 			case <-stopch:
 
 				return
 			case <-tmrTick:
-				tone := buffer.Streamer(0, buffer.Len())
-				speaker.Play(tone)
+				tone := buffer.Streamer(0, buffer.Len()) // Load a streamer from the zero spot in the file
+				speaker.Play(tone)                       // play the loaded streamer
 			}
 		}
 
