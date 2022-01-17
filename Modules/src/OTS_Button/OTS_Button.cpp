@@ -87,7 +87,7 @@ uint16_t OTS_Button::btnDebounce()
 void OTS_Button::setSeed(uint16_t inSeed)
 {
     OTS_Button::seed = inSeed;
-    if (seed = NULL)
+    if (seed == 0)
     {
         return;
     }

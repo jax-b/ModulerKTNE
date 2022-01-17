@@ -1,14 +1,24 @@
 package controller
 
-import "errors"
+import (
+	"errors"
+)
 
 // Polls all possible module addresses and sees if something is their. Updates the class variables
 func (sgc *GameController) scanAllModules() {
-	for i := range sgc.modules {
-		laststate := sgc.modules[i].present
-		sgc.modules[i].present = sgc.modules[i].mctrl.TestIfPresent()
-		if laststate != sgc.modules[i].present && sgc.modules[i].present {
-			sgc.ModFullUpdate(i)
+	for index, mod := range sgc.modules {
+		laststate := mod.present
+		mod.present = mod.mctrl.TestIfPresent()
+		if mod.present {
+			var err error
+			mod.modtype, err = mod.mctrl.GetModuleType()
+			if err != nil {
+				sgc.log.Error("Error Getting Module Type:", err)
+			}
+			if laststate != mod.present {
+				err := sgc.ModFullUpdate(index)
+				sgc.log.Error("Error Getting Module Type:", err)
+			}
 		}
 	}
 }

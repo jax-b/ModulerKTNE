@@ -254,20 +254,15 @@ func (sipc *InterProcessCom) commandTree() {
 					}
 					err = sipc.game.modules[modnum].mctrl.SetGameSeed(uint16(seed))
 					if err == nil {
-						sipc.log.Info("Set module", modnum, "seed to:", seed)
+						sipc.log.Info("Set module ", modnum, " seed to: ", seed)
 						ipcwerr = sipc.ipc.Write(1, []byte("mktne.module."+messagesCMD[4]+".set_seed.ok"))
 					} else {
-						sipc.log.Error("Failed to set module", modnum, "seed:", err)
+						sipc.log.Error("Failed to set module ", modnum, " seed: ", err)
 						ipcwerr = sipc.ipc.Write(1, []byte("mktne.module."+messagesCMD[4]+".set_seed.error"))
 					}
 				case "get_type":
 					buffer := []byte("mktne.module." + messagesCMD[4] + ".type:")
-					mtype, err := sipc.game.modules[modnum].mctrl.GetModuleType()
-					if err != nil {
-						sipc.log.Error("Failed to get module type:", err)
-						ipcwerr = sipc.ipc.Write(1, []byte("mktne.module."+messagesCMD[4]+".get_type.error"))
-						break
-					}
+					mtype := sipc.game.modules[modnum].modtype
 					var mtypesl []rune
 					for i := range mtype {
 						mtypesl = append(mtypesl, mtype[i])
