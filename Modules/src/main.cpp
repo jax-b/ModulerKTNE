@@ -553,7 +553,7 @@ void I2CCommandProcessor()
         {
         // Get the modules ID
         case 0x1:
-            bytesToSend = 4;
+            bytesToSend = 3;
             for (int i = 0; i < bytesToSend; i++)
             {
                 outgoingI2CData[i] = mod.getModuleName()[i];
@@ -608,7 +608,7 @@ void setup()
 void loop()
 {
     // Pull the S2M Interupt Pin back UP after a short delay
-    if (millis() - S2MInteruptCallTime > 10 && S2MInteruptCallTime != 0)
+    if (millis() - S2MInteruptCallTime > 50 && S2MInteruptCallTime != 0)
     {
         digitalWrite(S2MInteruptPin, HIGH);
         S2MInteruptCallTime = 0;

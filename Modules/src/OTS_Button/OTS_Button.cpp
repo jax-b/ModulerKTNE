@@ -19,10 +19,8 @@ void OTS_Button::clearModule()
     OTS_Button::_pixels->setPixelColor(3, 0);
     OTS_Button::_pixels->show();
     OTS_Button::_display.firstPage();
-    do
-    {
-        OTS_Button::_display.fillScreen(GxEPD_WHITE);
-    } while (OTS_Button::_display.nextPage());;
+    OTS_Button::drawScreen = true;
+    OTS_Button::strChosenWord = "";
     OTS_Button::failureTriggered = false;
     OTS_Button::successTriggered = false;
     OTS_Button::numBatteries = 0;
@@ -80,7 +78,7 @@ uint16_t OTS_Button::btnDebounce()
                 return tpress;
             }
         }
-    } 
+    }
     return 0;
 }
 
@@ -146,7 +144,7 @@ void OTS_Button::setSeed(uint16_t inSeed)
         {'D', 'e', 't', 'o', 'n', 'a', 't', 'e'},
         {'H', 'o', 'l', 'd', '\0', '\0', '\0', '\0'},
         {'P', 'r', 'e', 's', 's', '\0', '\0', '\0'}};
-    String strChosenWord = "";
+    OTS_Button::strChosenWord = "";
     for (uint8_t i = 0; i < 8; i++)
     {
         strChosenWord += (char)possibleButtonWords[OTS_Button::chosenWord][i];
@@ -162,27 +160,36 @@ void OTS_Button::setSeed(uint16_t inSeed)
     Serial.print(":");
     Serial.println(strChosenWord);
 #endif
-
-    // Center Text
+    OTS_Button::drawScreen = true;
     int16_t x1, y1;
     uint16_t w, h;
     OTS_Button::_display.getTextBounds(strChosenWord, 0, 0, &x1, &y1, &w, &h);
-    uint16_t x = ((OTS_Button::_display.width() - w) / 2) - x1;
-    uint16_t y = ((OTS_Button::_display.height() - h) / 2) - y1;
+    OTS_Button::textX = ((OTS_Button::_display.width() - w) / 2) - x1;
+    OTS_Button::textY = ((OTS_Button::_display.height() - h) / 2) - y1;
     OTS_Button::_display.firstPage();
-    do
-    {
-        OTS_Button::_display.fillScreen(GxEPD_WHITE);
-        OTS_Button::_display.setCursor(x, y);
-        OTS_Button::_display.print(strChosenWord);
-
-    } while (OTS_Button::_display.nextPage());
 }
 
 void OTS_Button::tickModule(uint16_t currentGameTime)
 {
     uint16_t timeBTNPressed = btnDebounce();
     OTS_Button::_pixels->show();
+
+    if (OTS_Button::drawScreen)
+    {
+        // Center Text
+
+        OTS_Button::_display.fillScreen(GxEPD_WHITE);
+        if (OTS_Button::strChosenWord.length() > 1)
+        {
+            OTS_Button::_display.setCursor(OTS_Button::textX, OTS_Button::textY);
+            OTS_Button::_display.print(OTS_Button::strChosenWord);
+        }
+        if (!OTS_Button::_display.nextPage())
+        {
+            drawScreen = false;
+        }
+    }
+
     // We need to wait if the master controller has not cleared out the failure flag
     if (OTS_Button::failureTriggered)
     {
@@ -246,7 +253,7 @@ void OTS_Button::relHeldButton(uint16_t currentGameTime)
     String ctime = String(hundrethsTime / 100 / 60 / 10 % 10) + String(hundrethsTime / 100 / 60 % 10) + ":";
     ctime += String(hundrethsTime / 1000 % 10) + String(hundrethsTime / 100 % 10) + ".";
     ctime += String(hundrethsTime / 10 % 10) + String(hundrethsTime % 10);
-    if ( ctime.charAt(ctime.indexOf(releaseDigit)) == releaseDigit)
+    if (ctime.charAt(ctime.indexOf(releaseDigit)) == releaseDigit)
     {
 #ifdef DEBUG_MODE
         Serial.println("Held Button Successfully");

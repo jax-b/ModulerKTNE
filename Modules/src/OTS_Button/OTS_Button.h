@@ -37,4 +37,8 @@ private:
     bool lastBTNState = 0;
     void relHeldButton(uint16_t);
     uint16_t btnDebounce();
+    bool drawScreen = false;
+    uint16_t textX = 0;
+    uint16_t textY = 0;
+    String strChosenWord = "";
 };
