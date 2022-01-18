@@ -104,7 +104,7 @@ func (smc *ModControl) ClearGameSerialNumber() error {
 		smc.log.Error("Failed to write Clear Serial Number to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Serial Number: ")
+	smc.log.Debug("Cleared Game Serial Number")
 	return nil
 }
 
@@ -115,7 +115,7 @@ func (smc *ModControl) ClearGameLitIndicator() error {
 		smc.log.Error("Failed to write Clear Game Lit Indicator to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Lit Indicator: ")
+	smc.log.Debug("Cleared Game Lit Indicator")
 	return nil
 }
 
@@ -126,7 +126,7 @@ func (smc *ModControl) ClearGameNumBatteries() error {
 		smc.log.Error("Failed to write Clear batteries to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Num Batteries: ")
+	smc.log.Debug("Cleared Game Num Batteries")
 	return nil
 }
 
@@ -137,7 +137,7 @@ func (smc *ModControl) ClearGamePortIDS() error {
 		smc.log.Error("Failed to write Clear Game ID to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Port IDs: ")
+	smc.log.Debug("Cleared Game Port IDs")
 	return nil
 }
 
@@ -148,7 +148,7 @@ func (smc *ModControl) ClearGameSeed() error {
 		smc.log.Error("Failed to write Clear Game Seed to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Seed: ")
+	smc.log.Debug("Cleared Game Seed")
 	return nil
 }
 
