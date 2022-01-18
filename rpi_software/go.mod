@@ -8,7 +8,7 @@ require (
 	github.com/d2r2/go-i2c v0.0.0-20191123181816-73a8a799d6bc
 	github.com/faiface/beep v1.1.0
 	github.com/james-barrow/golang-ipc v0.0.0-20210227130457-95e7cc81f5e2
-	github.com/jax-b/go-i2c7Seg v0.0.0-20211121015849-022524ad7730
+	github.com/jax-b/go-i2c7Seg v0.0.0-20220118015043-bffc456527ed
 	github.com/spf13/viper v1.9.0
 	github.com/stianeikeland/go-rpio/v4 v4.6.0
 	go.uber.org/zap v1.17.0

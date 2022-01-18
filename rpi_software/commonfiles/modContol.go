@@ -62,11 +62,14 @@ func (smc *ModControl) TestIfPresent() bool {
 	smc.log.Debug("Testing if Present")
 	bytesWritten, err := smc.i2c.WriteBytes([]byte{0x0})
 	if err != nil {
+		smc.log.Debug("Module Not Connected")
 		return false
 	}
 	if bytesWritten < 1 {
+		smc.log.Debug("Module Not Connected")
 		return false
 	}
+	smc.log.Debug("Module Connected")
 	return true
 }
 

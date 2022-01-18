@@ -32,6 +32,7 @@ func main() {
 			logger.Errorf("could not process input %v\n", input)
 		}
 		if strings.ToLower(string(input)) == "e" {
+			logger.Info("Input Detected")
 			break
 		}
 	}

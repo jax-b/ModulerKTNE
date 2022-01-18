@@ -34,6 +34,7 @@ func NewShieldControl(logger *zap.SugaredLogger, cfg *Config) *ShieldControl {
 	logger.Info("Starting Shield Control")
 
 	i2c, err := i2c7Seg.NewSevenSegI2C(cfg.Shield.SevenSegAddress, int(cfg.Shield.I2cBusNumber))
+	i2c.LogLevel("INFO")
 	if err != nil {
 		logger.Error("Failed to create i2c7Seg", err)
 	}
@@ -54,7 +55,9 @@ func NewShieldControl(logger *zap.SugaredLogger, cfg *Config) *ShieldControl {
 	// Configure pins
 	logger.Info("Configuring Output Pins")
 	sc.strike1Pin.Output()
+	sc.strike1Pin.Low()
 	sc.strike2Pin.Output()
+	sc.strike2Pin.Low()
 
 	sc.mfbPin.Input()
 	sc.mfbPin.PullUp()

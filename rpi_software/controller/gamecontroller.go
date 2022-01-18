@@ -35,6 +35,7 @@ type Indicator struct {
 }
 type gameinfo struct {
 	comStat    mktnecf.Status
+	timer      *mktnecf.GameTimer
 	indicators []Indicator
 	port       byte
 	serialnum  [8]rune
@@ -48,12 +49,16 @@ type GameController struct {
 	game           gameinfo
 	rpishield      *ShieldControl
 	cfg            *Config
-	timerStopCh    chan bool
 	btnWatchStopCh chan bool
 	interStopCh    chan bool
 	solvedStopCh   chan bool
 	log            *zap.SugaredLogger
 	rnd            *rand.Rand
+
+	audio struct {
+		closech chan bool
+		tick    chan bool
+	}
 }
 
 // Creates a new game controller takes in a variable called runAsDamon Which is a bool
@@ -72,7 +77,6 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 		cfg:            cfg,
 		log:            log,
 		btnWatchStopCh: make(chan bool),
-		timerStopCh:    make(chan bool),
 		interStopCh:    make(chan bool),
 		solvedStopCh:   make(chan bool),
 		game: gameinfo{
@@ -111,6 +115,19 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 		gc.multicast.useMulti = false
 	}
 
+	// Setup Audio Timer Tick
+	gc.audio.closech = make(chan bool)
+	gc.audio.tick = make(chan bool)
+
+	gc.rpishield.TimerBeep(gc.audio.closech, gc.audio.tick)
+
+	// Write Idle to the screen
+	gc.rpishield.WriteIdle()
+
+	// Set up timer
+	gc.game.timer = mktnecf.NewGameTimer(gc.log, &gc.game.comStat)
+	gc.game.timer.AddCallbackFunction(gc.tmrCallbackFunction)
+
 	// Initalize RNG
 	var src mktnecf.CryptoSource
 	rnd := rand.New(src)
@@ -122,6 +139,7 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 // Starts Game Controller Monitoring components
 func (sgc *GameController) Run() {
 	sgc.rpishield.Run()
+	sgc.game.timer.Run()
 	sgc.buttonWatcher()
 	sgc.m2cInterruptHandler()
 	sgc.solvedCheck()
@@ -130,10 +148,15 @@ func (sgc *GameController) Run() {
 // Safe Shutdown of all components
 func (sgc *GameController) Close() {
 	sgc.log.Info("Closing Game Controller")
-	go func() { sgc.timerStopCh <- true }()
-	sgc.btnWatchStopCh <- true
-	sgc.interStopCh <- true
-	sgc.solvedStopCh <- true
+	// Stopping interupt Watchers
+	go func() { sgc.btnWatchStopCh <- true }()
+	go func() { sgc.interStopCh <- true }()
+	// Stopping Solved Watcher
+	go func() { sgc.solvedStopCh <- true }()
+	// Stopping Audio Ticker
+	go func() { sgc.audio.closech <- true }()
+	// Stopping Timer
+	sgc.game.timer.Close()
 	// flush the logger
 	sgc.log.Sync()
 	// Close all of the modules

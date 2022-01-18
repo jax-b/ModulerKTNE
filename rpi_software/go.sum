@@ -209,6 +209,8 @@ github.com/james-barrow/golang-ipc v0.0.0-20210227130457-95e7cc81f5e2 h1:lnIIG50
 github.com/james-barrow/golang-ipc v0.0.0-20210227130457-95e7cc81f5e2/go.mod h1:M3eGiVVY7bdtqyWT+gtbIqji7CqHi3PKJHSPl2pP40c=
 github.com/jax-b/go-i2c7Seg v0.0.0-20211121015849-022524ad7730 h1:5TyVEl/w9hm74/EmEMgHbxbPPQMfHizJh5pmYAPbOoU=
 github.com/jax-b/go-i2c7Seg v0.0.0-20211121015849-022524ad7730/go.mod h1:z64osvESyFhR+hTQFPUDNeI4FYpMa8p5KB6zGHnhMBQ=
+github.com/jax-b/go-i2c7Seg v0.0.0-20220118015043-bffc456527ed h1:zj3r6iyCIPtmTkDqnOqmolKKvp3A4f2B/KtdDvUBLk8=
+github.com/jax-b/go-i2c7Seg v0.0.0-20220118015043-bffc456527ed/go.mod h1:z64osvESyFhR+hTQFPUDNeI4FYpMa8p5KB6zGHnhMBQ=
 github.com/jfreymuth/oggvorbis v1.0.1/go.mod h1:NqS+K+UXKje0FUYUPosyQ+XTVvjmVjps1aEZH1sumIk=
 github.com/jfreymuth/vorbis v1.0.0/go.mod h1:8zy3lUAm9K/rJJk223RKy6vjCZTWC61NA2QD06bfOE0=
 github.com/json-iterator/go v1.1.11/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=

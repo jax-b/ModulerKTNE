@@ -10,6 +10,7 @@ import (
 var (
 	nextAnounce   time.Time = time.Now().Add(5 * time.Second)
 	nextModUpdate time.Time = time.Now().Add(5 * time.Second)
+	nextAudioTick time.Time = time.Now().Add(time.Second)
 )
 
 func (sgc *GameController) tmrCallbackFunction(tsb time.Time, tsa time.Time, stat mktnecf.Status) {
@@ -35,14 +36,21 @@ func (sgc *GameController) tmrCallbackFunction(tsb time.Time, tsa time.Time, sta
 		nextAnounce = time.Now().Add(5 * time.Second)
 	}
 	// Resync the game clock to the modules
-	if nextAnounce.Before(time.Now()) {
+	if nextModUpdate.Before(time.Now()) {
 		sgc.log.Info("Syncing Modules Time")
 		err := sgc.updateModTime()
 		if err != nil {
 			sgc.log.Errorf("Failled to Sync the current gametime to the modules: %e", err)
 		}
+		nextModUpdate = time.Now().Add(5 * time.Second)
 	}
-
+	// Play Audio Tick
+	if nextAudioTick.Before(time.Now()) {
+		go func() { sgc.audio.tick <- true }()
+		nextAudioTick = time.Now().Add(time.Second)
+	}
+	// Update Clock
+	go sgc.rpishield.WriteTime(stat.Time)
 }
 
 // MFB tracker
@@ -76,7 +84,7 @@ func (sgc *GameController) buttonWatcher() {
 					// syscall.Shutdown(0, 0)
 				}
 			case <-sgc.btnWatchStopCh:
-				break
+				return
 			}
 		}
 	}()
@@ -101,6 +109,7 @@ func (sgc *GameController) m2cInterruptHandler() {
 						if solvedStat < int8(int16(sgc.game.comStat.NumStrike)*-1) {
 							log.Infof("Module %d Has A New Strike", index)
 							sgc.AddStrike()
+							sgc.updateModTime()
 						} else if solvedStat > 0 {
 							log.Infof("Module %d Has Been Solved", index)
 							sgc.modules[index].solved = true
