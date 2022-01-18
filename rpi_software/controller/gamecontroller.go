@@ -88,7 +88,7 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 				Strikereductionrate: 0.25,
 				Win:                 false,
 			},
-			maxstrike: 2,
+			maxstrike: 3,
 		},
 	}
 
@@ -139,7 +139,7 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 // Starts Game Controller Monitoring components
 func (sgc *GameController) Run() {
 	sgc.rpishield.Run()
-	sgc.game.timer.Run()
+	go sgc.game.timer.Run()
 	sgc.buttonWatcher()
 	sgc.m2cInterruptHandler()
 	sgc.solvedCheck()
@@ -200,10 +200,8 @@ func (sgc *GameController) solvedCheck() {
 				}
 			}
 			if solved {
-				sgc.game.comStat.Win = true
-				sgc.game.comStat.Gamerun = false
-				sgc.game.comStat.Boom = false
-				sgc.StopGame()
+				sgc.log.Info("Game Has Been Won!")
+				sgc.GameOverWin()
 				if sgc.multicast.useMulti {
 					sgc.multicast.mnetc.SendStatus(&sgc.game.comStat)
 				}
@@ -228,14 +226,14 @@ func (sgc *GameController) StartGame() error {
 
 // Stops the game
 func (sgc *GameController) StopGame() error {
-	if sgc.game.comStat.Gamerun {
-		// for all the modules that are present, stop the game
-		for i := range sgc.modules {
-			if sgc.modules[i].present {
-				sgc.modules[i].mctrl.StopGame()
-			}
+	sgc.game.comStat.Gamerun = false
+	// for all the modules that are present, stop the game
+	for i := range sgc.modules {
+		if sgc.modules[i].present {
+			sgc.modules[i].mctrl.StopGame()
 		}
 	}
+
 	return nil
 }
 

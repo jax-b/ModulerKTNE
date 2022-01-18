@@ -6,7 +6,11 @@ import (
 
 // Set the number of strikes
 func (sgc *GameController) SetStrikes(strikes int8, force ...bool) error {
-	var forced bool = force[0]
+	var forced bool = false
+	if len(force) > 0 {
+		forced = force[0]
+	}
+
 	var err error
 
 	if strikes > 0 {
@@ -30,10 +34,8 @@ func (sgc *GameController) AddStrike() error {
 	var err error
 	sgc.game.comStat.NumStrike++
 	if sgc.game.comStat.NumStrike >= sgc.game.maxstrike {
-		sgc.game.comStat.Boom = true
-		sgc.game.comStat.Gamerun = false
-		sgc.game.comStat.Win = false
-		err = sgc.StopGame()
+		sgc.log.Info("Number of strikes exceeded, BOOM!")
+		sgc.GameOverBoom()
 		if err != nil {
 			return err
 		}
@@ -78,14 +80,7 @@ func (sgc *GameController) SetSerial(serial string) error {
 		}
 		sgc.game.serialnum[i] = rune(serial[i])
 	}
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			err := sgc.modules[i].mctrl.SetGameSerialNumber(sgc.game.serialnum)
-			if err != nil {
-				return err
-			}
-		}
-	}
+	sgc.updateModSerial()
 	return nil
 }
 
@@ -121,4 +116,8 @@ func (sgc *GameController) SetModSeed(index uint8, seed uint16) {
 		return
 	}
 	sgc.modules[index].mctrl.SetGameSeed(seed)
+}
+
+func (sgc *GameController) SetMaxStrikes(inmax uint8) {
+	sgc.game.maxstrike = inmax
 }

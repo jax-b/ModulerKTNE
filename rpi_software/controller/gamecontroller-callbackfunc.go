@@ -17,10 +17,7 @@ func (sgc *GameController) tmrCallbackFunction(tsb time.Time, tsa time.Time, sta
 	// Check for a boom
 	if stat.Boom {
 		sgc.log.Info("Timer Has Expired: BOOM!")
-		sgc.StopGame()
-		sgc.game.comStat.Boom = true
-		sgc.game.comStat.Win = false
-		sgc.game.comStat.Gamerun = false
+		sgc.GameOverBoom()
 		err := sgc.updateNetworkIPC()
 		if err != nil {
 			sgc.log.Errorf("Failled to Announce the current status to external components (BOOM): %e", err)
@@ -50,7 +47,9 @@ func (sgc *GameController) tmrCallbackFunction(tsb time.Time, tsa time.Time, sta
 		nextAudioTick = time.Now().Add(time.Second)
 	}
 	// Update Clock
-	go sgc.rpishield.WriteTime(stat.Time)
+	if stat.Time.Milliseconds()%10 == 0 {
+		go sgc.rpishield.WriteTime(stat.Time)
+	}
 }
 
 // MFB tracker
@@ -62,9 +61,8 @@ func (sgc *GameController) buttonWatcher() {
 		log := sgc.log.Named("ButtonWatcher")
 		for {
 			select {
-			case presstimeint := <-mfb:
+			case presstime := <-mfb:
 				// wait for a button press
-				presstime := time.Duration(presstimeint) * time.Millisecond
 				if presstime > 50*time.Millisecond && presstime < 200*time.Millisecond { // Short Press
 					log.Info("MFB Short Press Detected")
 					if !sgc.game.comStat.Gamerun { // If the Game is not running, start a new game
@@ -99,23 +97,26 @@ func (sgc *GameController) m2cInterruptHandler() {
 			select {
 			case <-interupt:
 				log.Info("Interrupt received")
-				for index := range sgc.modules {
-					if sgc.modules[index].present && !sgc.modules[index].solved {
-						solvedStat, err := sgc.modules[index].mctrl.GetSolvedStatus()
-						if err != nil {
-							log.Error("Failed to get solved status", err)
-						}
 
-						if solvedStat < int8(int16(sgc.game.comStat.NumStrike)*-1) {
-							log.Infof("Module %d Has A New Strike", index)
-							sgc.AddStrike()
-							sgc.updateModTime()
-						} else if solvedStat > 0 {
-							log.Infof("Module %d Has Been Solved", index)
-							sgc.modules[index].solved = true
+				go func() {
+					for index := range sgc.modules {
+						if sgc.modules[index].present && !sgc.modules[index].solved {
+							solvedStat, err := sgc.modules[index].mctrl.GetSolvedStatus()
+							if err != nil {
+								log.Error("Failed to get solved status", err)
+							}
+
+							if solvedStat < int8(int16(sgc.game.comStat.NumStrike)*-1) {
+								log.Infof("Module %d Has A New Strike", index)
+								sgc.AddStrike()
+								sgc.updateModTime()
+							} else if solvedStat > 0 {
+								log.Infof("Module %d Has Been Solved", index)
+								sgc.modules[index].solved = true
+							}
 						}
 					}
-				}
+				}()
 			case <-sgc.interStopCh:
 				return
 			}

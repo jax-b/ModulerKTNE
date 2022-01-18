@@ -114,3 +114,16 @@ func (sgc *GameController) ModFullUpdate(modnum int) error {
 		return nil
 	}
 }
+
+// Clears the seed on all modules to turn off external displays
+func (sgc *GameController) ClearSeeds() error {
+	for _, mod := range sgc.modules {
+		if mod.present {
+			err := mod.mctrl.ClearGameSeed()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

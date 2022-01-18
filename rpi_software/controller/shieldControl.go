@@ -118,7 +118,10 @@ func (ssc *ShieldControl) AddStrike() {
 func (ssc *ShieldControl) SetStrike(numstrike uint8) {
 	ssc.strikecount = numstrike
 	// span strike sound in a seprate concurent
-	if ssc.strikecount == 1 {
+	if ssc.strikecount == 0 {
+		ssc.strike1Pin.Low()
+		ssc.strike2Pin.Low()
+	} else if ssc.strikecount == 1 {
 		ssc.strike1Pin.High()
 		ssc.strike2Pin.Low()
 	} else if ssc.strikecount == 2 {
@@ -372,7 +375,8 @@ func (ssc *ShieldControl) WriteTime(intime time.Duration) {
 		}
 		ssc.seg.DrawColon(true)
 	} else {
-		hundtensec := intime.Milliseconds() % 100
+		hundtensec := intime.Milliseconds() / 10 % 100
+		// fmt.Println(hundtensec)
 		tstring = fmt.Sprintf("%2d.%02d", SecondsRemaining, hundtensec)
 
 		trune := []rune(tstring)
@@ -429,7 +433,13 @@ func (ssc *ShieldControl) mfbCheck() {
 				// Span a new concurent to wait for release
 				go func(pushtime time.Time) {
 					// Wait for release
-					for !ssc.mfbPin.EdgeDetected() {
+					timeMinExceded := false
+					for !timeMinExceded {
+						for !ssc.mfbPin.EdgeDetected() {
+						}
+						if time.Now().Sub(pushtime) > time.Millisecond*4 {
+							timeMinExceded = true
+						}
 					}
 
 					// Record time of release and compute difference
@@ -448,8 +458,6 @@ func (ssc *ShieldControl) mfbCheck() {
 					mfbEdge = rpio.FallEdge
 					ssc.mfbPin.Detect(mfbEdge)
 				}(mfbPush)
-			} else {
-				ssc.mfbPin.Detect(mfbEdge)
 			}
 		}
 	}
@@ -464,6 +472,7 @@ func (ssc *ShieldControl) m2cCheck() {
 		}
 		// if we have a signal from a downstream controller signal all consumers (nonblocking)
 		if ssc.m2cPin.EdgeDetected() {
+			ssc.log.Debug("M2C Interrupt Detected, Notifiying Consumers")
 			for _, c := range ssc.m2cCallbackConsumer {
 				go func(c chan bool) {
 					c <- true
