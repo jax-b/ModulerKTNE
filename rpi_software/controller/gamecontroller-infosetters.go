@@ -5,18 +5,22 @@ import (
 )
 
 // Set the number of strikes
-func (sgc *GameController) SetStrikes(strikes int8) error {
+func (sgc *GameController) SetStrikes(strikes int8, force ...bool) error {
+	var forced bool = force[0]
 	var err error
+
 	if strikes > 0 {
 		sgc.game.comStat.Win = true
 		err = sgc.updateModSolvedStatus(true)
 	} else {
 		sgc.game.comStat.NumStrike = uint8(strikes * -1)
-		err = sgc.updateModSolvedStatus(false)
+		err = sgc.updateModSolvedStatus(forced)
 	}
+
 	if err != nil {
 		return err
 	}
+	sgc.rpishield.SetStrike(uint8(strikes))
 	err = sgc.updateNetworkIPC()
 	return err
 }
@@ -83,4 +87,38 @@ func (sgc *GameController) SetSerial(serial string) error {
 		}
 	}
 	return nil
+}
+
+// Adds a port to the list
+func (sgc *GameController) SetPorts(port byte) error {
+	sgc.game.port = port
+	for i := range sgc.modules {
+		if sgc.modules[i].present {
+			err := sgc.modules[i].mctrl.SetGamePortID(port)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (sgc *GameController) SetNumBatteries(numbat uint8) error {
+	sgc.game.numbat = int(numbat)
+	for i := range sgc.modules {
+		if sgc.modules[i].present {
+			err := sgc.modules[i].mctrl.SetGameNumBatteries(numbat)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (sgc *GameController) SetModSeed(index uint8, seed uint16) {
+	if index > 9 {
+		return
+	}
+	sgc.modules[index].mctrl.SetGameSeed(seed)
 }

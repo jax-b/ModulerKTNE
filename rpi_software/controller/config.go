@@ -68,7 +68,7 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 func (c *Config) Load() {
 	err := c.configReader.ReadInConfig()
 	if err != nil {
-		c.log.Error("Error loading config", err)
+		c.log.Error("Error loading config: ", err)
 	}
 
 	c.populateFromVipers()

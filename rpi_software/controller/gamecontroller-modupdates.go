@@ -1,22 +1,14 @@
 package controller
 
-import (
-	"errors"
-)
-
 // Polls all possible module addresses and sees if something is their. Updates the class variables
 func (sgc *GameController) scanAllModules() {
-	for index, mod := range sgc.modules {
-		laststate := mod.present
+	for index := range sgc.modules {
+		mod := &sgc.modules[index]
 		mod.present = mod.mctrl.TestIfPresent()
 		if mod.present {
 			var err error
 			mod.modtype, err = mod.mctrl.GetModuleType()
 			if err != nil {
-				sgc.log.Error("Error Getting Module Type:", err)
-			}
-			if laststate != mod.present {
-				err := sgc.ModFullUpdate(index)
 				sgc.log.Error("Error Getting Module Type:", err)
 			}
 		}
@@ -46,7 +38,7 @@ func (sgc *GameController) updateModSolvedStatus(force bool) error {
 func (sgc *GameController) updateModTime() error {
 	for _, mod := range sgc.modules {
 		if mod.present {
-			err := mod.mctrl.SyncGameTime(uint32(sgc.game.comStat.Time.Milliseconds()))
+			err := mod.mctrl.SyncGameTime(sgc.game.comStat.Time)
 			if err != nil {
 				return err
 			}
@@ -83,11 +75,12 @@ func (sgc *GameController) updateModSerial() error {
 
 // Update the specified module with all of the game values
 func (sgc *GameController) ModFullUpdate(modnum int) error {
-	mod := sgc.modules[modnum]
+	mod := &sgc.modules[modnum]
 	// Test if the module is present
-	mod.present = mod.mctrl.TestIfPresent()
 	if mod.present {
+		sgc.log.Debugf("Module %d present", modnum)
 		var litindi [][3]rune
+		mod.solved = false
 		for _, lbl := range sgc.game.indicators {
 			if lbl.Lit {
 				litindi = append(litindi, lbl.Label)
@@ -110,12 +103,14 @@ func (sgc *GameController) ModFullUpdate(modnum int) error {
 		}
 		if sgc.game.comStat.Win {
 			err = mod.mctrl.SetSolvedStatus(1)
+			sgc.log.Debug("In Win Condition")
 		} else {
-			err = mod.mctrl.SetSolvedStatus(int8(sgc.game.comStat.NumStrike) * -1)
+			sgc.log.Debug("non Win Condition")
+			err = mod.mctrl.SetSolvedStatus(int8(int16(sgc.game.comStat.NumStrike) * -1))
 		}
 		return err
 	} else {
-		sgc.log.Errorf("Module %d not present", modnum)
-		return errors.New("Module not present")
+		sgc.log.Debugf("Module %d not present", modnum)
+		return nil
 	}
 }

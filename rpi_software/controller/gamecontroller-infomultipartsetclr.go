@@ -26,23 +26,9 @@ func (sgc *GameController) ClearIndicators() {
 	sgc.game.indicators = make([]Indicator, 0)
 }
 
-// Adds a port to the list
-func (sgc *GameController) AddPort(port byte) error {
-	sgc.game.port = append(sgc.game.port, port)
-	for i := range sgc.modules {
-		if sgc.modules[i].present {
-			err := sgc.modules[i].mctrl.SetGamePortID(port)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // clears all of the ports that are configured for the game
 func (sgc *GameController) ClearPorts() error {
-	sgc.game.port = make([]byte, 0)
+	sgc.game.port = 0x0
 	for i := range sgc.modules {
 		if sgc.modules[i].present {
 			err := sgc.modules[i].mctrl.ClearGamePortIDS()

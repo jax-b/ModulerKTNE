@@ -3,6 +3,7 @@ package commonfiles
 import (
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/d2r2/go-i2c"
 	"go.uber.org/zap"
@@ -58,6 +59,7 @@ func (smc *ModControl) Close() {
 // Sends 1 byte of data to the module
 // If the byte is not written then the module is not installed
 func (smc *ModControl) TestIfPresent() bool {
+	smc.log.Debug("Testing if Present")
 	bytesWritten, err := smc.i2c.WriteBytes([]byte{0x0})
 	if err != nil {
 		return false
@@ -72,7 +74,7 @@ func (smc *ModControl) TestIfPresent() bool {
 func (smc *ModControl) StopGame() error {
 	_, err := smc.i2c.WriteBytes([]byte{0x40})
 	if err != nil {
-		smc.log.Error("Failed to write stop to bus:", err)
+		smc.log.Error("Failed to write stop to bus: ", err)
 		return err
 	}
 	smc.log.Debug("Stopped Game")
@@ -85,10 +87,10 @@ func (smc *ModControl) StopGame() error {
 func (smc *ModControl) StartGame() error {
 	_, err := smc.i2c.WriteBytes([]byte{0x30})
 	if err != nil {
-		smc.log.Error("Failed to write start to bus:", err)
+		smc.log.Error("Failed to write start to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Started Game")
+	smc.log.Debug("Started Game: ")
 	return nil
 }
 
@@ -96,10 +98,10 @@ func (smc *ModControl) StartGame() error {
 func (smc *ModControl) ClearGameSerialNumber() error {
 	_, err := smc.i2c.WriteBytes([]byte{0x24})
 	if err != nil {
-		smc.log.Error("Failed to write Clear Serial Number to bus:", err)
+		smc.log.Error("Failed to write Clear Serial Number to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Serial Number")
+	smc.log.Debug("Cleared Game Serial Number: ")
 	return nil
 }
 
@@ -107,10 +109,10 @@ func (smc *ModControl) ClearGameSerialNumber() error {
 func (smc *ModControl) ClearGameLitIndicator() error {
 	_, err := smc.i2c.WriteBytes([]byte{0x25})
 	if err != nil {
-		smc.log.Error("Failed to write Clear Game Lit Indicator to bus:", err)
+		smc.log.Error("Failed to write Clear Game Lit Indicator to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Lit Indicator")
+	smc.log.Debug("Cleared Game Lit Indicator: ")
 	return nil
 }
 
@@ -118,10 +120,10 @@ func (smc *ModControl) ClearGameLitIndicator() error {
 func (smc *ModControl) ClearGameNumBatteries() error {
 	_, err := smc.i2c.WriteBytes([]byte{0x26})
 	if err != nil {
-		smc.log.Error("Failed to write Clear batteries to bus:", err)
+		smc.log.Error("Failed to write Clear batteries to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Num Batteries")
+	smc.log.Debug("Cleared Game Num Batteries: ")
 	return nil
 }
 
@@ -129,10 +131,10 @@ func (smc *ModControl) ClearGameNumBatteries() error {
 func (smc *ModControl) ClearGamePortIDS() error {
 	_, err := smc.i2c.WriteBytes([]byte{0x27})
 	if err != nil {
-		smc.log.Error("Failed to write Clear Game ID to bus:", err)
+		smc.log.Error("Failed to write Clear Game ID to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Port IDs")
+	smc.log.Debug("Cleared Game Port IDs: ")
 	return nil
 }
 
@@ -140,10 +142,10 @@ func (smc *ModControl) ClearGamePortIDS() error {
 func (smc *ModControl) ClearGameSeed() error {
 	_, err := smc.i2c.WriteBytes([]byte{0x28})
 	if err != nil {
-		smc.log.Error("Failed to write Clear Game Seed to bus:", err)
+		smc.log.Error("Failed to write Clear Game Seed to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Cleared Game Seed")
+	smc.log.Debug("Cleared Game Seed: ")
 	return nil
 }
 
@@ -154,22 +156,23 @@ func (smc *ModControl) ClearGameSeed() error {
 func (smc *ModControl) SetSolvedStatus(status int8) error {
 	_, err := smc.i2c.WriteBytes([]byte{0x11, byte(status)})
 	if err != nil {
-		smc.log.Error("Failed to write Solved Status to bus:", err)
+		smc.log.Error("Failed to write Solved Status to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Set Solved Status", status)
+	smc.log.Debug("Set Solved Status: ", status)
 	return nil
 }
 
 // Set: Sync Game Time
 // Sets the game time to the current time
-func (smc *ModControl) SyncGameTime(value uint32) error {
-	_, err := smc.i2c.WriteBytes([]byte{0x12, byte(value >> 24), byte(value >> 16), byte(value >> 8), byte(value)})
+func (smc *ModControl) SyncGameTime(time time.Duration) error {
+	timeout := time.Milliseconds()
+	_, err := smc.i2c.WriteBytes([]byte{0x12, byte(timeout >> 24), byte(timeout >> 16), byte(timeout >> 8), byte(timeout)})
 	if err != nil {
-		smc.log.Error("Failed to write Sync Game Time to bus:", err)
+		smc.log.Error("Failed to write Sync Game Time to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Set Game Time", value)
+	smc.log.Debug("Set Game Time: ", timeout)
 	return nil
 }
 
@@ -180,10 +183,10 @@ func (smc *ModControl) SetStrikeReductionRate(rate float32) error {
 	n := math.Float32bits(rate)
 	_, err := smc.i2c.WriteBytes([]byte{0x13, byte(n >> 24), byte(n >> 16), byte(n >> 8), byte(n)})
 	if err != nil {
-		smc.log.Error("Failed to write Strike Reduction Rate to bus:", err)
+		smc.log.Error("Failed to write Strike Reduction Rate to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Set Strike Reduction Rate", rate)
+	smc.log.Debug("Set Strike Reduction Rate: ", rate)
 	return nil
 }
 
@@ -195,10 +198,10 @@ func (smc *ModControl) SetGameSerialNumber(serialnumber [8]rune) error {
 	}
 	_, err := smc.i2c.WriteBytes(buff)
 	if err != nil {
-		smc.log.Error("Failed to write Game Serial Number to bus:", err)
+		smc.log.Error("Failed to write Game Serial Number to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Set Game Serial Number", serialnumber)
+	smc.log.Debug("Set Game Serial Number: ", serialnumber)
 	return nil
 }
 
@@ -215,10 +218,10 @@ func (smc *ModControl) SetGameLitIndicator(indlabel [3]rune) error {
 	}
 	_, err := smc.i2c.WriteBytes(buff)
 	if err != nil {
-		smc.log.Error("Failed to write Game Lit Indicator to bus:", err)
+		smc.log.Error("Failed to write Game Lit Indicator to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Set Game Lit Indicator", indlabel)
+	smc.log.Debug("Set Game Lit Indicator: ", indlabel)
 	return nil
 }
 
@@ -227,10 +230,10 @@ func (smc *ModControl) SetGameLitIndicator(indlabel [3]rune) error {
 func (smc *ModControl) SetGameNumBatteries(num uint8) error {
 	_, err := smc.i2c.WriteBytes([]byte{0x16, byte(num)})
 	if err != nil {
-		smc.log.Error("Failed to write Game Num Batteries to bus:", err)
+		smc.log.Error("Failed to write Game Num Batteries to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Set Game Num Batteries", num)
+	smc.log.Debug("Set Game Num Batteries: ", num)
 	return nil
 }
 
@@ -243,10 +246,10 @@ func (smc *ModControl) SetGameNumBatteries(num uint8) error {
 func (smc *ModControl) SetGamePortID(id byte) error {
 	_, err := smc.i2c.WriteBytes([]byte{0x17, id})
 	if err != nil {
-		smc.log.Error("Failed to write Game Port ID to bus:", err)
+		smc.log.Error("Failed to write Game Port ID to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Set Game Port ID", id)
+	smc.log.Debug("Set Game Port ID: ", id)
 	return nil
 }
 
@@ -255,57 +258,68 @@ func (smc *ModControl) SetGamePortID(id byte) error {
 func (smc *ModControl) SetGameSeed(seed uint16) error {
 	_, err := smc.i2c.WriteBytes([]byte{0x18, byte(seed >> 8), byte(seed)})
 	if err != nil {
-		smc.log.Error("Failed to write Game Seed to bus:", err)
+		smc.log.Error("Failed to write Game Seed to bus: ", err)
 		return err
 	}
-	smc.log.Debug("Set Game Seed", seed)
+	smc.log.Debug("Set Game Seed: ", seed)
+	time.Sleep(time.Millisecond * 20)
 	return nil
 }
 
 // Get Module Type
 func (smc *ModControl) GetModuleType() ([4]rune, error) {
+	smc.log.Debug("Sending ModID Register Load")
 	_, err := smc.i2c.WriteBytes([]byte{0x01})
 	if err != nil {
 		nothing := [4]rune{}
-		smc.log.Error("Failed to write Get Module Type to bus:", err)
+		smc.log.Error("Failed to write Get Module Type to bus: ", err)
 		return nothing, err
 	}
 	buff := make([]byte, 4)
+	smc.log.Debug("Reading Mod ID")
 	numread, err := smc.i2c.ReadBytes(buff)
 	if err != nil {
 		nothing := [4]rune{}
-		smc.log.Error("Failed to read Get Module Type from bus:", err)
+		smc.log.Error("Failed to read Get Module Type from bus: ", err)
 		return nothing, err
 	}
 	modtype := [4]rune{}
 	for i := 0; i < numread && i < 4; i++ {
 		modtype[i] = rune(buff[i])
 	}
-	smc.log.Debug("Get Module Type", modtype)
+	smc.log.Debug("Get Module Type: ", modtype)
 	return modtype, nil
 }
 
 /// Gets the solved status of the module
 func (smc *ModControl) GetSolvedStatus() (int8, error) {
-	_, err := smc.i2c.WriteBytes([]byte{0x01})
+	_, err := smc.i2c.WriteBytes([]byte{0x02})
 	if err != nil {
-		smc.log.Error("Failed to write Get Solved Status to bus:", err)
+		smc.log.Error("Failed to write Get Solved Status to bus: ", err)
 		return 0, err
 	}
 	buff := make([]byte, 1)
 	_, err = smc.i2c.ReadBytes(buff)
 	if err != nil {
-		smc.log.Error("Failed to read Get Solved Status from bus:", err)
+		smc.log.Error("Failed to read Get Solved Status from bus: ", err)
 		return 0, err
 	}
-	smc.log.Debug("Get Solved Status", buff[0])
+	smc.log.Debug("Get Solved Status: ", int8(buff[0]))
 	return int8(buff[0]), nil
 }
 
 // User Automation Functions
 // Clear All Game Data from the specified module
 func (smc *ModControl) ClearAllGameData() error {
-	err := smc.ClearGameSerialNumber()
+	err := smc.StopGame()
+	if err != nil {
+		return err
+	}
+	err = smc.SetSolvedStatus(0)
+	if err != nil {
+		return err
+	}
+	err = smc.ClearGameSerialNumber()
 	if err != nil {
 		return err
 	}
@@ -325,20 +339,13 @@ func (smc *ModControl) ClearAllGameData() error {
 	if err != nil {
 		return err
 	}
-	err = smc.SetSolvedStatus(0)
-	if err != nil {
-		return err
-	}
-	err = smc.StopGame()
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
 // User Automation Functions
 // Setup All Game Data from the specified module
-func (smc *ModControl) SetupAllGameData(serialNumber [8]rune, litIndicators [][3]rune, numBatteries uint8, portIDs []uint8, seed ...uint16) error {
+func (smc *ModControl) SetupAllGameData(serialNumber [8]rune, litIndicators [][3]rune, numBatteries uint8, portID uint8, seed ...uint16) error {
 	err := smc.ClearAllGameData()
 	if err != nil {
 		return err
@@ -357,11 +364,9 @@ func (smc *ModControl) SetupAllGameData(serialNumber [8]rune, litIndicators [][3
 	if err != nil {
 		return err
 	}
-	for i := 0; i < len(portIDs); i++ {
-		err = smc.SetGamePortID(portIDs[i])
-		if err != nil {
-			return err
-		}
+	err = smc.SetGamePortID(portID)
+	if err != nil {
+		return err
 	}
 	if len(seed) > 0 {
 		err = smc.SetGameSeed(seed[0])
@@ -370,5 +375,5 @@ func (smc *ModControl) SetupAllGameData(serialNumber [8]rune, litIndicators [][3
 		}
 	}
 	err = smc.SetSolvedStatus(0)
-	return nil
+	return err
 }

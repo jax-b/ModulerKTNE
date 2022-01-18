@@ -19,11 +19,12 @@ type ShieldControl struct {
 
 	strike1Pin          rpio.Pin
 	strike2Pin          rpio.Pin
-	modInterruptPin     rpio.Pin
+	m2cPin              rpio.Pin
 	mfbPin              rpio.Pin
 	mfbCallbackConsumer []chan time.Duration
 	m2cCallbackConsumer []chan bool
-	stopBtnCheck        chan bool
+	stopM2CCheck        chan bool
+	stopMFBCheck        chan bool
 	log                 *zap.SugaredLogger
 	samplerate          beep.SampleRate
 }
@@ -41,47 +42,52 @@ func NewShieldControl(logger *zap.SugaredLogger, cfg *Config) *ShieldControl {
 		logger.Error("Failed to open rpio", err)
 	}
 	sc := &ShieldControl{
-		seg:             i2c,
-		strikecount:     0,
-		strike1Pin:      rpio.Pin(cfg.Shield.Strike1PinNum),
-		strike2Pin:      rpio.Pin(cfg.Shield.Strike2PinNum),
-		modInterruptPin: rpio.Pin(cfg.Shield.ModInterruptPinNum),
-		mfbPin:          rpio.Pin(cfg.Shield.MfbStartPinNum),
-		log:             logger,
+		seg:         i2c,
+		strikecount: 0,
+		strike1Pin:  rpio.Pin(cfg.Shield.Strike1PinNum),
+		strike2Pin:  rpio.Pin(cfg.Shield.Strike2PinNum),
+		m2cPin:      rpio.Pin(cfg.Shield.ModInterruptPinNum),
+		mfbPin:      rpio.Pin(cfg.Shield.MfbStartPinNum),
+		log:         logger,
 	}
 
 	// Configure pins
 	logger.Info("Configuring Output Pins")
 	sc.strike1Pin.Output()
 	sc.strike2Pin.Output()
+
 	sc.mfbPin.Input()
 	sc.mfbPin.PullUp()
 	sc.mfbPin.Detect(rpio.FallEdge)
-	sc.modInterruptPin.Input()
-	sc.modInterruptPin.PullUp()
-	sc.modInterruptPin.Detect(rpio.FallEdge)
+
+	sc.m2cPin.Input()
+	sc.m2cPin.PullUp()
+	sc.m2cPin.Detect(rpio.FallEdge)
 
 	// Configure Speaker
 	logger.Info("Configuring Output Speaker")
 	sc.samplerate = beep.SampleRate(48000)
 	speaker.Init(sc.samplerate, sc.samplerate.N(time.Second/10))
 
-	sc.stopBtnCheck = make(chan bool, 1) // Buffered channel so we dont hang on close if run is never called
+	sc.stopMFBCheck = make(chan bool, 1) // Buffered channel so we dont hang on close if run is never called
+	sc.stopM2CCheck = make(chan bool, 1) // Buffered channel so we dont hang on close if run is never called
 	return sc
 }
 
 func (ssc *ShieldControl) Run() {
 	// Start Input checker
-	go ssc.btnCheck()
+	go ssc.m2cCheck()
+	go ssc.mfbCheck()
 }
 
 // Closes out all functions that are running safely
 func (ssc *ShieldControl) Close() {
-	ssc.stopBtnCheck <- true
+	ssc.stopMFBCheck <- true
+	ssc.stopM2CCheck <- true
 	time.After(50 * time.Millisecond)
 
 	ssc.mfbPin.Detect(rpio.NoEdge)
-	ssc.modInterruptPin.Detect(rpio.NoEdge)
+	ssc.m2cPin.Detect(rpio.NoEdge)
 	ssc.ClearDisplay()
 	ssc.seg.Close()
 	ssc.ResetStrike()
@@ -93,6 +99,22 @@ func (ssc *ShieldControl) AddStrike() {
 	ssc.strikecount++
 	// span strike sound in a seprate concurent
 	go ssc.buzzStrikeSound()
+	if ssc.strikecount == 1 {
+		ssc.strike1Pin.High()
+		ssc.strike2Pin.Low()
+	} else if ssc.strikecount == 2 {
+		ssc.strike1Pin.High()
+		ssc.strike2Pin.High()
+	} else {
+		ssc.strike1Pin.Low()
+		ssc.strike2Pin.High()
+	}
+}
+
+// Adds a strike to the display system and plays a sound
+func (ssc *ShieldControl) SetStrike(numstrike uint8) {
+	ssc.strikecount = numstrike
+	// span strike sound in a seprate concurent
 	if ssc.strikecount == 1 {
 		ssc.strike1Pin.High()
 		ssc.strike2Pin.Low()
@@ -384,19 +406,14 @@ func (ssc *ShieldControl) RegisterMFBConsumer() chan time.Duration {
 }
 
 // Function for checking if the external inputs were pressed and will signal consumers when ready
-func (ssc *ShieldControl) btnCheck() {
+func (ssc *ShieldControl) mfbCheck() {
 	mfbEdge := rpio.FallEdge
 	for {
-		// if we have a signal from a downstream controller signal all consumers (nonblocking)
-		if ssc.modInterruptPin.EdgeDetected() {
-			for _, c := range ssc.m2cCallbackConsumer {
-				go func(c chan bool) {
-					c <- true
-				}(c)
-			}
-			ssc.modInterruptPin.Detect(rpio.FallEdge)
+		select {
+		case <-ssc.stopMFBCheck:
+			return
+		default:
 		}
-
 		// if the button state is changed, and we are looking for a press
 		if mfbEdge == rpio.FallEdge {
 			if ssc.mfbPin.EdgeDetected() {
@@ -429,8 +446,28 @@ func (ssc *ShieldControl) btnCheck() {
 					ssc.mfbPin.Detect(mfbEdge)
 				}(mfbPush)
 			} else {
-				ssc.modInterruptPin.Detect(mfbEdge)
+				ssc.mfbPin.Detect(mfbEdge)
 			}
+		}
+	}
+}
+
+func (ssc *ShieldControl) m2cCheck() {
+	for {
+		select {
+		case <-ssc.stopM2CCheck:
+			return
+		default:
+		}
+		// if we have a signal from a downstream controller signal all consumers (nonblocking)
+		if ssc.m2cPin.EdgeDetected() {
+			for _, c := range ssc.m2cCallbackConsumer {
+				go func(c chan bool) {
+					c <- true
+				}(c)
+			}
+			ssc.m2cPin.Detect(rpio.FallEdge)
+			time.Sleep(5 * time.Millisecond)
 		}
 	}
 }

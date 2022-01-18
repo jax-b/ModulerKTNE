@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"time"
 	"os"
+	"time"
+
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
@@ -15,7 +17,7 @@ func main() {
 	log.Println("Hello world")
 	const strike1PinNum uint8 = 22
 	const strike2PinNum uint8 = 23
-	// const modInterruptPinNum uint8 = 17
+	const modInterruptPinNum uint8 = 17
 	const randomStartPinNum uint8 = 27
 
 	err := rpio.Open()
@@ -27,7 +29,7 @@ func main() {
 
 	strike1Pin := rpio.Pin(strike1PinNum)
 	strike2Pin := rpio.Pin(strike2PinNum)
-	// modInterruptPin := rpio.Pin(modInterruptPinNum)
+	modInterruptPin := rpio.Pin(modInterruptPinNum)
 	randomStartPin := rpio.Pin(randomStartPinNum)
 
 	strike1Pin.Output()
@@ -37,11 +39,22 @@ func main() {
 	randomStartPin.PullUp()
 	randomStartPin.Detect(rpio.FallEdge)
 
+	modInterruptPin.Input()
+	modInterruptPin.PullUp()
+	modInterruptPin.Detect(rpio.FallEdge)
+
 	log.Println("Waiting for button press")
 	for !randomStartPin.EdgeDetected() {
 	}
 	log.Println("button pressed")
 	randomStartPin.Detect(rpio.NoEdge)
+
+	log.Println("Waiting for m2c signal")
+	for !modInterruptPin.EdgeDetected() {
+		fmt.Println(modInterruptPin.Read())
+	}
+	log.Println("button pressed")
+	modInterruptPin.Detect(rpio.NoEdge)
 
 	log.Println("1 Strike")
 	strike1Pin.High()

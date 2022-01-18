@@ -26,10 +26,19 @@ func (sgc *GameController) GetIndicators() []Indicator {
 }
 
 // returns all of the ports that are configured for the game
-func (sgc *GameController) GetPorts() []byte {
+func (sgc *GameController) GetPorts() byte {
 	return sgc.game.port
 }
 
 func (sgc *GameController) GetSerial() string {
 	return string(sgc.game.serialnum[0:])
+}
+
+func (sgc *GameController) GetInstalledModules() [10]bool {
+	var outbool [10]bool
+	sgc.scanAllModules()
+	for i := range outbool {
+		outbool[i] = sgc.modules[i].present
+	}
+	return outbool
 }

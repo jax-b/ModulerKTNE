@@ -203,7 +203,7 @@ func (sipc *InterProcessCom) commandTree() {
 						break
 					}
 					port := byte(portInt64)
-					err = sipc.game.AddPort(port)
+					err = sipc.game.SetPorts(port)
 					if err != nil {
 						sipc.log.Error("Failed to add port:", err)
 						ipcwerr = sipc.ipc.Write(1, []byte("mktne.game.add_port.error"))

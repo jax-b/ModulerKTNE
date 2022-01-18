@@ -10,9 +10,8 @@ import (
 )
 
 var (
-	VALID_INDICATORS       []string = []string{"SND", "CLR", "CAR", "IND", "FRQ", "SIG", "NSA", "MSA", "TRN", "BOB", "FRK"}
-	VALID_PORT_ID          []string = []string{"DVI", "PAR", "PS2", "RJ4", "SER", "RCA"}
-	VALID_PORTS_TRANSLATED []byte   = []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}
+	VALID_INDICATORS []string = []string{"SND", "CLR", "CAR", "IND", "FRQ", "SIG", "NSA", "MSA", "TRN", "BOB", "FRK"}
+	VALID_PORT_ID    []string = []string{"DVI", "PAR", "PS2", "RJ4", "SER", "RCA"}
 )
 
 const (
@@ -37,7 +36,7 @@ type Indicator struct {
 type gameinfo struct {
 	comStat    mktnecf.Status
 	indicators []Indicator
-	port       []uint8
+	port       byte
 	serialnum  [8]rune
 	numbat     int
 	maxstrike  uint8
@@ -48,7 +47,6 @@ type GameController struct {
 	multicast      multicast
 	game           gameinfo
 	rpishield      *ShieldControl
-	ipc            *InterProcessCom
 	cfg            *Config
 	timerStopCh    chan bool
 	btnWatchStopCh chan bool
@@ -90,9 +88,6 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 		},
 	}
 
-	// Create the inter process communicator object
-	gc.ipc = NewIPC(log, gc)
-
 	// Create the Side Panel control object
 
 	gc.sidePanel = NewSideControl(gc.log, int(gc.cfg.Shield.I2cBusNumber))
@@ -126,10 +121,9 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 
 // Starts Game Controller Monitoring components
 func (sgc *GameController) Run() {
-	sgc.ipc.Run()
 	sgc.rpishield.Run()
-	go sgc.buttonWatcher()
-	go sgc.m2cInterruptHandler()
+	sgc.buttonWatcher()
+	sgc.m2cInterruptHandler()
 	sgc.solvedCheck()
 }
 
@@ -167,8 +161,6 @@ func (sgc *GameController) Close() {
 		})
 		sgc.multicast.mnetc.Close()
 	}
-	//Close the IPC
-	sgc.ipc.Close()
 }
 
 // Checks to see if each module is solved and if all of them are solved then trigger the win condition
@@ -178,48 +170,21 @@ func (sgc *GameController) solvedCheck() {
 		case <-sgc.solvedStopCh:
 			return
 		default:
-			notSolved := true
+			solved := true
 			for i := range sgc.modules {
 				if sgc.modules[i].present && !sgc.modules[i].solved {
-					notSolved = false
+					solved = false
 				}
 			}
-			if !notSolved {
+			if solved {
 				sgc.game.comStat.Win = true
 				sgc.game.comStat.Gamerun = false
 				sgc.game.comStat.Boom = false
 				sgc.StopGame()
-				sgc.ipc.SyncStatus(&sgc.game.comStat)
 				if sgc.multicast.useMulti {
 					sgc.multicast.mnetc.SendStatus(&sgc.game.comStat)
 				}
 			}
-		}
-	}
-}
-
-// Handles the interrupt from the a modules updating its status in the game controller and updating strikes
-func (sgc *GameController) m2cInterruptHandler() {
-	interupt := sgc.rpishield.RegisterM2CConsumer()
-	for {
-		select {
-		case <-interupt:
-			sgc.log.Info("Interrupt received")
-			for i := range sgc.modules {
-				if sgc.modules[i].present && !sgc.modules[i].solved {
-					solvedStat, err := sgc.modules[i].mctrl.GetSolvedStatus()
-					if err != nil {
-						sgc.log.Error("Failed to get solved status", err)
-					}
-					if int16(solvedStat) < (int16(sgc.game.comStat.NumStrike) * -1) {
-						sgc.AddStrike()
-					} else if solvedStat > 0 {
-						sgc.modules[i].solved = true
-					}
-				}
-			}
-		case <-sgc.interStopCh:
-			return
 		}
 	}
 }
@@ -252,15 +217,18 @@ func (sgc *GameController) StopGame() error {
 }
 
 // populates each module with a random game
-func (sgc *GameController) randomPopulate() {
+func (sgc *GameController) RandomPopulate() {
 	// Serial number generation
 	serialLen := sgc.rnd.Intn(8-6) + 6
-	serial := make([]byte, serialLen)
-	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	for i := range serial {
-		serial[i] = charset[sgc.rnd.Intn(len(charset))]
+	charset := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	for i := range sgc.game.serialnum {
+		if i < serialLen {
+			charnum := sgc.rnd.Intn(len(charset))
+			sgc.game.serialnum[i] = charset[charnum]
+		} else {
+			sgc.game.serialnum[i] = 0
+		}
 	}
-	sgc.SetSerial(string(serial))
 
 	// Indicator Generation
 	numIndicator := sgc.rnd.Intn(GAMEPLAYMAXTINDICATOR)
@@ -276,14 +244,17 @@ func (sgc *GameController) randomPopulate() {
 			Label: indilblrn,
 			Lit:   indilit,
 		}
-		sgc.AddIndicator(indi)
+		sgc.game.indicators = append(sgc.game.indicators, indi)
 	}
 
 	// Port Generation
-	numPort := sgc.rnd.Intn(GAMEPLAYMAXNUMPORT)
-	sgc.ClearPorts()
-	for i := 0; i < numPort; i++ {
-		port := VALID_PORTS_TRANSLATED[sgc.rnd.Intn(len(VALID_PORT_ID))]
-		sgc.AddPort(port)
+	sgc.game.port = byte(sgc.rnd.Intn(63))
+
+	sgc.scanAllModules()
+	for i := range sgc.modules {
+		err := sgc.ModFullUpdate(i)
+		if err != nil {
+			sgc.log.Error("Could not update module: ", err)
+		}
 	}
 }
