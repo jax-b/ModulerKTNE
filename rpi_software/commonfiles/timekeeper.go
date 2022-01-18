@@ -60,7 +60,7 @@ func (sgt *GameTimer) Run() {
 				} else {
 					textra = tstart.Sub(tlast) / time.Duration(everyrate)
 				}
-				sgt.log.Infof("Rate: %.2f,Time Extra: %s", everyrate, textra.String())
+				// sgt.log.Debugf("Rate: %.2f,Time Extra: %s", everyrate, textra.String())
 				sgt.stat.Time -= textra
 			}
 			// Save the time that we did all this math
