@@ -58,7 +58,7 @@ uint16_t OTS_Button::btnDebounce()
     int reading = !digitalRead(BUTTON_PIN);
 
     uint16_t tpress = millis() - OTS_Button::timeLastBtn; // calculate the press time in ms
-    if (tpress > 10)
+    if (tpress > 50)
     { // Debounce delay to prevent flickering must be > ?ms
         // if the button state has changed:
         if (reading != OTS_Button::lastBTNState)
@@ -190,6 +190,13 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
         }
     }
 
+    if (OTS_Button::failureBTNReset) {
+        if (digitalRead(BUTTON_PIN) == LOW) {
+            OTS_Button::failureBTNReset = false;
+        }
+        return;
+    }
+
     // We need to wait if the master controller has not cleared out the failure flag
     if (OTS_Button::failureTriggered)
     {
@@ -217,6 +224,7 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
             Serial.println("Immediately Button Pressed Failed");
 #endif
             OTS_Button::failureTriggered = true;
+            OTS_Button::failureBTNReset = true;
         }
     }
     else

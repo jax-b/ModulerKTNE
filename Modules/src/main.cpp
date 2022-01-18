@@ -31,6 +31,7 @@ OTS_Button mod = OTS_Button();
 /// Timekeeping variables for external pins for their reset
 unsigned long S2MInteruptCallTime = 0;
 unsigned long FailureLEDCallTime = 0;
+bool GamePlayLockout = 0;
 
 /// Buffers and data tracking for I2C communication
 byte incomeingI2CData[10];
@@ -150,6 +151,7 @@ void FlagModuleSolved()
 {
     // Set the module solved flag to 1
     gameplayModuleSolved = 1;
+    outgoingI2CData[0] = 0x1;
     // Turn on the success LED
     digitalWrite(SuccessLEDPin, HIGH);
     // Turn off the failure LED
@@ -159,7 +161,10 @@ void FlagModuleSolved()
     gameplayTimerRunning = false;
     mod.clearModule();
     gameplaySeed = 0;
-    gameplaySerialNumber[0] = '\0';
+    for (uint8_t i = 0; i < GAMEPLAYSERIALNUMBERLENGTH; i++)
+    {
+        gameplaySerialNumber[i] = '\0';
+    }
     gameplayLitIndicatorCount = 0;
     gameplayStrikeReductionRate = 0.25;
     gameplayNumBattery = 0;
@@ -180,6 +185,7 @@ void FlagModuleFailed()
     S2MInteruptCallTime = millis();
     // Signal the main controller interupt
     digitalWrite(S2MInteruptPin, LOW);
+    GamePlayLockout =true;
 }
 
 #ifdef TIMER_ENABLE
@@ -320,6 +326,7 @@ void I2CCommandProcessor()
         {
         case 0x0: // Start
             gameplayTimerRunning = true;
+            GamePlayLockout = false;
             if (gameplaySeed == 0)
             {
                 gameplaySeed = random(1, 65535);
@@ -414,7 +421,13 @@ void I2CCommandProcessor()
                 else
                 {
                     digitalWrite(SuccessLEDPin, LOW);
-                    mod.setNumStrike(gameplayModuleSolved * -1);
+                    if (gameplayModuleSolved == 0)
+                    {
+                        mod.setNumStrike(0);
+                    } else {
+                        mod.setNumStrike(1);
+                    }
+                    
                 }
             }
             break;
@@ -582,7 +595,7 @@ void setup()
     pinMode(FailureLEDPin, OUTPUT);
     pinMode(S2MInteruptPin, OUTPUT);
     // Set output pins to inital state
-    digitalWrite(S2MInteruptPin, HIGH);
+    // digitalWrite(S2MInteruptPin, HIGH);
     digitalWrite(SuccessLEDPin, HIGH);
     digitalWrite(FailureLEDPin, HIGH);
 
@@ -618,22 +631,28 @@ void loop()
     {
         digitalWrite(FailureLEDPin, LOW);
         FailureLEDCallTime = 0;
+        
+    }
+    if (millis() - FailureLEDCallTime > 400 && FailureLEDCallTime != 0)
+    {
+        GamePlayLockout = false;
     }
 
     // Module Specific Code
-    if (gameplayModuleSolved != 1 && gameplayTimerRunning == true)
+    if (gameplayModuleSolved <= 0 && gameplayTimerRunning == true && !GamePlayLockout)
     {
         // Success LED should be on for only module success
         digitalWrite(SuccessLEDPin, LOW);
+        mod.tickModule(gameplayCountdownTime);
+
         if (mod.checkSuccess())
         {
             FlagModuleSolved();
-        }
-        if (mod.checkFailure())
+        } else if (mod.checkFailure())
         {
             FlagModuleFailed();
         }
-        mod.tickModule(gameplayCountdownTime);
+
     }
 
     if (bytesReceived != 0)

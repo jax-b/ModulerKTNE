@@ -41,4 +41,5 @@ private:
     uint16_t textX = 0;
     uint16_t textY = 0;
     String strChosenWord = "";
+    bool failureBTNReset = false;
 };
