@@ -416,7 +416,21 @@ void I2CCommandProcessor()
 #endif
                 if (gameplayModuleSolved > 0)
                 {
-                    FlagModuleSolved();
+                    gameplayModuleSolved = 1;
+                    outgoingI2CData[0] = 0x1;
+                    // Turn on the success LED
+                    digitalWrite(SuccessLEDPin, HIGH);
+                    gameplayTimerRunning = false;
+                    mod.clearModule();
+                    gameplaySeed = 0;
+                    for (uint8_t i = 0; i < GAMEPLAYSERIALNUMBERLENGTH; i++)
+                    {
+                        gameplaySerialNumber[i] = '\0';
+                    }
+                    gameplayLitIndicatorCount = 0;
+                    gameplayStrikeReductionRate = 0.25;
+                    gameplayNumBattery = 0;
+                    gameplayPorts = 0;
                 }
                 else
                 {
