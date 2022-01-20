@@ -4,11 +4,22 @@
 #include <Fonts/FreeMonoBold12pt7b.h>
 
 // To be changed bases off of selected microcontroller and pcb version
+// Pins 32u4
+#ifdef __AVR_ATmega32U4__
 #define NEOPIXEL_PIN 10
 #define BUTTON_PIN 7
 #define EPD_CS 6
 #define EPD_DC 5
 #define EPD_BUSY A1
+#endif
+
+#ifdef ARDUINO_ARCH_RP2040
+#define NEOPIXEL_PIN 10
+#define BUTTON_PIN 7
+#define EPD_CS 6
+#define EPD_DC 5
+#define EPD_BUSY A1
+#endif
 
 // Enable the timer in the main software loop
 #define TIMER_ENABLE True

@@ -1,6 +1,6 @@
 #include "OTS_Button.h"
 
-//#define DEBUG_MODE true
+#define DEBUG_MODE true
 
 OTS_Button::OTS_Button()
 {
@@ -190,8 +190,10 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
         }
     }
 
-    if (OTS_Button::failureBTNReset) {
-        if (digitalRead(BUTTON_PIN) == LOW) {
+    if (OTS_Button::failureBTNReset)
+    {
+        if (digitalRead(BUTTON_PIN) == LOW)
+        {
             OTS_Button::failureBTNReset = false;
         }
         return;
@@ -207,7 +209,7 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
     // Instructions 2, 4 and 6: end results are the same
     if ((OTS_Button::numBatteries > 1 && OTS_Button::chosenWord == 1) || (OTS_Button::numBatteries > 2 && this->checkIndicator(step4indiLabel)) || (OTS_Button::buttonColor == 1 && OTS_Button::chosenWord == 4)) // See 1/3 in set seed line 74
     {
-        if (timeBTNPressed >= 1 && timeBTNPressed < 300)
+        if (timeBTNPressed >= 1 && timeBTNPressed < 100)
         { // if the button is pressed for less than 1 second
 #ifdef DEBUG_MODE
             Serial.println("Immediately Button Pressed Successfully");
@@ -238,7 +240,6 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
 
 void OTS_Button::relHeldButton(uint16_t currentGameTime)
 {
-    // I am assuming the timer is in seconds
     char releaseDigit;
     switch (stripColor)
     {
@@ -258,9 +259,24 @@ void OTS_Button::relHeldButton(uint16_t currentGameTime)
     Serial.println(releaseDigit);
 #endif
     uint16_t hundrethsTime = currentGameTime / 10;
-    String ctime = String(hundrethsTime / 100 / 60 / 10 % 10) + String(hundrethsTime / 100 / 60 % 10) + ":";
-    ctime += String(hundrethsTime / 1000 % 10) + String(hundrethsTime / 100 % 10) + ".";
-    ctime += String(hundrethsTime / 10 % 10) + String(hundrethsTime % 10);
+    uint16_t seconds = currentGameTime / 1000;
+    uint16_t minutes = seconds / 60;
+
+#ifdef DEBUG_MODE
+    Serial.print("seconds: ");
+    Serial.print(seconds);
+    Serial.print(" ");
+#endif
+
+    String ctime = String(minutes) + ":" + String(seconds % 60);
+    if (minutes < 1)
+    {
+        ctime += "." + String(hundrethsTime / 10 % 10) + String(hundrethsTime % 10);
+    }
+#ifdef DEBUG_MODE
+    Serial.print("Held time Check: ");
+    Serial.println(ctime);
+#endif
     if (ctime.charAt(ctime.indexOf(releaseDigit)) == releaseDigit)
     {
 #ifdef DEBUG_MODE

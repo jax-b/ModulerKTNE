@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#define DEBUG_MODE true
+
 // ********************************
 // Include the type of module that we use
 // ********************************
@@ -10,23 +12,24 @@
 OTS_Button mod = OTS_Button();
 
 // *************** External Communications Controller/Player *****************
-/// Pins
-// #if defined(__AVR_ATmega32U4__) 
+/// Pins 32u4
+#ifdef __AVR_ATmega32U4__
 #define AddressInPin 26
 #define SuccessLEDPin 8
 #define FailureLEDPin 9
 #define S2MInteruptPin 4
-#define MinMaxStable 5
 #define RandSorcePin 27
-// #else 
-// #define AddressInPin A0
-// #define SuccessLEDPin 
-// #define FailureLEDPin 9
-// #define S2MInteruptPin 2
-// #define MinMaxStable 5
-// #endif
+#endif
+// Pins Pico
+#ifdef ARDUINO_ARCH_RP2040
+#define AddressInPin A2
+#define RandSorcePin 27
+#define SuccessLEDPin 8
+#define FailureLEDPin 9
+#define S2MInteruptPin 4
+#endif
 
-// #define DEBUG_MODE true
+#define MinMaxStable 5
 
 /// Timekeeping variables for external pins for their reset
 unsigned long S2MInteruptCallTime = 0;
@@ -185,7 +188,7 @@ void FlagModuleFailed()
     S2MInteruptCallTime = millis();
     // Signal the main controller interupt
     digitalWrite(S2MInteruptPin, LOW);
-    GamePlayLockout =true;
+    GamePlayLockout = true;
 }
 
 #ifdef TIMER_ENABLE
@@ -230,36 +233,45 @@ void decrementCounter()
         FlagModuleFailed();
     }
     timekeeperLastRun = currentTime;
+
 #ifdef DEBUG_MODE
     uint16_t hundrethsTime = gameplayCountdownTime / 10;
+    uint16_t seconds = gameplayCountdownTime / 1000;
+    uint16_t minutes = seconds / 60;
+
+    Serial.print("Seconds: ");
+    Serial.print(seconds);
+    Serial.print(" ");
+
+    String ctime = String(minutes) + ":" + String(seconds % 60);
+    if (minutes < 1)
+    {
+        ctime += "." + String(hundrethsTime / 10 % 10) + String(hundrethsTime % 10);
+    }
     Serial.print("Time: ");
-    Serial.print(hundrethsTime / 100 / 60 / 10 % 10);
-    Serial.print(hundrethsTime / 100 / 60 % 10);
-    Serial.print(":");
-    Serial.print(hundrethsTime / 1000 % 10);
-    Serial.print(hundrethsTime / 100 % 10);
-    Serial.print(".");
-    Serial.print(hundrethsTime % 10);
-    Serial.println(hundrethsTime / 10 % 10);
-    
+    Serial.println(ctime);
 #endif
 }
 #endif
-
 
 // Sends out our output buffer
 void requestEvent()
 {
     if (bytesToSend > 0)
     {
-        #ifdef DEBUG_MODE
+#ifdef DEBUG_MODE
         Serial.print("Sending: ");
         Serial.println(bytesToSend);
-        #endif    
-        
+#endif
+
         for (size_t i = 0; i < bytesToSend; i++)
         {
+#ifdef __AVR_ATmega32U4__
             Wire.write(outgoingI2CData, bytesToSend);
+#endif
+#ifdef ARDUINO_ARCH_RP2040
+            Wire1.write(outgoingI2CData, bytesToSend);
+#endif
         }
         bytesToSend = 0;
     }
@@ -277,17 +289,32 @@ void receiveEvent(int numBytes)
     {
         if (i > 10)
         {
+#ifdef __AVR_ATmega32U4__
             Wire.read();
+#endif
+#ifdef ARDUINO_ARCH_RP2040
+            Wire1.read();
+#endif
         }
         else
         {
 #ifdef DEBUG_MODE
+#ifdef __AVR_ATmega32U4__
             uint8_t wirein = Wire.read();
+#endif
+#ifdef ARDUINO_ARCH_RP2040
+            uint8_t wirein = Wire1.read();
+#endif
             Serial.print(wirein, HEX);
             Serial.print(" ");
             incomeingI2CData[i] = wirein;
 #else
+#ifdef __AVR_ATmega32U4__
             incomeingI2CData[i] = Wire.read();
+#endif
+#ifdef ARDUINO_ARCH_RP2040
+            incomeingI2CData[i] = Wire1.read();
+#endif
 #endif
         }
     }
@@ -438,10 +465,11 @@ void I2CCommandProcessor()
                     if (gameplayModuleSolved == 0)
                     {
                         mod.setNumStrike(0);
-                    } else {
+                    }
+                    else
+                    {
                         mod.setNumStrike(1);
                     }
-                    
                 }
             }
             break;
@@ -456,7 +484,7 @@ void I2CCommandProcessor()
                 gameplayCountdownTime = data12 << 16 | data34;
 #ifdef DEBUG_MODE
                 Serial.print("SyncTime: ");
-                Serial.print(data12 << 16,HEX);
+                Serial.print(data12 << 16, HEX);
                 Serial.print(" ");
                 Serial.print(data34, HEX);
                 Serial.print(" ");
@@ -475,7 +503,7 @@ void I2CCommandProcessor()
                 gameplayStrikeReductionRate = data12 << 16 | data34;
 #ifdef DEBUG_MODE
                 Serial.print("StrikeRate: ");
-                Serial.print(data12 << 16,HEX);
+                Serial.print(data12 << 16, HEX);
                 Serial.print(" ");
                 Serial.print(data34, HEX);
                 Serial.print(" ");
@@ -519,7 +547,8 @@ void I2CCommandProcessor()
                 Serial.print("LitIndicators: {");
                 for (uint8_t i = 0; i < gameplayLitIndicatorCount; i++)
                 {
-                    for (uint8_t j = 0; j < 3; j++) {
+                    for (uint8_t j = 0; j < 3; j++)
+                    {
                         Serial.print(gameplayLitIndicators[i][j]);
                     }
                     Serial.print(", ");
@@ -598,18 +627,21 @@ void I2CCommandProcessor()
 
 void setup()
 {
+
 #ifdef DEBUG_MODE
     Serial.begin(9600);
-    while (!Serial); // wait for serial port to connect.
-    Serial.println("Serial Connected");
+    while (!Serial)
+        ; // wait for serial port to connect.
     delay(500);
+    Serial.println("Serial Connected");
 #endif
     // Setup LED's
     pinMode(SuccessLEDPin, OUTPUT);
     pinMode(FailureLEDPin, OUTPUT);
     pinMode(S2MInteruptPin, OUTPUT);
+
     // Set output pins to inital state
-    // digitalWrite(S2MInteruptPin, HIGH);
+    digitalWrite(S2MInteruptPin, HIGH);
     digitalWrite(SuccessLEDPin, HIGH);
     digitalWrite(FailureLEDPin, HIGH);
 
@@ -617,6 +649,7 @@ void setup()
 
     // Setup I2C
     // Start Listening for address
+#ifdef __AVR_ATmega32U4__
     Wire.begin(convertToAddress(getStableVoltage(AddressInPin)));
 #ifdef DEBUG_MODE
     Serial.print("I2C Listening on ADDR: ");
@@ -624,6 +657,38 @@ void setup()
 #endif
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
+#endif
+
+#ifdef ARDUINO_ARCH_RP2040
+#ifdef DEBUG_MODE
+    Serial.println("RP2040 Set SPI TX");
+#endif
+    SPI.setTX(23);
+#ifdef DEBUG_MODE
+    Serial.println("RP2040 Set SPI CLK");
+#endif
+    SPI.setSCK(22);
+#ifdef DEBUG_MODE
+    Serial.println("RP2040 Set Wire SCL");
+#endif
+    Wire1.setSCL(3);
+#ifdef DEBUG_MODE
+    Serial.println("RP2040 Set Wire SDA");
+#endif
+    Wire1.setSDA(2);
+
+#ifdef DEBUG_MODE
+    uint8_t address = convertToAddress(getStableVoltage(AddressInPin));
+    Serial.print("I2C Listening on ADDR: ");
+    Serial.println(address, HEX);
+    Wire1.begin(address);
+#else
+    Wire1.begin(convertToAddress(getStableVoltage(AddressInPin)));
+#endif
+
+    Wire1.onReceive(receiveEvent);
+    Wire1.onRequest(requestEvent);
+#endif
 
     mod.setupModule();
 
@@ -645,7 +710,6 @@ void loop()
     {
         digitalWrite(FailureLEDPin, LOW);
         FailureLEDCallTime = 0;
-        
     }
     if (millis() - FailureLEDCallTime > 400 && FailureLEDCallTime != 0)
     {
@@ -662,11 +726,11 @@ void loop()
         if (mod.checkSuccess())
         {
             FlagModuleSolved();
-        } else if (mod.checkFailure())
+        }
+        else if (mod.checkFailure())
         {
             FlagModuleFailed();
         }
-
     }
 
     if (bytesReceived != 0)
@@ -674,8 +738,19 @@ void loop()
         I2CCommandProcessor();
     }
 
+#ifdef __AVR_ATmega32U4__
 #ifdef TIMER_ENABLE
     // Timekeeping
     decrementCounter();
 #endif
+#endif
 }
+
+#ifdef ARDUINO_ARCH_RP2040
+void setup1(){
+    delay(50);
+}
+void loop1(){
+    decrementCounter();
+}
+#endif
