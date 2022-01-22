@@ -53,7 +53,7 @@ func (sgc *GameController) AddStrike() error {
 // Sets the game time to the given time
 func (sgc *GameController) SetGameTime(time time.Duration) error {
 	sgc.game.comStat.Time = time
-	err := sgc.updateModTime()
+	err := sgc.UpdateModTime()
 	if err != nil {
 		return err
 	}

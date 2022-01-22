@@ -38,16 +38,13 @@ func (sgt *GameTimer) Run() {
 		case <-tick.C: // Wait for the ticker to tick -- This is just to make sure we don't go to fast
 			// if the timer is not running exit this iteration
 			if !sgt.stat.Gamerun {
-				continue
+				break
 			}
 			// sgt.log.Debug("Time: ", sgt.stat.Time)
 
 			// Store the current time
 			tstart := time.Now()
 			// Subtract the time
-			// if tstart.Sub(tlast) > time.Second {
-			// 	continue
-			// }
 			sgt.stat.Time -= tstart.Sub(tlast)
 
 			// If we have stikes calculate the number of extra time to remove per strike and remove it

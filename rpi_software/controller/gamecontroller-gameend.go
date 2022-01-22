@@ -1,5 +1,7 @@
 package controller
 
+import "time"
+
 func (sgc *GameController) GameOverBoom() {
 	sgc.game.comStat.Boom = true
 	sgc.game.comStat.Gamerun = false
@@ -23,6 +25,7 @@ func (sgc *GameController) GameOverWin() {
 		sgc.modules[i].solved = false
 	}
 	sgc.rpishield.GameWinSound()
+	time.Sleep(1 * time.Second)
 	sgc.SetStrikes(0, true)
 	sgc.ClearSeeds()
 	sgc.rpishield.WriteIdle()

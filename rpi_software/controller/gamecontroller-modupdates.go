@@ -21,7 +21,7 @@ func (sgc *GameController) updateModSolvedStatus(force bool) error {
 	for _, mod := range sgc.modules {
 		if mod.present && (!mod.solved || force) {
 			var err error
-			if sgc.game.comStat.Win {
+			if sgc.game.comStat.Win && !force {
 				err = mod.mctrl.SetSolvedStatus(1)
 			} else {
 				err = mod.mctrl.SetSolvedStatus(int8(sgc.game.comStat.NumStrike) * -1)
@@ -35,7 +35,7 @@ func (sgc *GameController) updateModSolvedStatus(force bool) error {
 }
 
 // Updates the time on all module to the current game time
-func (sgc *GameController) updateModTime() error {
+func (sgc *GameController) UpdateModTime() error {
 	for _, mod := range sgc.modules {
 		if mod.present {
 			err := mod.mctrl.SyncGameTime(sgc.game.comStat.Time)

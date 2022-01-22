@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"math/rand"
 	"time"
 
@@ -199,7 +200,7 @@ func (sgc *GameController) solvedCheck() {
 					solved = false
 				}
 			}
-			if solved {
+			if solved && sgc.game.comStat.Gamerun {
 				sgc.log.Info("Game Has Been Won!")
 				sgc.GameOverWin()
 				if sgc.multicast.useMulti {
@@ -214,14 +215,21 @@ func (sgc *GameController) solvedCheck() {
 func (sgc *GameController) StartGame() error {
 	// for all the modules that are present, start the game
 	sgc.scanAllModules()
+	noModPresent := true
 	for i := range sgc.modules {
 		if sgc.modules[i].present {
+			noModPresent = false
 			sgc.modules[i].solved = false
 			sgc.modules[i].mctrl.StartGame()
 		}
 	}
-	sgc.game.comStat.Gamerun = true
-	return nil
+	if !noModPresent {
+		sgc.game.comStat.Gamerun = true
+		return nil
+	} else {
+		return errors.New("noModulesPresent")
+	}
+
 }
 
 // Stops the game

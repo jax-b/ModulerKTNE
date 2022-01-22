@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -8,12 +9,13 @@ import (
 )
 
 var (
-	nextAnounce   time.Time = time.Now().Add(5 * time.Second)
-	nextModUpdate time.Time = time.Now().Add(5 * time.Second)
-	nextAudioTick time.Time = time.Now().Add(time.Second)
+	nextAnounce   time.Time     = time.Now().Add(5 * time.Second)
+	nextModUpdate time.Time     = time.Now().Add(2 * time.Second)
+	nextAudioTick time.Duration = 0
 )
 
 func (sgc *GameController) tmrCallbackFunction(tsb time.Time, tsa time.Time, stat mktnecf.Status) {
+	fmt.Println(stat.Time)
 	// Check for a boom
 	if stat.Boom {
 		sgc.log.Info("Timer Has Expired: BOOM!")
@@ -35,16 +37,16 @@ func (sgc *GameController) tmrCallbackFunction(tsb time.Time, tsa time.Time, sta
 	// Resync the game clock to the modules
 	if nextModUpdate.Before(time.Now()) {
 		sgc.log.Info("Syncing Modules Time")
-		err := sgc.updateModTime()
+		err := sgc.UpdateModTime()
 		if err != nil {
 			sgc.log.Errorf("Failled to Sync the current gametime to the modules: %e", err)
 		}
-		nextModUpdate = time.Now().Add(5 * time.Second)
+		nextModUpdate = time.Now().Add(2 * time.Second)
 	}
 	// Play Audio Tick
-	if nextAudioTick.Before(time.Now()) {
+	if (nextAudioTick-stat.Time).Seconds() >= 1 || nextAudioTick == 0 {
 		go func() { sgc.audio.tick <- true }()
-		nextAudioTick = time.Now().Add(time.Second)
+		nextAudioTick = stat.Time
 	}
 	// Update Clock
 	if stat.Time.Milliseconds()%10 == 0 {
@@ -63,7 +65,7 @@ func (sgc *GameController) buttonWatcher() {
 			select {
 			case presstime := <-mfb:
 				// wait for a button press
-				if presstime > 50*time.Millisecond && presstime < 200*time.Millisecond { // Short Press
+				if presstime > 50*time.Millisecond && presstime < 500*time.Millisecond { // Short Press
 					log.Info("MFB Short Press Detected")
 					if !sgc.game.comStat.Gamerun { // If the Game is not running, start a new game
 						sgc.RandomPopulate()
@@ -109,7 +111,7 @@ func (sgc *GameController) m2cInterruptHandler() {
 							if solvedStat < int8(int16(sgc.game.comStat.NumStrike)*-1) {
 								log.Infof("Module %d Has A New Strike", index)
 								sgc.AddStrike()
-								sgc.updateModTime()
+								sgc.UpdateModTime()
 							} else if solvedStat > 0 {
 								log.Infof("Module %d Has Been Solved", index)
 								sgc.modules[index].solved = true
