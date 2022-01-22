@@ -14,7 +14,7 @@
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
-#define NEOPIXEL_PIN 10
+#define NEOPIXEL_PIN 21
 #define BUTTON_PIN 7
 #define EPD_CS 6
 #define EPD_DC 5
@@ -28,10 +28,10 @@ class OTS_Button : public baseModule
 {
 public:
     OTS_Button();
-    // inherated from baseModule
+    // inherithed from baseModule
     virtual void setupModule();
     virtual void setSeed(uint16_t);
-    virtual void tickModule(uint16_t);
+    virtual void tickModule(unsigned long);
     virtual void clearModule();
 
 protected:
@@ -46,7 +46,7 @@ protected:
 private:
     unsigned long timeLastBtn = 0;
     bool lastBTNState = 0;
-    void relHeldButton(uint16_t);
+    void relHeldButton(unsigned long);
     uint16_t btnDebounce();
     bool drawScreen = false;
     uint16_t textX = 0;

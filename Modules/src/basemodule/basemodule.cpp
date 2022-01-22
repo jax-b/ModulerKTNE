@@ -66,5 +66,5 @@ bool baseModule::checkIndicator(const char inIndicator[3])
 }
 
 void baseModule::setupModule(){}
-void baseModule::tickModule(uint16_t inTime){}
+void baseModule::tickModule(unsigned long inTime){}
 void baseModule::setSeed(uint16_t inSeed){}

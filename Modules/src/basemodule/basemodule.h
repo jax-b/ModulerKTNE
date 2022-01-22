@@ -8,7 +8,7 @@ class baseModule
 public:
     bool checkSuccess();
     bool checkFailure();
-    void tickModule(uint16_t); // Needs to be set by the child class to preform loop specific tasks
+    void tickModule(unsigned long); // Needs to be set by the child class to preform loop specific tasks
     void setupModule();        // Needs to be set by the child class to preform startup code
     char *getModuleName();
     void setIndicators(char[GAMEPLAYMAXLITINDICATOR][3]);

@@ -1,6 +1,6 @@
 #include "OTS_Button.h"
 
-#define DEBUG_MODE true
+//#define DEBUG_MODE true
 
 OTS_Button::OTS_Button()
 {
@@ -58,7 +58,7 @@ uint16_t OTS_Button::btnDebounce()
     int reading = !digitalRead(BUTTON_PIN);
 
     uint16_t tpress = millis() - OTS_Button::timeLastBtn; // calculate the press time in ms
-    if (tpress > 50)
+    if (tpress > 40)
     { // Debounce delay to prevent flickering must be > ?ms
         // if the button state has changed:
         if (reading != OTS_Button::lastBTNState)
@@ -169,7 +169,7 @@ void OTS_Button::setSeed(uint16_t inSeed)
     OTS_Button::_display.firstPage();
 }
 
-void OTS_Button::tickModule(uint16_t currentGameTime)
+void OTS_Button::tickModule(unsigned long currentGameTime)
 {
     uint16_t timeBTNPressed = btnDebounce();
     OTS_Button::_pixels->show();
@@ -203,13 +203,13 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
     if (OTS_Button::failureTriggered)
     {
         return;
-    }
+    } 
 
     const char step4indiLabel[3] = {'F', 'R', 'K'};
     // Instructions 2, 4 and 6: end results are the same
     if ((OTS_Button::numBatteries > 1 && OTS_Button::chosenWord == 1) || (OTS_Button::numBatteries > 2 && this->checkIndicator(step4indiLabel)) || (OTS_Button::buttonColor == 1 && OTS_Button::chosenWord == 4)) // See 1/3 in set seed line 74
     {
-        if (timeBTNPressed >= 1 && timeBTNPressed < 100)
+        if (timeBTNPressed >= 1 && timeBTNPressed < 500)
         { // if the button is pressed for less than 1 second
 #ifdef DEBUG_MODE
             Serial.println("Immediately Button Pressed Successfully");
@@ -238,7 +238,7 @@ void OTS_Button::tickModule(uint16_t currentGameTime)
     }
 }
 
-void OTS_Button::relHeldButton(uint16_t currentGameTime)
+void OTS_Button::relHeldButton(unsigned long currentGameTime)
 {
     char releaseDigit;
     switch (stripColor)
@@ -254,40 +254,38 @@ void OTS_Button::relHeldButton(uint16_t currentGameTime)
         break;
     }
 
-#ifdef DEBUG_MODE
-    Serial.print("Release digit: ");
-    Serial.println(releaseDigit);
-#endif
     uint16_t hundrethsTime = currentGameTime / 10;
     uint16_t seconds = currentGameTime / 1000;
     uint16_t minutes = seconds / 60;
-
-#ifdef DEBUG_MODE
-    Serial.print("seconds: ");
-    Serial.print(seconds);
-    Serial.print(" ");
-#endif
 
     String ctime = String(minutes) + ":" + String(seconds % 60);
     if (minutes < 1)
     {
         ctime += "." + String(hundrethsTime / 10 % 10) + String(hundrethsTime % 10);
     }
-#ifdef DEBUG_MODE
-    Serial.print("Held time Check: ");
-    Serial.println(ctime);
-#endif
-    if (ctime.charAt(ctime.indexOf(releaseDigit)) == releaseDigit)
+    if (ctime.charAt(ctime.lastIndexOf(releaseDigit)) == releaseDigit)
     {
 #ifdef DEBUG_MODE
-        Serial.println("Held Button Successfully");
+        Serial.print("Held Button Successfully: {ctime: ");
+        Serial.print(ctime);
+        Serial.print(", releaseDigit: ");
+        Serial.print(releaseDigit);
+        Serial.print(", charatIndex: ");
+        Serial.print(ctime.charAt(ctime.lastIndexOf(releaseDigit)));
+        Serial.println("}");
 #endif
         OTS_Button::successTriggered = true;
     }
     else
     {
 #ifdef DEBUG_MODE
-        Serial.println("Held Button Failed");
+        Serial.print("Held Button Failed: {ctime:");
+        Serial.print(ctime);
+        Serial.print(", releaseDigit:");
+        Serial.print(releaseDigit);
+        Serial.print(", charatIndex:");
+        Serial.print(ctime.charAt(ctime.lastIndexOf(releaseDigit)));
+        Serial.println("}");
 #endif
         OTS_Button::failureTriggered = true;
     }

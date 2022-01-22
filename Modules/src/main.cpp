@@ -1,7 +1,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#define DEBUG_MODE true
+//#define DEBUG_MODE true
+//#define DEBUG_MODE_TIMER
 
 // ********************************
 // Include the type of module that we use
@@ -193,6 +194,7 @@ void FlagModuleFailed()
 
 #ifdef TIMER_ENABLE
 unsigned long timekeeperLastRun = 0;
+uint8_t textraCount = 0;
 // Updates to defused time of the module
 void decrementCounter()
 {
@@ -207,23 +209,25 @@ void decrementCounter()
     gameplayCountdownTime -= timesincelastrun;
 
     // If we have a strike
-    if (gameplayModuleSolved <= 0)
+    if (gameplayModuleSolved < 0)
     {
         float everyrate = (1 / gameplayStrikeReductionRate) / (gameplayModuleSolved * -1);
-        unsigned long textra;
-        if (everyrate > 1)
+        if (textraCount >= everyrate)
         {
-            textra = gameplayCountdownTime % (unsigned long)everyrate;
+            unsigned long textra = everyrate;
             if (everyrate < 1)
             {
-                textra = currentTime - timekeeperLastRun;
-                textra += textra * (1 - everyrate);
+                textra += 1 / everyrate;
             }
-            else
-            {
-                textra = (currentTime - timekeeperLastRun) / everyrate;
-            }
+            textraCount = 0;
             gameplayCountdownTime -= textra;
+        }
+        else
+        {
+            if (timesincelastrun >= 1)
+            {
+                textraCount += 1;
+            }
         }
     }
     if (gameplayCountdownTime == 0 || gameplayModuleSolved >= 18000000)
@@ -234,14 +238,10 @@ void decrementCounter()
     }
     timekeeperLastRun = currentTime;
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MODE_TIMER
     uint16_t hundrethsTime = gameplayCountdownTime / 10;
     uint16_t seconds = gameplayCountdownTime / 1000;
     uint16_t minutes = seconds / 60;
-
-    Serial.print("Seconds: ");
-    Serial.print(seconds);
-    Serial.print(" ");
 
     String ctime = String(minutes) + ":" + String(seconds % 60);
     if (minutes < 1)
@@ -249,7 +249,10 @@ void decrementCounter()
         ctime += "." + String(hundrethsTime / 10 % 10) + String(hundrethsTime % 10);
     }
     Serial.print("Time: ");
-    Serial.println(ctime);
+    Serial.print(ctime);
+    Serial.print(", timmil:");
+    Serial.println(gameplayCountdownTime);
+
 #endif
 }
 #endif
@@ -275,6 +278,13 @@ void requestEvent()
         }
         bytesToSend = 0;
     }
+#ifdef ARDUINO_ARCH_RP2040
+    else
+    {
+
+        Wire1.write(0xFF);
+    }
+#endif
 }
 
 // Copy the incoming data into our input buffer
@@ -284,7 +294,6 @@ void receiveEvent(int numBytes)
     Serial.print("Received: ");
     Serial.println(numBytes);
 #endif
-    bytesReceived = numBytes;
     for (int i = 0; i < numBytes; i++)
     {
         if (i > 10)
@@ -318,6 +327,7 @@ void receiveEvent(int numBytes)
 #endif
         }
     }
+    bytesReceived = numBytes;
 #ifdef DEBUG_MODE
     Serial.println();
 #endif
@@ -484,10 +494,6 @@ void I2CCommandProcessor()
                 gameplayCountdownTime = data12 << 16 | data34;
 #ifdef DEBUG_MODE
                 Serial.print("SyncTime: ");
-                Serial.print(data12 << 16, HEX);
-                Serial.print(" ");
-                Serial.print(data34, HEX);
-                Serial.print(" ");
                 Serial.println(gameplayCountdownTime);
 #endif
             }
@@ -503,10 +509,6 @@ void I2CCommandProcessor()
                 gameplayStrikeReductionRate = data12 << 16 | data34;
 #ifdef DEBUG_MODE
                 Serial.print("StrikeRate: ");
-                Serial.print(data12 << 16, HEX);
-                Serial.print(" ");
-                Serial.print(data34, HEX);
-                Serial.print(" ");
                 Serial.println(gameplayStrikeReductionRate);
 #endif
             }
@@ -627,9 +629,8 @@ void I2CCommandProcessor()
 
 void setup()
 {
-
 #ifdef DEBUG_MODE
-    Serial.begin(9600);
+    Serial.begin(115200);
     while (!Serial)
         ; // wait for serial port to connect.
     delay(500);
@@ -738,19 +739,8 @@ void loop()
         I2CCommandProcessor();
     }
 
-#ifdef __AVR_ATmega32U4__
 #ifdef TIMER_ENABLE
     // Timekeeping
     decrementCounter();
 #endif
-#endif
 }
-
-#ifdef ARDUINO_ARCH_RP2040
-void setup1(){
-    delay(50);
-}
-void loop1(){
-    decrementCounter();
-}
-#endif
