@@ -678,13 +678,14 @@ void setup()
 #endif
     Wire1.setSDA(2);
 
+
 #ifdef DEBUG_MODE
-    uint8_t address = convertToAddress(getStableVoltage(AddressInPin));
+    uint8_t address = convertToAddress(getStableVoltage(AddressInPin)/4);
     Serial.print("I2C Listening on ADDR: ");
     Serial.println(address, HEX);
     Wire1.begin(address);
 #else
-    Wire1.begin(convertToAddress(getStableVoltage(AddressInPin)));
+    Wire1.begin(convertToAddress(getStableVoltage(AddressInPin)/4));
 #endif
 
     Wire1.onReceive(receiveEvent);
