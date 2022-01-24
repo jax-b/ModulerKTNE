@@ -44,7 +44,10 @@ type gameinfo struct {
 	maxstrike  uint8
 }
 type GameController struct {
-	sidePanel      *SideControl
+	sidePanel struct {
+		active     bool
+		controller *SideControl
+	}
 	modules        [10]module
 	multicast      multicast
 	game           gameinfo
@@ -64,7 +67,7 @@ type GameController struct {
 
 // Creates a new game controller takes in a variable called runAsDamon Which is a bool
 // runAsDamon controls whether or not the
-func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
+func NewGameCtrlr(log *zap.SugaredLogger, sidePanelActive bool) *GameController {
 	// Load the configuration
 	cfg := NewConfig(log)
 	cfg.Load()
@@ -95,7 +98,12 @@ func NewGameCtrlr(log *zap.SugaredLogger) *GameController {
 
 	// Create the Side Panel control object
 
-	gc.sidePanel = NewSideControl(gc.log, int(gc.cfg.Shield.I2cBusNumber))
+	if sidePanelActive {
+		gc.sidePanel.active = true
+		gc.sidePanel.controller = NewSideControl(gc.log, int(gc.cfg.Shield.I2cBusNumber))
+	} else {
+		gc.sidePanel.active = false
+	}
 
 	//Loop through the modules and create their control objects
 	MCADDR := [10]byte{mktnecf.FRONT_MOD_1, mktnecf.FRONT_MOD_2, mktnecf.FRONT_MOD_3, mktnecf.FRONT_MOD_4, mktnecf.FRONT_MOD_5, mktnecf.BACK_MOD_1, mktnecf.BACK_MOD_2, mktnecf.BACK_MOD_3, mktnecf.BACK_MOD_4, mktnecf.BACK_MOD_5}
@@ -168,8 +176,9 @@ func (sgc *GameController) Close() {
 		mod.mctrl.Close()
 	}
 	// Close the RPI Shield
-	sgc.sidePanel.Close()
-
+	if sgc.sidePanel.active {
+		sgc.sidePanel.controller.Close()
+	}
 	// Close the shield
 	sgc.rpishield.Close()
 
@@ -229,7 +238,6 @@ func (sgc *GameController) StartGame() error {
 	} else {
 		return errors.New("noModulesPresent")
 	}
-
 }
 
 // Stops the game
@@ -241,7 +249,6 @@ func (sgc *GameController) StopGame() error {
 			sgc.modules[i].mctrl.StopGame()
 		}
 	}
-
 	return nil
 }
 
@@ -274,10 +281,17 @@ func (sgc *GameController) RandomPopulate() {
 			Lit:   indilit,
 		}
 		sgc.game.indicators = append(sgc.game.indicators, indi)
+		if sgc.sidePanel.active {
+			sgc.sidePanel.controller.SetIndicator(indi.Lit, indi.Label)
+		}
 	}
 
 	// Port Generation
 	sgc.game.port = byte(sgc.rnd.Intn(63))
+
+	if sgc.sidePanel.active {
+		sgc.sidePanel.controller.SetSerialNumber(string(sgc.game.serialnum[:]))
+	}
 
 	sgc.scanAllModules()
 	for i := range sgc.modules {

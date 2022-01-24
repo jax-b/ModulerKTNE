@@ -81,11 +81,25 @@ func (sgc *GameController) SetSerial(serial string) error {
 		sgc.game.serialnum[i] = rune(serial[i])
 	}
 	sgc.updateModSerial()
+	if sgc.sidePanel.active {
+		sgc.sidePanel.controller.SetSerialNumber(serial)
+	}
 	return nil
 }
 
 // Adds a port to the list
+// only one of the two last bits can be set
+// for Port the last six bits computes what ports are shown
+// 1 = Port
+// 0 = not used
+// 1 = DVI
+// 1 = Parallel
+// 1 = PS/2
+// 1 = RJ45
+// 1 = Serial
+// 1 = SteroRCA
 func (sgc *GameController) SetPorts(port byte) error {
+	port = port | 0x80 //Make sure that the first bit is set
 	sgc.game.port = port
 	for i := range sgc.modules {
 		if sgc.modules[i].present {
@@ -94,6 +108,10 @@ func (sgc *GameController) SetPorts(port byte) error {
 				return err
 			}
 		}
+	}
+	if sgc.sidePanel.active { //This needs testing once the arduino side is complete!
+		sgc.sidePanel.controller.SetSideArt(port & 0x0F)
+		sgc.sidePanel.controller.SetSideArt(port & 0x30)
 	}
 	return nil
 }
@@ -105,6 +123,19 @@ func (sgc *GameController) SetNumBatteries(numbat uint8) error {
 			err := sgc.modules[i].mctrl.SetGameNumBatteries(numbat)
 			if err != nil {
 				return err
+			}
+		}
+	}
+	if sgc.sidePanel.active {
+		numAA := numbat / 2
+		numD := numbat % 2
+		for numD+numAA > 0 {
+			if numD > 0 {
+				sgc.sidePanel.controller.SetSideArt(1)
+				numD--
+			} else {
+				sgc.sidePanel.controller.SetSideArt(2)
+				numAA--
 			}
 		}
 	}

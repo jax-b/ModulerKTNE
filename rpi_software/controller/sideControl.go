@@ -49,7 +49,7 @@ func (ssc *SideControl) TestIfPresent() bool {
 }
 
 // Set Serial Number
-func (ssc *SideControl) SetSerialNumber(serialnumber [8]rune) error {
+func (ssc *SideControl) SetSerialNumber(serialnumber string) error {
 	buff := []byte{0x10}
 	for i := 0; i < 8; i++ {
 		buff = append(buff, byte(serialnumber[i]))

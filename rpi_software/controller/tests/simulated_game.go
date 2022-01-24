@@ -13,7 +13,7 @@ import (
 func main() {
 	boolPtr := flag.Bool("damon", false, "Run as damon (logs to file insted of stdout)")
 	logger := ctrl.NewLogger(*boolPtr)
-	ctrlr := ctrl.NewGameCtrlr(logger)
+	ctrlr := ctrl.NewGameCtrlr(logger, false)
 	reader := bufio.NewReader(os.Stdin)
 	logger.Info("Installed Modules: ", ctrlr.GetInstalledModules())
 	ctrlr.SetSerial("TQ74B01")
