@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-//#define DEBUG_MODE true
+#define DEBUG_MODE true
 //#define DEBUG_MODE_TIMER
 
 // ********************************
@@ -23,14 +23,12 @@ OTS_Button mod = OTS_Button();
 #endif
 // Pins Pico
 #ifdef ARDUINO_ARCH_RP2040
-#define AddressInPin A2
+#define AddressInPin A0
 #define RandSorcePin 27
 #define SuccessLEDPin 8
 #define FailureLEDPin 9
 #define S2MInteruptPin 4
 #endif
-
-#define MinMaxStable 5
 
 /// Timekeeping variables for external pins for their reset
 unsigned long S2MInteruptCallTime = 0;
@@ -125,29 +123,6 @@ uint8_t convertToAddress(uint16_t addrVIn)
     {
         return 0x00;
     }
-}
-
-// Checks to make sure the the voltage coming in is stable with in a certain range
-uint16_t getStableVoltage(int pin)
-{
-    bool VoltageStable = false;
-    uint16_t AnalogReading = analogRead(pin);
-    while (!VoltageStable)
-    {
-        // Read the voltage
-        uint16_t currentReading = analogRead(pin);
-        // If the voltage is within the range of the voltage we are looking for
-        if (currentReading - MinMaxStable <= AnalogReading || currentReading + MinMaxStable >= AnalogReading)
-        {
-            VoltageStable = true;
-        }
-        else
-        {
-            AnalogReading = currentReading;
-        }
-        delay(1);
-    }
-    return AnalogReading;
 }
 
 // This function is called when the module code determines that the module has been solved
@@ -651,10 +626,10 @@ void setup()
     // Setup I2C
     // Start Listening for address
 #ifdef __AVR_ATmega32U4__
-    Wire.begin(convertToAddress(getStableVoltage(AddressInPin)));
+    Wire.begin(convertToAddress(analogRead(AddressInPin)));
 #ifdef DEBUG_MODE
     Serial.print("I2C Listening on ADDR: ");
-    Serial.println(convertToAddress(getStableVoltage(AddressInPin)), HEX);
+    Serial.println(convertToAddress(analogRead(AddressInPin)), HEX);
 #endif
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
@@ -678,14 +653,19 @@ void setup()
 #endif
     Wire1.setSDA(2);
 
-
+    uint8_t address = convertToAddress(analogRead(AddressInPin)/4);
+    if (address == 0 ){
+        digitalWrite(SuccessLEDPin, LOW);
+        digitalWrite(FailureLEDPin, HIGH);
+        while(true);
+    }
 #ifdef DEBUG_MODE
-    uint8_t address = convertToAddress(getStableVoltage(AddressInPin)/4);
+    
     Serial.print("I2C Listening on ADDR: ");
     Serial.println(address, HEX);
     Wire1.begin(address);
 #else
-    Wire1.begin(convertToAddress(getStableVoltage(AddressInPin)/4));
+    Wire1.begin(address);
 #endif
 
     Wire1.onReceive(receiveEvent);
