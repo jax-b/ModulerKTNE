@@ -3,6 +3,7 @@
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold12pt7b.h>
 #include <Adafruit_I2CDevice.h>
+#include <Ardiuno.h>
 
 #include "BatteryPictures.h"
 #include "PortPictures.h"
@@ -20,6 +21,16 @@ uint8_t bytesReceived = 0;
 GxEPD2_BW<GxEPD2_213_B74, 50> display1(GxEPD2_213_B74(/*CS=*/EPD_CS_PIN, /*DC=*/EPD_DC_PIN, /*RST=*/EPD_RESET, /*BUSY=*/EPD_BUSY));
 Adafruit_NeoPixel *pixels;
 
+#define INDICATOR1PIN 1
+#define INDICATOR2PIN 1
+#define INDICATOR3PIN 1
+#define INDICATOR4PIN 1
+#define INDICATOR5PIN 1
+#define INDICATOR6PIN 1
+#define INDICATOR7PIN 1
+#define INDICATOR8PIN 1
+#define MAXINDICATOR 8
+
 // Tracking Variables
 uint8_t indiNumber = 0;
 const uint8_t ARTDSPRANGE[] = {1, 5};
@@ -27,14 +38,12 @@ const uint8_t MAXDSPNUM = ARTDSPRANGE[1];
 uint8_t batDSPDrawCycle = 0;
 uint8_t portDSPDrawCycle = 0;
 uint8_t portBatDSPMap[2][5] = {
-    {
-        1,
-        2,
-        0,
-        0,
-        0,
-    },              // Port DSPS
-    {3, 4, 5, 6, 7} // Bat DSPS
+    {1, 2, 0, 0, 0}, // Port DSPS
+    {3, 4, 5, 6, 7}  // Bat DSPS
+};
+
+uint8_t indicatorLEDMap[MAXINDICATOR] = {
+  INDICATOR1PIN, INDICATOR2PIN, INDICATOR3PIN, INDICATOR4PIN, INDICATOR5PIN, INDICATOR6PIN, INDICATOR7PIN, INDICATOR8PIN
 };
 
 void setupDisplay(uint8_t DisplayNum)
@@ -89,7 +98,6 @@ void drawSerialNum(String text)
     display1.fillScreen(GxEPD_WHITE);
     display1.setCursor(x, y);
     display1.print(text);
-
   } while (display1.nextPage());
 }
 
@@ -181,6 +189,7 @@ void drawPorts(uint8_t displayNum, byte activeports)
 
 void drawIndicator(uint8_t indiNumber, bool lit, char lbl[3])
 {
+  digitalWrite(indicatorLEDMap[indiNumber], lit);
 }
 
 // Clear a EPD DSP
@@ -197,10 +206,12 @@ void clearEPDDSP(uint8_t displayNum)
 
 void clearIndicator(uint8_t indiNumber)
 {
+  digitalWrite(indicatorLEDMap[indiNumber], false);
 }
 
 void randomizeArtDSP()
 {
+  
 }
 
 // Determans what art to draw onto the display
@@ -212,7 +223,7 @@ void processSideArt(byte artcode)
   bool artType = artcode & 0b10000000;
   if (artType)
   {
-    drawPorts(portBatDSPMap[1][portDSPDrawCycle], artcode);
+    drawPorts(portBatDSPMap[0][portDSPDrawCycle], artcode);
   }
   else
   {
@@ -332,18 +343,25 @@ void I2CCommandProcessor()
     break;
   }
 }
+
 void setup()
 {
   SPI.setTX(19);
   SPI.setSCK(18);
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.begin(115200);
   // while (!Serial)
-    ; // wait for serial port to connect. Needed for native USB port only
+  ; // wait for serial port to connect. Needed for native USB port only
   delay(10);
 
   setupDisplay(0);
   Serial.println("Display initialized");
+
+  for (int i = 0; i < sizeof(indicatorLEDMap); i++) // Set up all indicators
+  {
+    pinMode(indicatorLEDMap[i], OUTPUT);
+    digitalWrite(indicatorLEDMap[i], LOW);
+  }
 
   pixels = new Adafruit_NeoPixel(1, 16, NEO_GRB + NEO_KHZ800);
   pixels->begin();
@@ -354,17 +372,6 @@ void setup()
   pixels->show();
 
   Serial.println("Display test");
-  // Serial.println("Display TXT");
-  // drawSerialNum("ASD23123");
-  // delay(1000);
-
-  // Serial.println("Drawing BATTERY AA");
-  // drawBattery(0, false);
-  // delay(1000);
-
-  // Serial.println("Drawing BATTERY D");
-  // drawBattery(0, true);
-  // delay(1000);
 
   Serial.println("Drawing Ports ");
   drawPorts(0, 0b00011100);

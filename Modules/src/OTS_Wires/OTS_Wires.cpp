@@ -15,7 +15,9 @@ const uint8_t PROGMEM wireButtonPins[6] = {
     WIRE_BUTTON_PIN_3,
     WIRE_BUTTON_PIN_4,
     WIRE_BUTTON_PIN_5,
-    WIRE_BUTTON_PIN_6};
+    WIRE_BUTTON_PIN_6
+};
+    
 void OTS_Wires::setupModule()
 {
     // Setup Button Pin States

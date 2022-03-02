@@ -1,6 +1,6 @@
 #include <Arduino.h>
 // Multiple ports can be displayed at once.
-// The display should be devided top and bottom.
+// The display should be divided top and bottom.
 // DVI takes up most of a single row. with space for RCA on the right
 // Parallel takes up a whole row.
 // 'DVI', 203x50px
