@@ -19,6 +19,8 @@ type Config struct {
 		UseMulticast  bool
 		MultiCastIP   string
 		MultiCastPort int
+		apiPort       int
+		apikeys       []string
 	}
 }
 
