@@ -7,9 +7,10 @@
 #define AddressInPin A0
 #define SuccessLEDPin 8
 #define FailureLEDPin 9
+#define BlueLEDPin 10
 #define MinMaxStable 5
 #define BUTTON_PIN 7
-#define NEOPIXEL_PIN 10
+#define NEOPIXEL_PIN 21
 
 bool buttonStates = 0;
 bool buttonStatesFlicker = 0;
@@ -124,6 +125,7 @@ void setup()
 
   pinMode(SuccessLEDPin, OUTPUT);
   pinMode(FailureLEDPin, OUTPUT);
+  pinMode(BlueLEDPin, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   Serial.println("Hello World!");
@@ -140,64 +142,70 @@ void setup()
   Serial.println("Green LED On");
   digitalWrite(SuccessLEDPin, HIGH);
   delay(500);
-  Serial.println("Red LED On");
-  digitalWrite(FailureLEDPin, HIGH);
-  delay(500);
   Serial.println("Green LED Off");
   digitalWrite(SuccessLEDPin, LOW);
   delay(500);
+  Serial.println("Red LED On");
+  digitalWrite(FailureLEDPin, HIGH);
+  delay(500);
   Serial.println("Red LED Off");
   digitalWrite(FailureLEDPin, LOW);
-  Serial.println("Red LED Off");
-
-  Serial.println("EPD Test");
-  display.init();
-  display.setTextColor(GxEPD_BLACK);
-  display.setFont(&FreeMonoBold12pt7b);
-  int16_t  x1, y1;
-  uint16_t w, h;
-  String stringtoprint = "Detonate";
-  display.getTextBounds(stringtoprint, 0, 0, &x1, &y1, &w, &h);
-  uint16_t x = ((display.width() - w) / 2) - x1;
-  uint16_t y = ((display.height() - h) / 2) - y1;
-  display.firstPage();
-  do
-  {
-    display.fillScreen(GxEPD_WHITE);
-    // comment out next line to have no or minimal Adafruit_GFX code
-    display.setCursor(x, y);
-    display.print(stringtoprint);
-    
-  }
-  while (display.nextPage());
+  delay(500);
+  Serial.println("Blue LED On");
+  digitalWrite(BlueLEDPin, HIGH);
+  delay(500);
+  Serial.println("Blue LED Off");
+  digitalWrite(BlueLEDPin, LOW);
   
-  pixels = new Adafruit_NeoPixel(4, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
+  // Serial.println("EPD Test");
+  // display.init();
+  // display.setTextColor(GxEPD_BLACK);
+  // display.setFont(&FreeMonoBold12pt7b);
+  // int16_t  x1, y1;
+  // uint16_t w, h;
+  // String stringtoprint = "Detonate";
+  // display.getTextBounds(stringtoprint, 0, 0, &x1, &y1, &w, &h);
+  // uint16_t x = ((display.width() - w) / 2) - x1;
+  // uint16_t y = ((display.height() - h) / 2) - y1;
+  // display.firstPage();
+  // do
+  // {
+  //   display.fillScreen(GxEPD_WHITE);
+  //   // comment out next line to have no or minimal Adafruit_GFX code
+  //   display.setCursor(x, y);
+  //   display.print(stringtoprint);
+    
+  // }
+  // while (display.nextPage());
+  
+  pixels = new Adafruit_NeoPixel(9, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
   pixels->begin();
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 9; i++)
   {
     pixels->setPixelColor(i, 0xFF0000);
   }
   pixels->show();
   delay(500);
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 9; i++)
   {
     pixels->setPixelColor(i, 0x00FF00);
   }
   pixels->show();
   delay(500);
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 9; i++)
   {
     pixels->setPixelColor(i, 0x0000ff);
   }
   pixels->show();
   delay(500);
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 9; i++)
   {
     pixels->setPixelColor(i, 0xFFFF00);
   }
   pixels->show();
   delay(500);
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 9; i++)
   {
     pixels->setPixelColor(i, 0xFF00FF);
   }
@@ -210,7 +218,7 @@ void loop()
   debounce();
   if (buttonStates)
   {
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
       pixels->setPixelColor(i, 0);
     }
@@ -218,7 +226,7 @@ void loop()
   }
   else
   {
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
       pixels->setPixelColor(i, 0x00FF00);
     }
