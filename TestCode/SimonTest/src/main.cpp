@@ -1,17 +1,20 @@
 #include <arduino.h>
-#define AddressInPin A0
+#define AddressInPin 26
 #define SuccessLEDPin 9
 #define FailureLEDPin 8
+#define BlueLEDPin 10
 #define MinMaxStable 5
+#define M2CInteruptPin 4
+#define AudioOut 7
 
-#define GreenLED 10
-#define GreenButton 7
-#define RedLED 16
-#define RedButton 14
-#define BlueLED 15
-#define BlueButton A1
-#define YellowLED 5
-#define YellowButton 6
+#define GreenLED 12
+#define GreenButton 15
+#define RedLED 11
+#define RedButton 16
+#define BlueLED 14
+#define BlueButton 17
+#define YellowLED 13
+#define YellowButton 18
 
 const uint8_t ButtonOrder[] = {GreenButton, RedButton, BlueButton, YellowButton};
 const uint8_t LEDOrder[] = {GreenLED, RedLED, BlueLED, YellowLED};
@@ -111,23 +114,24 @@ void debounce(int ButtonNumber)
         buttonStates[ButtonNumber] = currentState;
     }
 }
+
 void setup()
 {
     Serial.begin(9600);
     while (!Serial);
-    
+    delay(10);
+
     pinMode(SuccessLEDPin, OUTPUT);
     pinMode(FailureLEDPin, OUTPUT);
+    pinMode(BlueLEDPin, OUTPUT);
     pinMode(AddressInPin, INPUT);
 
     for (int i = 0; i < 4; i++)
     {
         pinMode(ButtonOrder[i], INPUT_PULLUP);
-    }
-    for (int i = 0; i < 4; i++)
-    {
         pinMode(LEDOrder[i], OUTPUT);
     }
+
 
     Serial.println("Hello World!");
     Serial.println("Simon Test");
@@ -139,19 +143,24 @@ void setup()
     Serial.print(", Address: ");
     Serial.println(address);
 
-    Serial.println("Success Test");
     Serial.println("Green LED On");
     digitalWrite(SuccessLEDPin, HIGH);
-    delay(500);
-    Serial.println("Red LED On");
-    digitalWrite(FailureLEDPin, HIGH);
     delay(500);
     Serial.println("Green LED Off");
     digitalWrite(SuccessLEDPin, LOW);
     delay(500);
+    Serial.println("Red LED On");
+    digitalWrite(FailureLEDPin, HIGH);
+    delay(500);
     Serial.println("Red LED Off");
     digitalWrite(FailureLEDPin, LOW);
-    Serial.println("Red LED Off");
+    delay(500);
+    Serial.println("Blue LED On");
+    digitalWrite(BlueLEDPin, HIGH);
+    delay(500);
+    Serial.println("Blue LED Off");
+    digitalWrite(BlueLEDPin, LOW);
+
     for (int i = 0; i < 4; i++)
     {
         digitalWrite(LEDOrder[i], HIGH);
@@ -164,6 +173,11 @@ void setup()
         digitalWrite(LEDOrder[i], LOW);
         delay(500);
     }
+
+    Serial.println("Audio Test");
+    tone(AudioOut, 40000);
+    delay(500);
+    // noTone(AudioOut);
 }
 
 void loop()
