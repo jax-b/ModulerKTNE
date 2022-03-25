@@ -1,4 +1,9 @@
+#define PCBVERSION_1_01
+// #define PCBVERSION_1_1
+
+
 #include <arduino.h>
+#ifdef PCBVERSION_1_01
 #define AddressInPin 26
 #define SuccessLEDPin 9
 #define FailureLEDPin 8
@@ -6,7 +11,6 @@
 #define MinMaxStable 5
 #define M2CInteruptPin 4
 #define AudioOut 7
-
 #define GreenLED 12
 #define GreenButton 15
 #define RedLED 11
@@ -15,6 +19,27 @@
 #define BlueButton 17
 #define YellowLED 13
 #define YellowButton 18
+#endif
+#ifdef PCBVERSION_1_1
+#define AddressInPin 26
+#define SuccessLEDPin 9
+#define FailureLEDPin 8
+#define BlueLEDPin 10
+#define MinMaxStable 5
+#define M2CInteruptPin 4
+#define AudioOut 7
+#define GreenLED 12
+#define GreenButton 15
+#define RedLED 11
+#define RedButton 16
+#define BlueLED 14
+#define BlueButton 17
+#define YellowLED 13
+#define YellowButton 18
+// Audio Shutdown is a inverted signal active low
+#define AudioShutdown 6
+#endif
+
 
 const uint8_t ButtonOrder[] = {GreenButton, RedButton, BlueButton, YellowButton};
 const uint8_t LEDOrder[] = {GreenLED, RedLED, BlueLED, YellowLED};
@@ -117,14 +142,22 @@ void debounce(int ButtonNumber)
 
 void setup()
 {
-    Serial.begin(9600);
-    while (!Serial);
-    delay(10);
-
+    
     pinMode(SuccessLEDPin, OUTPUT);
     pinMode(FailureLEDPin, OUTPUT);
     pinMode(BlueLEDPin, OUTPUT);
     pinMode(AddressInPin, INPUT);
+    pinMode(AudioOut, OUTPUT);
+    digitalWrite(AudioOut, false);
+    #ifdef PCBVERSION_1_1
+    pinMode(AudioShutdown, OUTPUT);
+    digitalWrite(AudioShutdown, true); 
+    #endif
+    Serial.begin(9600);
+    while (!Serial);
+    delay(10);
+
+    
 
     for (int i = 0; i < 4; i++)
     {
@@ -175,9 +208,25 @@ void setup()
     }
 
     Serial.println("Audio Test");
-    tone(AudioOut, 40000);
-    delay(500);
-    // noTone(AudioOut);
+    // analogWrite(AudioOut, 100);
+    
+    #ifdef PCBVERSION_1_1
+    digitalWrite(AudioShutdown, false); 
+    #endif
+    float frq = 100;
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        Serial.print(frq);
+        Serial.print(" Hz, ");
+        tone(AudioOut, frq, 100);
+        frq += 50;
+        delay(500);
+    }
+    Serial.println("Audio Off");
+    digitalWrite(AudioOut, false);
+    #ifdef PCBVERSION_1_1
+    digitalWrite(AudioShutdown, true); 
+    #endif
 }
 
 void loop()
