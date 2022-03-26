@@ -21,12 +21,12 @@ Adafruit_NeoPixel *pixels;
 
 #define EPD_CS      6
 #define EPD_DC      5
-#define EPD_RESET   1 // can set to -1 and share with microcontroller Reset!
-#define EPD_BUSY    A1 // can set to -1 to not use a pin (will wait a fixed delay)
+#define EPD_RESET   -1 // can set to -1 and share with microcontroller Reset!
+#define EPD_BUSY    11 // can set to -1 to not use a pin (will wait a fixed delay)
 GxEPD2_BW<GxEPD2_154_D67, 32> display(GxEPD2_154_D67(EPD_CS, EPD_DC, EPD_RESET, EPD_BUSY));
 // Address Table
 uint8_t convertToAddress(uint16_t addrVIn)
-{
+{ 
   // Top
   if (addrVIn >= 93 && addrVIn < 186)
   {
@@ -118,6 +118,9 @@ void debounce()
 
 void setup()
 {
+  SPI.setSCK(22);
+  SPI.setTX(23);
+
   Serial.begin(9600);
   while (!Serial);
 
@@ -138,7 +141,6 @@ void setup()
   Serial.print(", Address: ");
   Serial.println(address);
 
-  Serial.println("Success Test");
   Serial.println("Green LED On");
   digitalWrite(SuccessLEDPin, HIGH);
   delay(500);
@@ -158,26 +160,26 @@ void setup()
   digitalWrite(BlueLEDPin, LOW);
   
 
-  // Serial.println("EPD Test");
-  // display.init();
-  // display.setTextColor(GxEPD_BLACK);
-  // display.setFont(&FreeMonoBold12pt7b);
-  // int16_t  x1, y1;
-  // uint16_t w, h;
-  // String stringtoprint = "Detonate";
-  // display.getTextBounds(stringtoprint, 0, 0, &x1, &y1, &w, &h);
-  // uint16_t x = ((display.width() - w) / 2) - x1;
-  // uint16_t y = ((display.height() - h) / 2) - y1;
-  // display.firstPage();
-  // do
-  // {
-  //   display.fillScreen(GxEPD_WHITE);
-  //   // comment out next line to have no or minimal Adafruit_GFX code
-  //   display.setCursor(x, y);
-  //   display.print(stringtoprint);
+  Serial.println("EPD Test");
+  display.init();
+  display.setTextColor(GxEPD_BLACK);
+  display.setFont(&FreeMonoBold12pt7b);
+  int16_t  x1, y1;
+  uint16_t w, h;
+  String stringtoprint = "Detonate";
+  display.getTextBounds(stringtoprint, 0, 0, &x1, &y1, &w, &h);
+  uint16_t x = ((display.width() - w) / 2) - x1;
+  uint16_t y = ((display.height() - h) / 2) - y1;
+  display.firstPage();
+  do
+  {
+    display.fillScreen(GxEPD_WHITE);
+    // comment out next line to have no or minimal Adafruit_GFX code
+    display.setCursor(x, y);
+    display.print(stringtoprint);
     
-  // }
-  // while (display.nextPage());
+  }
+  while (display.nextPage());
   
   pixels = new Adafruit_NeoPixel(9, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
   pixels->begin();
