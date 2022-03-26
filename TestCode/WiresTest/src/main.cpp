@@ -1,18 +1,19 @@
 #include <Arduino.h>
-#include <FastLED.h>
+#include <Adafruit_NeoPixel.h>
 
 #define AddressInPin A0
 #define SuccessLEDPin 8
 #define FailureLEDPin 9
+#define BlueLEDPin 10
 #define MinMaxStable 5
-#define ALED_Pin 10
+#define ALED_Pin 11
 
-#define Wire1Button 15
-#define Wire2Button 14
-#define Wire3Button 16
-#define Wire4Button 5
-#define Wire5Button 6
-#define Wire6Button 7
+#define Wire1Button 12
+#define Wire2Button 13
+#define Wire3Button 14
+#define Wire4Button 15
+#define Wire5Button 16
+#define Wire6Button 17
 
 const uint8_t ButtonOrder[] = {Wire1Button, Wire2Button, Wire3Button, Wire4Button, Wire5Button, Wire6Button};
 bool buttonStates[] = {0, 0, 0, 0, 0, 0};
@@ -20,7 +21,7 @@ bool buttonStatesFlicker[] = {0, 0, 0, 0, 0, 0};
 unsigned long lastDebounceTime[] = {0, 0, 0, 0, 0, 0};
 #define DEBOUNCE_DELAY 50
 
-CRGB aleds[12];
+Adafruit_NeoPixel *pixels;
 
 // Address Table
 uint8_t convertToAddress(uint16_t addrVIn)
@@ -119,11 +120,13 @@ void setup()
   Serial.begin(9600);
   while (!Serial)
     ;
+  delay(5);
 
   pinMode(SuccessLEDPin, OUTPUT);
   pinMode(FailureLEDPin, OUTPUT);
   pinMode(AddressInPin, INPUT);
-
+  pinMode(BlueLEDPin, OUTPUT);
+  
   for (int i = 0; i < 6; i++)
   {
     pinMode(ButtonOrder[i], INPUT_PULLUP);
@@ -139,72 +142,78 @@ void setup()
   Serial.print(", Address: ");
   Serial.println(address);
 
-  Serial.println("Success Test");
   Serial.println("Green LED On");
   digitalWrite(SuccessLEDPin, HIGH);
-  delay(500);
-  Serial.println("Red LED On");
-  digitalWrite(FailureLEDPin, HIGH);
   delay(500);
   Serial.println("Green LED Off");
   digitalWrite(SuccessLEDPin, LOW);
   delay(500);
+  Serial.println("Red LED On");
+  digitalWrite(FailureLEDPin, HIGH);
+  delay(500);
   Serial.println("Red LED Off");
   digitalWrite(FailureLEDPin, LOW);
-  Serial.println("Red LED Off");
-
+  delay(500);
+  Serial.println("Blue LED On");
+  digitalWrite(BlueLEDPin, HIGH);
+  delay(500);
+  Serial.println("Blue LED Off");
+  digitalWrite(BlueLEDPin, LOW);
+  
   Serial.println("Aled Test");
-  FastLED.addLeds<WS2812B, ALED_Pin, GRB>(aleds, 12);
+  pixels = new Adafruit_NeoPixel(12, ALED_Pin, NEO_GRB + NEO_KHZ800);
   for (int i = 0; i < 12; i++)
   {
-    aleds[i] = CRGB::Red;
+    pixels->setPixelColor(i, 0xFF0000);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
   for (int i = 0; i < 12; i++)
   {
-    aleds[i] = CRGB::Green;
+    pixels->setPixelColor(i, 0x00FF00);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
   for (int i = 0; i < 12; i++)
   {
-    aleds[i] = CRGB::Blue;
+    pixels->setPixelColor(i, 0x0000FF);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
   for (int i = 0; i < 12; i++)
   {
-    aleds[i] = CRGB::Yellow;
+    pixels->setPixelColor(i, 0xFFFF00);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
   for (int i = 0; i < 12; i++)
   {
-    aleds[i] = CRGB::Purple;
+    pixels->setPixelColor(i, 0xFF00FF);
   }
-  FastLED.show();
+  pixels->show();
   delay(500);
+  Serial.println("Button Test");
 }
 
 void loop()
 {
   for (int i = 0; i < 6; i++)
   {
-    debounce(i);
+    debounce(i); 
   }
   for (int i = 0; i < 6; i++)
   {
     if (buttonStates[i] == LOW)
     {
-      aleds[i] = CRGB::Purple;
-      aleds[i+6] = CRGB::Orange;
+      pixels->setPixelColor(i, 0xFF00FF);
+      pixels->setPixelColor(i+6, 0x00FFFF);
     }
     else
     {
-      aleds[i] = CRGB::Black;
-      aleds[i+6] = CRGB::Black;
+      pixels->setPixelColor(i, 0x0);
+      pixels->setPixelColor(i+6, 0x0);
     }
   }
-  FastLED.show();
+  pixels->show();
+  delay(1);
 }
