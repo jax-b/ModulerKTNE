@@ -1,12 +1,12 @@
 #include <Adafruit_NeoPixel.h>
 #include <SPI.h>
-#include <GxEPD2_BW.h>
+#include <GxEPD2_3C.h>
 #include <Fonts/FreeMonoBold12pt7b.h>
 #include <Adafruit_I2CDevice.h>
 #include <Ardiuno.h>
 
-#include "BatteryPictures.h"
-#include "PortPictures.h"
+// #include "BatteryPictures.h"
+// #include "PortPictures.h"
 
 /// Buffers and data tracking for I2C communication
 byte incomeingI2CData[10];
@@ -14,22 +14,32 @@ byte outgoingI2CData[10];
 uint8_t bytesToSend = 0;
 uint8_t bytesReceived = 0;
 
-#define EPD_CS_PIN 25
-#define EPD_DC_PIN 12
-#define EPD_RESET 11 // can set to -1 and share with microcontroller Reset!
-#define EPD_BUSY 10  // can set to -1 to not use a pin (will wait a fixed delay)
-GxEPD2_BW<GxEPD2_213_B74, 50> display1(GxEPD2_213_B74(/*CS=*/EPD_CS_PIN, /*DC=*/EPD_DC_PIN, /*RST=*/EPD_RESET, /*BUSY=*/EPD_BUSY));
-Adafruit_NeoPixel *pixels;
+#define EPD_RESET_PIN 5 // can set to -1 and share with microcontroller Reset!
+#define EPD_DC_PIN 3
+#define DSP1_CS_PIN 6
+#define DSP1_BUS_PIN 7
+#define DSP1_LED_PIN 8
+#define DSP2_CS_PIN 9
+#define DSP2_BUS_PIN 10
+#define DSP2_LED_PIN 11
+#define DSP3_CS_PIN 12
+#define DSP3_BUS_PIN 13
+#define DSP4_CS_PIN 14
+#define DSP4_BUS_PIN 15
+#define DSP5_CS_PIN 16
+#define DSP5_BUS_PIN 17
+#define DSP5_LED_PIN 18
+#define DSP6_CS_PIN 19
+#define DSP6_BUS_PIN 20
+#define DSP6_LED_PIN 21
 
-#define INDICATOR1PIN 1
-#define INDICATOR2PIN 1
-#define INDICATOR3PIN 1
-#define INDICATOR4PIN 1
-#define INDICATOR5PIN 1
-#define INDICATOR6PIN 1
-#define INDICATOR7PIN 1
-#define INDICATOR8PIN 1
-#define MAXINDICATOR 8
+GxEPD2_3C<GxEPD2_213c, 50> IndicatorDSP1(GxEPD2_213c(/*CS=*/DSP1_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP1_BUS_PIN)); //Indicator
+GxEPD2_3C<GxEPD2_213c, 50> IndicatorDSP2(GxEPD2_213c(/*CS=*/DSP2_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP2_BUS_PIN)); //Ind
+GxEPD2_3C<GxEPD2_213c, 50> ArtDSP1(GxEPD2_213c(/*CS=*/DSP3_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP3_BUS_PIN));
+GxEPD2_3C<GxEPD2_213c, 50> ArtDSP2(GxEPD2_213c(/*CS=*/DSP4_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP4_BUS_PIN));
+GxEPD2_3C<GxEPD2_213c, 50> IndicatorDSP3(GxEPD2_213c(/*CS=*/DSP5_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP5_BUS_PIN));
+GxEPD2_3C<GxEPD2_213c, 50> IndicatorDSP4(GxEPD2_213c(/*CS=*/DSP6_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP6_BUS_PIN));
+
 
 // Tracking Variables
 uint8_t indiNumber = 0;
