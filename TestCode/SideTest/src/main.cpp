@@ -4,6 +4,26 @@
 #include <GxEPD2_3C.h> 
 #include "bitmaps/Bitmaps104x212.h"
 #include "bitmaps/Bitmaps3c104x212.h"
+
+#define PCB_VERSION 1
+
+#if PCB_VERSION == 1
+#define EPD_RESET_PIN 5
+#define EPD_DC_PIN 4
+#define EPD_MOSI_PIN 3
+#define EPD_SCK_PIN 2
+#define EPD_BUS_PIN 18
+#define DSP1_CS_PIN 6
+#define DSP1_LED_PIN 7
+#define DSP2_CS_PIN 14
+#define DSP2_LED_PIN 9
+#define DSP3_CS_PIN 10
+#define DSP4_CS_PIN 11
+#define DSP5_CS_PIN 12
+#define DSP5_LED_PIN 13
+#define DSP6_CS_PIN 8
+#define DSP6_LED_PIN 15
+#elif PCB_VERSION == 2
 #define EPD_RESET_PIN 5
 #define EPD_DC_PIN 4
 #define EPD_MOSI_PIN 3
@@ -19,6 +39,7 @@
 #define DSP5_LED_PIN 13
 #define DSP6_CS_PIN 14
 #define DSP6_LED_PIN 15
+#endif
 
 #define DSP_Master true
 
@@ -31,10 +52,27 @@ GxEPD2_3C<GxEPD2_290_C90c, 1> IndicatorDSP3(GxEPD2_290_C90c(/*CS=*/DSP5_CS_PIN, 
 GxEPD2_3C<GxEPD2_290_C90c, 1> IndicatorDSP4(GxEPD2_290_C90c(/*CS=*/DSP6_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN));
 #endif
 
-GFXcanvas1 canvas(250, 122); 
+// GFXcanvas1 canvas(250, 122); 
 
-#define MAX_HEIGHT_3C(EPD) (120)
-#define pgm_spisettings SPISettings(4000000, MSBFIRST, SPI_MODE0)
+// #define MAX_HEIGHT_3C(EPD) (120)
+// #define pgm_spisettings SPISettings(4000000, MSBFIRST, SPI_MODE0)
+
+void drawAllDSP(){
+    digitalWrite(DSP1_CS_PIN, false);
+    digitalWrite(DSP2_CS_PIN, false);
+    digitalWrite(DSP3_CS_PIN, false);
+    digitalWrite(DSP4_CS_PIN, false);
+    digitalWrite(DSP5_CS_PIN, false); 
+    digitalWrite(DSP6_CS_PIN, false);
+    IndicatorDSP1.refresh(false);
+    digitalWrite(DSP1_CS_PIN, true);
+    digitalWrite(DSP2_CS_PIN, true);
+    digitalWrite(DSP3_CS_PIN, true);
+    digitalWrite(DSP4_CS_PIN, true);
+    digitalWrite(DSP5_CS_PIN, true);
+    digitalWrite(DSP6_CS_PIN, true);
+}
+
 void dspinit() {
     pinMode(EPD_RESET_PIN, OUTPUT);
     pinMode(EPD_DC_PIN, OUTPUT);
@@ -46,12 +84,12 @@ void dspinit() {
     pinMode(DSP6_CS_PIN, OUTPUT);
     pinMode(EPD_BUS_PIN, INPUT);
 
-    digitalWrite(DSP1_CS_PIN, false);
-    digitalWrite(DSP2_CS_PIN, false);
-    digitalWrite(DSP3_CS_PIN, false);
-    digitalWrite(DSP4_CS_PIN, false);
-    digitalWrite(DSP5_CS_PIN, false);
-    digitalWrite(DSP6_CS_PIN, false);
+    digitalWrite(DSP1_CS_PIN, true);
+    digitalWrite(DSP2_CS_PIN, true);
+    digitalWrite(DSP3_CS_PIN, true);
+    digitalWrite(DSP4_CS_PIN, true);
+    digitalWrite(DSP5_CS_PIN, true);
+    digitalWrite(DSP6_CS_PIN, true);
     
 
     Serial.println("DSP RESET");
@@ -64,21 +102,34 @@ void dspinit() {
     Serial.println("DSP INIT");
 
     IndicatorDSP1.init();
-    IndicatorDSP1.writeScreenBuffer(0xFF);
-    IndicatorDSP2.writeScreenBuffer(0xFF);
-    ArtDSP1.writeScreenBuffer(0xFF);
-    ArtDSP2.writeScreenBuffer(0xFF);
-    IndicatorDSP3.writeScreenBuffer(0xFF);
+    IndicatorDSP1.writeScreenBuffer(GxEPD_WHITE);
+    IndicatorDSP2.init();
+    IndicatorDSP2.writeScreenBuffer(GxEPD_WHITE);
+    ArtDSP1.init();
+    ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
+    ArtDSP2.init();
+    ArtDSP2.writeScreenBuffer(GxEPD_WHITE);
+    IndicatorDSP3.init();
+    IndicatorDSP3.writeScreenBuffer(GxEPD_WHITE);
     #ifdef DSP_Master
-    IndicatorDSP4.writeScreenBuffer(0xFF);
+    IndicatorDSP4.init();
+    IndicatorDSP4.writeScreenBuffer(GxEPD_WHITE);
     #endif
-    // Release Displays
+
+    digitalWrite(DSP1_CS_PIN, false);
+    digitalWrite(DSP2_CS_PIN, false);
+    digitalWrite(DSP3_CS_PIN, false);
+    digitalWrite(DSP4_CS_PIN, false);
+    digitalWrite(DSP5_CS_PIN, false); 
+    digitalWrite(DSP6_CS_PIN, false);
+    IndicatorDSP1.clearScreen(GxEPD_WHITE);
     digitalWrite(DSP1_CS_PIN, true);
     digitalWrite(DSP2_CS_PIN, true);
     digitalWrite(DSP3_CS_PIN, true);
     digitalWrite(DSP4_CS_PIN, true);
     digitalWrite(DSP5_CS_PIN, true);
     digitalWrite(DSP6_CS_PIN, true);
+
     delay(10);
 }
 
@@ -102,9 +153,6 @@ void setup(){
     pinMode(DSP5_LED_PIN, OUTPUT);
     pinMode(DSP6_LED_PIN, OUTPUT);
 
-
-
-    
 
     Serial.println("DSP Init");
     dspinit();
@@ -132,21 +180,14 @@ void setup(){
 
     IndicatorDSP1.writeImage(WS_Bitmap104x212, 0, 0, 104, 212, 0,0,1);
     ArtDSP1.writeImage(WS_Bitmap3c104x212_black, WS_Bitmap3c104x212_red, 0, 0, 104, 212, 0,0,1);
-
-
-    digitalWrite(DSP1_CS_PIN, false);
-    digitalWrite(DSP2_CS_PIN, false);
-    digitalWrite(DSP3_CS_PIN, false);
-    digitalWrite(DSP4_CS_PIN, false);
-    digitalWrite(DSP5_CS_PIN, false); 
-    digitalWrite(DSP6_CS_PIN, false);
-    IndicatorDSP1.refresh(false);
-    digitalWrite(DSP1_CS_PIN, true);
-    digitalWrite(DSP2_CS_PIN, true);
-    digitalWrite(DSP3_CS_PIN, true);
-    digitalWrite(DSP4_CS_PIN, true);
-    digitalWrite(DSP5_CS_PIN, true);
-    digitalWrite(DSP6_CS_PIN, true);
+    IndicatorDSP2.writeImage(WS_Bitmap104x212, 10, 10, 104, 212, 0,0,1);
+    ArtDSP2.writeImage(WS_Bitmap3c104x212_black, WS_Bitmap3c104x212_red, 10, 10, 104, 212, 0,0,1);
+    IndicatorDSP3.writeImage(WS_Bitmap104x212, 20, 20, 104, 212, 0,0,1);
+    #ifdef DSP_Master
+    IndicatorDSP4.writeImage(WS_Bitmap3c104x212_black, WS_Bitmap3c104x212_red, 20, 20, 104, 212, 0,0,1);
+    #endif
+    
+    drawAllDSP();
 }
 
 void loop(){
