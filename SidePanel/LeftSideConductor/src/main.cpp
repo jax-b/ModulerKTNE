@@ -54,13 +54,15 @@ uint8_t bytesReceived = 0;
 #define S2S_SERIAL_SPEED 115200
 #endif
 
-GxEPD2_290_C90c IndicatorDSP0(/*CS=*/DSP0_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); //Indicator
-GxEPD2_290_C90c IndicatorDSP1(/*CS=*/DSP1_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); //Ind
+GxEPD2_290_C90c IndicatorDSP0(/*CS=*/DSP0_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); // Indicator
+GxEPD2_290_C90c IndicatorDSP1(/*CS=*/DSP1_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); // Ind
 GxEPD2_290_C90c ArtDSP0(/*CS=*/DSP2_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
 GxEPD2_290_C90c ArtDSP1(/*CS=*/DSP3_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
 GxEPD2_290_C90c IndicatorDSP2(/*CS=*/DSP4_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
 GxEPD2_290_C90c IndicatorDSP3(/*CS=*/DSP5_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
 
+GFXcanvas1 BlackCanvas(IndicatorDSP0.WIDTH, IndicatorDSP0.HEIGHT);
+GFXcanvas1 RedCanvas(IndicatorDSP0.WIDTH, IndicatorDSP0.HEIGHT);
 
 // Tracking Variables
 uint8_t indiNumber = 0;
@@ -69,12 +71,14 @@ const uint8_t MAXDSPNUM = ARTDSPRANGE[1];
 uint8_t batDSPDrawCycle = 0;
 uint8_t portDSPDrawCycle = 0;
 uint8_t portBatDSPMap[2][5] = {
-    {1, 2, 0, 0, 0}, // Port DSPS
-    {3, 4, 5, 6, 7}  // Bat DSPS
+    {1, 2}, // Port DSPS
+    {3, 4}  // Bat DSPS
 };
+uint8_t indicatorLEDMap[6] = { 0 };
 
 // Initializes and clears the connected displays
-void setupDisplays() {
+void setupDisplays()
+{
   // Tell remote to startup
   Serial1.println("{\"command\":\"startup\"}");
 
@@ -96,7 +100,7 @@ void setupDisplays() {
   digitalWrite(DSP3_CS_PIN, true);
   digitalWrite(DSP4_CS_PIN, true);
   digitalWrite(DSP5_CS_PIN, true);
-  
+
   // Reset All Displays
   Serial.println("DSP RESET");
   digitalWrite(EPD_RESET_PIN, true);
@@ -125,7 +129,7 @@ void setupDisplays() {
   digitalWrite(DSP1_CS_PIN, false);
   digitalWrite(DSP2_CS_PIN, false);
   digitalWrite(DSP3_CS_PIN, false);
-  digitalWrite(DSP4_CS_PIN, false); 
+  digitalWrite(DSP4_CS_PIN, false);
   digitalWrite(DSP5_CS_PIN, false);
   IndicatorDSP0.clearScreen(GxEPD_WHITE);
   digitalWrite(DSP0_CS_PIN, true);
@@ -140,47 +144,37 @@ void setupDisplays() {
 
 // Draws a Battery to the specified display
 // True is AA false is D
-void writeBattery(uint8_t displayNum, bool AAorD) {
+void writeBattery(uint8_t displayNum, bool AAorD)
+{
   // Code needs to be updated to support multiple displays
   // displays[displayNum].fillScreen(GxEPD_WHITE);
-  DynamicJsonDocument doc(50);
-  switch (displayNum) {
-    case 0:
-      if (AAorD){
-        ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
-        ArtDSP0.writeImage(epd_bitmap_AA_black, 0, 6, 250, 122, true, false, true);
-      }
-      else {
-        ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
-        ArtDSP0.writeImage(epd_bitmap_D_black, 0, 6,  250, 122, true, false, true);
-      }
-      break;
-    case 1:
-      if (AAorD){
-        ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
-        ArtDSP1.writeImage(epd_bitmap_AA_black, 0, 6, 250, 122, true, false, true);
-      }
-      else {
-        ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
-        ArtDSP1.writeImage(epd_bitmap_D_black, 0, 6, 250, 122, true, false, true);
-      }
-      break;
-    case 2:
-      if (AAorD) {
-        doc["write"]["ArtDisp2"] = "Bat-AA";
-      } else {
-        doc["write"]["ArtDisp2"] = "Bat-D";
-      }
-      Serial1.write(serializeJson(doc, Serial));
-      break;
-    case 3:
-      if (AAorD) {
-        doc["write"]["ArtDisp3"] = "Bat-AA";
-      } else {
-        doc["write"]["ArtDisp3"] = "Bat-D";
-      }
-      Serial1.write(serializeJson(doc, Serial));
-      break;
+  
+  switch (displayNum)
+  {
+  case 0:
+    if (AAorD)
+    {
+      ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
+      ArtDSP0.writeImage(epd_bitmap_AA_Black, epd_bitmap_AA_Black, 0, 6, 250, 122, true, false, true);
+    }
+    else
+    {
+      ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
+      ArtDSP0.writeImage(epd_bitmap_D_Black, epd_bitmap_D_Red, 0, 6, 250, 122, true, false, true);
+    }
+    break;
+  case 1:
+    if (AAorD)
+    {
+      ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
+      ArtDSP1.writeImage(epd_bitmap_AA_Black, epd_bitmap_AA_Black, 0, 6, 250, 122, true, false, true);
+    }
+    else
+    {
+      ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
+      ArtDSP1.writeImage(epd_bitmap_D_Black, epd_bitmap_D_Red, 0, 6, 250, 122, true, false, true);
+    }
+    break;
   }
 }
 
@@ -221,61 +215,75 @@ void writePorts(uint8_t displayNum, byte activeports)
   // Code needs to be updated to support multiple displays
   // displays[displayNum].fillScreen(GxEPD_WHITE);
   const uint8_t VAL_TO_ADD = 67;
-  switch (displayNum) {
-    case 1:
-      display1.fillScreen(GxEPD_WHITE);
-      uint8_t longporty = 6;
-      uint8_t shortportx = 0;
-      if (rj45Active)
-      {
-        display1.drawInvertedBitmap(shortportx, 6, epd_bitmap_rj45, epd_bitmap_rj45_size[0], epd_bitmap_rj45_size[1], GxEPD_BLACK);
-        longporty += VAL_TO_ADD;
-        shortportx += epd_bitmap_rj45_size[0] + 5;
-      }
-      if (ps2Active)
-      {
-        display1.drawInvertedBitmap(shortportx, 6, epd_bitmap_PS2, epd_bitmap_PS2_size[0], epd_bitmap_PS2_size[1], GxEPD_BLACK);
-        if (longporty < 30)
-        {
-          longporty += VAL_TO_ADD;
-        }
-        shortportx += epd_bitmap_PS2_size[0] + 5;
-      }
-      if (rcaActive)
-      {
-        display1.drawInvertedBitmap(213, 6, epd_bitmap_RCA, epd_bitmap_RCA_size[0], epd_bitmap_RCA_size[1], GxEPD_BLACK);
-      }
 
-      if (dviActive)
+  if (displayNum < 4)
+  { // If the display number is on the Conductor node populate the display with the correct artwork
+    BlackCanvas.fillScreen(GxEPD_WHITE);
+    RedCanvas.fillScreen(GxEPD_WHITE);
+    uint8_t longporty = 6;
+    uint8_t shortportx = 0;
+    if (rj45Active)
+    {
+      BlackCanvas.drawBitmap(shortportx, 6, epd_bitmap_rj45_Black, epd_bitmap_rj45_size[0], epd_bitmap_rj45_size[1], GxEPD_BLACK);
+      longporty += VAL_TO_ADD;
+      shortportx += epd_bitmap_rj45_size[0] + 5;
+    }
+    if (ps2Active)
+    {
+      BlackCanvas.drawBitmap(shortportx, 6, epd_bitmap_PS2_Black, epd_bitmap_PS2_size[0], epd_bitmap_PS2_size[1], GxEPD_BLACK);
+      if (longporty < 30)
       {
-        display1.drawInvertedBitmap(0, longporty, epd_bitmap_DVI, epd_bitmap_DVI_size[0], epd_bitmap_DVI_size[1], GxEPD_BLACK);
-        if (longporty > 30)
-        {
-          continue;
-        }
-        else
-        {
-          longporty += VAL_TO_ADD;
-        }
+        longporty += VAL_TO_ADD;
       }
-      if (serialActive)
+      shortportx += epd_bitmap_PS2_size[0] + 5;
+    }
+    if (rcaActive)
+    {
+      BlackCanvas.drawBitmap(213, 6, epd_bitmap_RCA_Black, epd_bitmap_RCA_size[0], epd_bitmap_RCA_size[1], GxEPD_BLACK);
+      RedCanvas.drawBitmap(213, 6, epd_bitmap_RCA_Black, epd_bitmap_RCA_size[0], epd_bitmap_RCA_size[1], GxEPD_RED);
+    }
+    bool pass = false;
+    if (dviActive)
+    {
+      BlackCanvas.drawBitmap(0, longporty, epd_bitmap_DVI_Black, epd_bitmap_DVI_size[0], epd_bitmap_DVI_size[1], GxEPD_BLACK);
+      if (longporty > 30)
       {
-        display1.drawInvertedBitmap(0, longporty, epd_bitmap_Serial, epd_bitmap_Serial_size[0], epd_bitmap_Serial_size[1], GxEPD_BLACK);
-        if (longporty > 30)
-        {
-          continue;
-        }
-        else
-        {
-          longporty += VAL_TO_ADD;
-        }
+        pass = true;
       }
-      if (parallelActive && !rcaActive)
+      else
       {
-        display1.drawInvertedBitmap(0, longporty, epd_bitmap_Parallel, epd_bitmap_Parallel_size[0], epd_bitmap_Parallel_size[1], GxEPD_BLACK);
+        longporty += VAL_TO_ADD;
       }
+    }
+    if (serialActive && !pass)
+    {
+      BlackCanvas.drawBitmap(0, longporty, epd_bitmap_Serial_Black, epd_bitmap_Serial_size[0], epd_bitmap_Serial_size[1], GxEPD_BLACK);
+      if (longporty > 30)
+      {
+        pass = true;
+      }
+      else
+      {
+        longporty += VAL_TO_ADD;
+      }
+    }
+    if (parallelActive && !rcaActive && !pass)
+    {
+      BlackCanvas.drawBitmap(0, longporty, epd_bitmap_Parallel_Black, epd_bitmap_Parallel_size[0], epd_bitmap_Parallel_size[1], GxEPD_BLACK);
+    }
   }
-    
+
+  switch (displayNum)
+  {
+  case 0:
+    ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
+    ArtDSP0.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 6, 250, 122, true, false, true);
+    break;
+  case 1:
+    ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
+    ArtDSP1.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 6, 250, 122, true, false, true);
+    break;
+  }
 }
 
 void drawIndicator(uint8_t indiNumber, bool lit, char lbl[3])
@@ -284,52 +292,72 @@ void drawIndicator(uint8_t indiNumber, bool lit, char lbl[3])
 }
 
 // Clear a EPD DSP
-void clearEPDDSP(uint8_t displayNum)
+void clearEPDDSPS()
 {
-  // Code needs to be updated to support multiple displays
-  // displays[0].fillScreen(GxEPD_WHITE);
-  display1.firstPage();
-  do
-  {
-    display1.fillScreen(GxEPD_WHITE);
-  } while (display1.nextPage());
-}
+  digitalWrite(DSP0_CS_PIN, false);
+  digitalWrite(DSP1_CS_PIN, false);
+  digitalWrite(DSP2_CS_PIN, false);
+  digitalWrite(DSP3_CS_PIN, false);
+  digitalWrite(DSP4_CS_PIN, false);
+  digitalWrite(DSP5_CS_PIN, false);
+  IndicatorDSP1.clearScreen(GxEPD_WHITE);
+  digitalWrite(DSP0_CS_PIN, true);
+  digitalWrite(DSP1_CS_PIN, true);
+  digitalWrite(DSP2_CS_PIN, true);
+  digitalWrite(DSP3_CS_PIN, true);
+  digitalWrite(DSP4_CS_PIN, true);
+  digitalWrite(DSP5_CS_PIN, true);
 
-void clearIndicator(uint8_t indiNumber)
-{
-  digitalWrite(indicatorLEDMap[indiNumber], false);
+  for (int i = indicatorLEDMap.length(); i >= 0; i--)
+  {
+    digitalWrite(indicatorLEDMap[i], false);
+  }
+
+  Serial1.println("{\"Clear\":\"All\"}");
 }
 
 void randomizeArtDSP()
 {
-  
 }
 
-// Determans what art to draw onto the display
-void processSideArt(byte artcode)
+// Determins what art to draw onto the display or to send that code to the follower device
+void processSideArt(uint8_t displayNum, byte artcode)
 {
-  // first bit equals art type Battery or Port
-  // 0 = Battery
-  // 1 = Port
-  bool artType = artcode & 0b10000000;
-  if (artType)
-  {
-    drawPorts(portBatDSPMap[0][portDSPDrawCycle], artcode);
-  }
-  else
-  {
-    // Battery
-    // 0 = Battery
-    // 0 = not used
-    // 0 = not used
-    // 0 = not used
-    // 0 = not used
-    // 0 = not used
-    // 0 = not used
-    // 1 = 1 is AA  0 is D
-    bool AAorD = artcode & 0b000000001;
-    drawBattery(portBatDSPMap[1][batDSPDrawCycle], AAorD);
-    batDSPDrawCycle++;
+  DynamicJsonDocument doc(50);
+  switch (displayNum) {
+    case 0:
+    case 1:
+      // first bit equals art type Battery or Port
+      // 0 = Battery
+      // 1 = Port
+      bool artType = artcode & 0b10000000;
+      if (artType)
+      {
+        writePorts(displayNum, artcode);
+      }
+      else
+      {
+        // Battery
+        // 0 = Battery
+        // 0 = not used
+        // 0 = not used
+        // 0 = not used
+        // 0 = not used
+        // 0 = not used
+        // 0 = not used
+        // 1 = 1 is AA  0 is D
+        bool AAorD = artcode & 0b000000001;
+        writeBattery(displayNum, AAorD);
+      }
+      break;
+    case 2:
+      doc["write"]["ArtDisp2"] = artcode;
+      Serial1.println(serializeJson(doc, Serial1));
+      break;
+    case 3:
+      doc["write"]["ArtDisp3"] = artcode;
+      Serial1.println(serializeJson(doc, Serial1));
+      break;
   }
 }
 
