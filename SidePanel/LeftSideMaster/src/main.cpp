@@ -1,12 +1,10 @@
-#include <Adafruit_NeoPixel.h>
 #include <SPI.h>
 #include <GxEPD2_3C.h>
 #include <Fonts/FreeMonoBold12pt7b.h>
-#include <Adafruit_I2CDevice.h>
-#include <Ardiuno.h>
-
-// #include "BatteryPictures.h"
-// #include "PortPictures.h"
+#include <ArduinoJson.h>
+#include <Adafruit_GFX.h>
+#include "BatteryPictures.h"
+#include "PortPictures.h"
 
 /// Buffers and data tracking for I2C communication
 byte incomeingI2CData[10];
@@ -14,31 +12,54 @@ byte outgoingI2CData[10];
 uint8_t bytesToSend = 0;
 uint8_t bytesReceived = 0;
 
-#define EPD_RESET_PIN 5 // can set to -1 and share with microcontroller Reset!
-#define EPD_DC_PIN 3
-#define DSP1_CS_PIN 6
-#define DSP1_BUS_PIN 7
-#define DSP1_LED_PIN 8
-#define DSP2_CS_PIN 9
-#define DSP2_BUS_PIN 10
-#define DSP2_LED_PIN 11
-#define DSP3_CS_PIN 12
-#define DSP3_BUS_PIN 13
-#define DSP4_CS_PIN 14
-#define DSP4_BUS_PIN 15
-#define DSP5_CS_PIN 16
-#define DSP5_BUS_PIN 17
-#define DSP5_LED_PIN 18
-#define DSP6_CS_PIN 19
-#define DSP6_BUS_PIN 20
-#define DSP6_LED_PIN 21
+#define PCB_VERSION 1
 
-GxEPD2_3C<GxEPD2_213c, 50> IndicatorDSP1(GxEPD2_213c(/*CS=*/DSP1_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP1_BUS_PIN)); //Indicator
-GxEPD2_3C<GxEPD2_213c, 50> IndicatorDSP2(GxEPD2_213c(/*CS=*/DSP2_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP2_BUS_PIN)); //Ind
-GxEPD2_3C<GxEPD2_213c, 50> ArtDSP1(GxEPD2_213c(/*CS=*/DSP3_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP3_BUS_PIN));
-GxEPD2_3C<GxEPD2_213c, 50> ArtDSP2(GxEPD2_213c(/*CS=*/DSP4_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP4_BUS_PIN));
-GxEPD2_3C<GxEPD2_213c, 50> IndicatorDSP3(GxEPD2_213c(/*CS=*/DSP5_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP5_BUS_PIN));
-GxEPD2_3C<GxEPD2_213c, 50> IndicatorDSP4(GxEPD2_213c(/*CS=*/DSP6_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/DSP6_BUS_PIN));
+#if PCB_VERSION == 1
+#define EPD_RESET_PIN 5
+#define EPD_DC_PIN 4
+#define EPD_MOSI_PIN 3
+#define EPD_SCK_PIN 2
+#define EPD_BUS_PIN 18
+#define DSP0_CS_PIN 6
+#define DSP0_LED_PIN 7
+#define DSP1_CS_PIN 14
+#define DSP1_LED_PIN 9
+#define DSP2_CS_PIN 10
+#define DSP3_CS_PIN 11
+#define DSP4_CS_PIN 12
+#define DSP4_LED_PIN 13
+#define DSP5_CS_PIN 8
+#define DSP5_LED_PIN 15
+#define S2S_SERIAL_RX 17
+#define S2S_SERIAL_TX 16
+#define S2S_SERIAL_SPEED 115200
+#elif PCB_VERSION == 2
+#define EPD_RESET_PIN 5
+#define EPD_DC_PIN 4
+#define EPD_MOSI_PIN 3
+#define EPD_SCK_PIN 2
+#define EPD_BUS_PIN 18
+#define DSP0_CS_PIN 6
+#define DSP0_LED_PIN 7
+#define DSP1_CS_PIN 8
+#define DSP1_LED_PIN 9
+#define DSP2_CS_PIN 10
+#define DSP3_CS_PIN 11
+#define DSP4_CS_PIN 12
+#define DSP4_LED_PIN 13
+#define DSP5_CS_PIN 14
+#define DSP5_LED_PIN 15
+#define S2S_SERIAL_RX 17
+#define S2S_SERIAL_TX 16
+#define S2S_SERIAL_SPEED 115200
+#endif
+
+GxEPD2_290_C90c IndicatorDSP0(/*CS=*/DSP0_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); //Indicator
+GxEPD2_290_C90c IndicatorDSP1(/*CS=*/DSP1_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); //Ind
+GxEPD2_290_C90c ArtDSP0(/*CS=*/DSP2_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
+GxEPD2_290_C90c ArtDSP1(/*CS=*/DSP3_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
+GxEPD2_290_C90c IndicatorDSP2(/*CS=*/DSP4_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
+GxEPD2_290_C90c IndicatorDSP3(/*CS=*/DSP5_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
 
 
 // Tracking Variables
@@ -52,76 +73,136 @@ uint8_t portBatDSPMap[2][5] = {
     {3, 4, 5, 6, 7}  // Bat DSPS
 };
 
-uint8_t indicatorLEDMap[MAXINDICATOR] = {
-  INDICATOR1PIN, INDICATOR2PIN, INDICATOR3PIN, INDICATOR4PIN, INDICATOR5PIN, INDICATOR6PIN, INDICATOR7PIN, INDICATOR8PIN
-};
+// Initializes and clears the connected displays
+void setupDisplays() {
+  // Tell remote to startup
+  Serial1.println("{\"command\":\"startup\"}");
 
-void setupDisplay(uint8_t DisplayNum)
-{
-  display1.init();
-  display1.setRotation(1);
-  display1.setFont(&FreeMonoBold12pt7b);
-  display1.setFullWindow();
-  display1.setTextColor(GxEPD_BLACK);
+  // Setup DSP Pins
+  pinMode(EPD_RESET_PIN, OUTPUT);
+  pinMode(EPD_DC_PIN, OUTPUT);
+  pinMode(DSP0_CS_PIN, OUTPUT);
+  pinMode(DSP1_CS_PIN, OUTPUT);
+  pinMode(DSP2_CS_PIN, OUTPUT);
+  pinMode(DSP3_CS_PIN, OUTPUT);
+  pinMode(DSP4_CS_PIN, OUTPUT);
+  pinMode(DSP5_CS_PIN, OUTPUT);
+  pinMode(EPD_BUS_PIN, INPUT);
+
+  // Release All Displays
+  digitalWrite(DSP0_CS_PIN, true);
+  digitalWrite(DSP1_CS_PIN, true);
+  digitalWrite(DSP2_CS_PIN, true);
+  digitalWrite(DSP3_CS_PIN, true);
+  digitalWrite(DSP4_CS_PIN, true);
+  digitalWrite(DSP5_CS_PIN, true);
+  
+  // Reset All Displays
+  Serial.println("DSP RESET");
+  digitalWrite(EPD_RESET_PIN, true);
+  delay(100);
+  digitalWrite(EPD_RESET_PIN, false);
+  delay(100);
+  digitalWrite(EPD_RESET_PIN, true);
+
+  // Init and attempt to fill the displays buffers
+  Serial.println("DSP INIT");
+  IndicatorDSP0.init();
+  IndicatorDSP0.writeScreenBuffer(GxEPD_WHITE);
+  IndicatorDSP0.init();
+  IndicatorDSP0.writeScreenBuffer(GxEPD_WHITE);
+  ArtDSP0.init();
+  ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
+  ArtDSP1.init();
+  ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
+  IndicatorDSP1.init();
+  IndicatorDSP1.writeScreenBuffer(GxEPD_WHITE);
+  IndicatorDSP2.init();
+  IndicatorDSP2.writeScreenBuffer(GxEPD_WHITE);
+
+  // Grab all dislays and clear them then release them
+  digitalWrite(DSP0_CS_PIN, false);
+  digitalWrite(DSP1_CS_PIN, false);
+  digitalWrite(DSP2_CS_PIN, false);
+  digitalWrite(DSP3_CS_PIN, false);
+  digitalWrite(DSP4_CS_PIN, false); 
+  digitalWrite(DSP5_CS_PIN, false);
+  IndicatorDSP0.clearScreen(GxEPD_WHITE);
+  digitalWrite(DSP0_CS_PIN, true);
+  digitalWrite(DSP1_CS_PIN, true);
+  digitalWrite(DSP2_CS_PIN, true);
+  digitalWrite(DSP3_CS_PIN, true);
+  digitalWrite(DSP4_CS_PIN, true);
+  digitalWrite(DSP5_CS_PIN, true);
+
+  delay(10);
 }
 
 // Draws a Battery to the specified display
 // True is AA false is D
-void drawBattery(uint8_t displayNum, bool AAorD)
-{
+void writeBattery(uint8_t displayNum, bool AAorD) {
   // Code needs to be updated to support multiple displays
   // displays[displayNum].fillScreen(GxEPD_WHITE);
-
-  if (AAorD)
-  {
-    display1.firstPage();
-    do
-    {
-      display1.fillScreen(GxEPD_WHITE);
-      display1.drawInvertedBitmap(0, 6, epd_bitmap_AA, 250, 122, GxEPD_BLACK);
-    } while (display1.nextPage());
-  }
-  else
-  {
-    display1.firstPage();
-    do
-    {
-      display1.fillScreen(GxEPD_WHITE);
-      display1.drawInvertedBitmap(0, 6, epd_bitmap_D, 250, 122, GxEPD_BLACK);
-    } while (display1.nextPage());
+  DynamicJsonDocument doc(50);
+  switch (displayNum) {
+    case 0:
+      if (AAorD){
+        ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
+        ArtDSP0.writeImage(epd_bitmap_AA_black, 0, 6, 250, 122, true, false, true);
+      }
+      else {
+        ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
+        ArtDSP0.writeImage(epd_bitmap_D_black, 0, 6,  250, 122, true, false, true);
+      }
+      break;
+    case 1:
+      if (AAorD){
+        ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
+        ArtDSP1.writeImage(epd_bitmap_AA_black, 0, 6, 250, 122, true, false, true);
+      }
+      else {
+        ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
+        ArtDSP1.writeImage(epd_bitmap_D_black, 0, 6, 250, 122, true, false, true);
+      }
+      break;
+    case 2:
+      if (AAorD) {
+        doc["write"]["ArtDisp2"] = "Bat-AA";
+      } else {
+        doc["write"]["ArtDisp2"] = "Bat-D";
+      }
+      Serial1.write(serializeJson(doc, Serial));
+      break;
+    case 3:
+      if (AAorD) {
+        doc["write"]["ArtDisp3"] = "Bat-AA";
+      } else {
+        doc["write"]["ArtDisp3"] = "Bat-D";
+      }
+      Serial1.write(serializeJson(doc, Serial));
+      break;
   }
 }
 
 // Draws the SerialNumber to dsp 0
-void drawSerialNum(String text)
+void writeSerialNum(String text)
 {
-  // Code needs to be updated to support multiple displays
-  // displays[0].fillScreen(GxEPD_WHITE);
-  int16_t x1, y1;
-  uint16_t w, h;
-  display1.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
-  uint16_t x = ((display1.width() - w) / 2) - x1;
-  uint16_t y = ((display1.height() - h) / 2) - y1;
-  display1.firstPage();
-  do
-  {
-    display1.fillScreen(GxEPD_WHITE);
-    display1.setCursor(x, y);
-    display1.print(text);
-  } while (display1.nextPage());
+  DynamicJsonDocument doc(50);
+  doc["write"]["SerialNumber"] = text;
+  Serial1.println(serializeJson(doc, Serial));
 }
 
 // Draws the SerialNumber to dsp 0
 // Overload for a char array instead of a string
-void drawSerialNum(char intext[])
+void writeSerialNum(char intext[])
 {
   String strtext = intext;
-  drawSerialNum(strtext);
+  writeSerialNum(strtext);
 }
 
 // Draws a port to the specified display
 // Host is responsible for avoiding collisions, bad data will not be drawn but there might be a missing port caused by a collision
-void drawPorts(uint8_t displayNum, byte activeports)
+void writePorts(uint8_t displayNum, byte activeports)
 {
   // 1 = Port
   // 0 = not used
@@ -139,62 +220,62 @@ void drawPorts(uint8_t displayNum, byte activeports)
   bool rcaActive = activeports & 0b00000001;
   // Code needs to be updated to support multiple displays
   // displays[displayNum].fillScreen(GxEPD_WHITE);
-  display1.firstPage();
   const uint8_t VAL_TO_ADD = 67;
-  do
-  {
-    display1.fillScreen(GxEPD_WHITE);
-    uint8_t longporty = 6;
-    uint8_t shortportx = 0;
-    if (rj45Active)
-    {
-      display1.drawInvertedBitmap(shortportx, 6, epd_bitmap_rj45, epd_bitmap_rj45_size[0], epd_bitmap_rj45_size[1], GxEPD_BLACK);
-      longporty += VAL_TO_ADD;
-      shortportx += epd_bitmap_rj45_size[0] + 5;
-    }
-    if (ps2Active)
-    {
-      display1.drawInvertedBitmap(shortportx, 6, epd_bitmap_PS2, epd_bitmap_PS2_size[0], epd_bitmap_PS2_size[1], GxEPD_BLACK);
-      if (longporty < 30)
+  switch (displayNum) {
+    case 1:
+      display1.fillScreen(GxEPD_WHITE);
+      uint8_t longporty = 6;
+      uint8_t shortportx = 0;
+      if (rj45Active)
       {
+        display1.drawInvertedBitmap(shortportx, 6, epd_bitmap_rj45, epd_bitmap_rj45_size[0], epd_bitmap_rj45_size[1], GxEPD_BLACK);
         longporty += VAL_TO_ADD;
+        shortportx += epd_bitmap_rj45_size[0] + 5;
       }
-      shortportx += epd_bitmap_PS2_size[0] + 5;
-    }
-    if (rcaActive)
-    {
-      display1.drawInvertedBitmap(213, 6, epd_bitmap_RCA, epd_bitmap_RCA_size[0], epd_bitmap_RCA_size[1], GxEPD_BLACK);
-    }
+      if (ps2Active)
+      {
+        display1.drawInvertedBitmap(shortportx, 6, epd_bitmap_PS2, epd_bitmap_PS2_size[0], epd_bitmap_PS2_size[1], GxEPD_BLACK);
+        if (longporty < 30)
+        {
+          longporty += VAL_TO_ADD;
+        }
+        shortportx += epd_bitmap_PS2_size[0] + 5;
+      }
+      if (rcaActive)
+      {
+        display1.drawInvertedBitmap(213, 6, epd_bitmap_RCA, epd_bitmap_RCA_size[0], epd_bitmap_RCA_size[1], GxEPD_BLACK);
+      }
 
-    if (dviActive)
-    {
-      display1.drawInvertedBitmap(0, longporty, epd_bitmap_DVI, epd_bitmap_DVI_size[0], epd_bitmap_DVI_size[1], GxEPD_BLACK);
-      if (longporty > 30)
+      if (dviActive)
       {
-        continue;
+        display1.drawInvertedBitmap(0, longporty, epd_bitmap_DVI, epd_bitmap_DVI_size[0], epd_bitmap_DVI_size[1], GxEPD_BLACK);
+        if (longporty > 30)
+        {
+          continue;
+        }
+        else
+        {
+          longporty += VAL_TO_ADD;
+        }
       }
-      else
+      if (serialActive)
       {
-        longporty += VAL_TO_ADD;
+        display1.drawInvertedBitmap(0, longporty, epd_bitmap_Serial, epd_bitmap_Serial_size[0], epd_bitmap_Serial_size[1], GxEPD_BLACK);
+        if (longporty > 30)
+        {
+          continue;
+        }
+        else
+        {
+          longporty += VAL_TO_ADD;
+        }
       }
-    }
-    if (serialActive)
-    {
-      display1.drawInvertedBitmap(0, longporty, epd_bitmap_Serial, epd_bitmap_Serial_size[0], epd_bitmap_Serial_size[1], GxEPD_BLACK);
-      if (longporty > 30)
+      if (parallelActive && !rcaActive)
       {
-        continue;
+        display1.drawInvertedBitmap(0, longporty, epd_bitmap_Parallel, epd_bitmap_Parallel_size[0], epd_bitmap_Parallel_size[1], GxEPD_BLACK);
       }
-      else
-      {
-        longporty += VAL_TO_ADD;
-      }
-    }
-    if (parallelActive && !rcaActive)
-    {
-      display1.drawInvertedBitmap(0, longporty, epd_bitmap_Parallel, epd_bitmap_Parallel_size[0], epd_bitmap_Parallel_size[1], GxEPD_BLACK);
-    }
-  } while (display1.nextPage());
+  }
+    
 }
 
 void drawIndicator(uint8_t indiNumber, bool lit, char lbl[3])
@@ -356,15 +437,17 @@ void I2CCommandProcessor()
 
 void setup()
 {
-  SPI.setTX(19);
-  SPI.setSCK(18);
+  // Set SPI Pins
+  SPI.setTX(EPD_MOSI_PIN);
+  SPI.setSCK(EPD_SCK_PIN);
+  // Set S2S Serial
+  Serial1.setTX(S2S_SERIAL_TX);
+  Serial1.setRX(S2S_SERIAL_RX);
+  Serial1.begin(S2S_SERIAL_SPEED);
   // put your setup code here, to run once:
-  Serial.begin(115200);
-  // while (!Serial)
-  ; // wait for serial port to connect. Needed for native USB port only
-  delay(10);
+  Serial.begin(9600);
 
-  setupDisplay(0);
+  setupDisplays();
   Serial.println("Display initialized");
 
   for (int i = 0; i < sizeof(indicatorLEDMap); i++) // Set up all indicators
@@ -372,14 +455,6 @@ void setup()
     pinMode(indicatorLEDMap[i], OUTPUT);
     digitalWrite(indicatorLEDMap[i], LOW);
   }
-
-  pixels = new Adafruit_NeoPixel(1, 16, NEO_GRB + NEO_KHZ800);
-  pixels->begin();
-  pixels->setPixelColor(0, pixels->Color(255, 0, 0));
-  pixels->show();
-  delay(100);
-  pixels->setPixelColor(0, pixels->Color(0xAA, 0x0, 0xAA));
-  pixels->show();
 
   Serial.println("Display test");
 
