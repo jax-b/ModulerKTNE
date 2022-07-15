@@ -1,13 +1,14 @@
 #include <SPI.h>
 #include <GxEPD2_3C.h>
 #include <Fonts/FreeMonoBold18pt7b.h>
+#include <Fonts/FreeMonoBold24pt7b.h>
 #include <ArduinoJson.h>
 #include <Adafruit_GFX.h>
 #include "BatteryPictures.h"
 #include "PortPictures.h"
 
 /// Buffers and data tracking for I2C communication
-byte incomeingI2CData[15];
+byte incomeingI2CData[10];
 byte outgoingI2CData[10];
 uint8_t bytesToSend = 0;
 uint8_t bytesReceived = 0;
@@ -32,8 +33,7 @@ uint8_t bytesReceived = 0;
 #define DSP5_LED_PIN 15
 #define S2S_SERIAL_RX 17
 #define S2S_SERIAL_TX 16
-#define CONTROLLER_I2C_SCL 1
-#define CONTROLLER_I2C_SDA 0
+#define S2S_SERIAL_SPEED 115200
 #elif PCB_VERSION == 2
 #define EPD_RESET_PIN 5
 #define EPD_DC_PIN 4
@@ -52,36 +52,23 @@ uint8_t bytesReceived = 0;
 #define DSP5_LED_PIN 15
 #define S2S_SERIAL_RX 17
 #define S2S_SERIAL_TX 16
-#define CONTROLLER_I2C_SCL 1
-#define CONTROLLER_I2C_SDA 0
+#define S2S_SERIAL_SPEED 115200
 #endif
 
-#define I2C_ADDRESS 0x50
-#define S2S_SERIAL_SPEED 115200
+GxEPD2_290_C90c IndicatorDSP4(/*CS=*/DSP0_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); // Indicator
+GxEPD2_290_C90c IndicatorDSP5(/*CS=*/DSP1_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); // Ind
+GxEPD2_290_C90c ArtDSP2(/*CS=*/DSP2_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
+GxEPD2_290_C90c ArtDSP3(/*CS=*/DSP3_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
+GxEPD2_290_C90c SerialNumberDSP(/*CS=*/DSP4_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
 
-GxEPD2_290_C90c IndicatorDSP0(/*CS=*/DSP0_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); // Indicator
-GxEPD2_290_C90c IndicatorDSP1(/*CS=*/DSP1_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN); // Ind
-GxEPD2_290_C90c ArtDSP0(/*CS=*/DSP2_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
-GxEPD2_290_C90c ArtDSP1(/*CS=*/DSP3_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
-GxEPD2_290_C90c IndicatorDSP2(/*CS=*/DSP4_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
-GxEPD2_290_C90c IndicatorDSP3(/*CS=*/DSP5_CS_PIN, /*DC=*/EPD_DC_PIN, -1, /*BUSY=*/EPD_BUS_PIN);
-
-GFXcanvas1 BlackCanvas(IndicatorDSP0.WIDTH, IndicatorDSP0.HEIGHT);
-GFXcanvas1 RedCanvas(IndicatorDSP0.WIDTH, IndicatorDSP0.HEIGHT);
-
-// Tracking Variables
-uint8_t indiNumber = 0;
-uint8_t artNumber = 0;
-const uint8_t ARTDSPRANGE[] = {1, 5};
-const uint8_t MAXDSPNUM = ARTDSPRANGE[1];
-uint8_t batDSPDrawCycle = 0;
-uint8_t portDSPDrawCycle = 0;
-uint8_t indiMap[] = {0, 1, 2, 3, 4, 5};
-uint8_t artMap[] = {0, 1, 2, 3};
-
+GFXcanvas1 BlackCanvas(IndicatorDSP4.WIDTH, IndicatorDSP4.HEIGHT);
+GFXcanvas1 RedCanvas(IndicatorDSP4.WIDTH, IndicatorDSP4.HEIGHT);
 // Initializes and clears the connected displays
 void setupDisplays()
 {
+  // Tell remote to startup
+  Serial1.println("{\"command\":\"startup\"}");
+
   // Setup DSP Pins
   pinMode(EPD_RESET_PIN, OUTPUT);
   pinMode(EPD_DC_PIN, OUTPUT);
@@ -90,14 +77,7 @@ void setupDisplays()
   pinMode(DSP2_CS_PIN, OUTPUT);
   pinMode(DSP3_CS_PIN, OUTPUT);
   pinMode(DSP4_CS_PIN, OUTPUT);
-  pinMode(DSP5_CS_PIN, OUTPUT);
   pinMode(EPD_BUS_PIN, INPUT);
-
-  // Setup LED Pins
-  pinMode(DSP0_LED_PIN, OUTPUT);
-  pinMode(DSP1_LED_PIN, OUTPUT);
-  pinMode(DSP4_LED_PIN, OUTPUT);
-  pinMode(DSP5_LED_PIN, OUTPUT);
 
   // Release All Displays
   digitalWrite(DSP0_CS_PIN, true);
@@ -105,10 +85,9 @@ void setupDisplays()
   digitalWrite(DSP2_CS_PIN, true);
   digitalWrite(DSP3_CS_PIN, true);
   digitalWrite(DSP4_CS_PIN, true);
-  digitalWrite(DSP5_CS_PIN, true);
 
   // Reset All Displays
-  // Serial.println("DSP RESET");
+  Serial.println("DSP RESET");
   digitalWrite(EPD_RESET_PIN, true);
   delay(100);
   digitalWrite(EPD_RESET_PIN, false);
@@ -116,19 +95,17 @@ void setupDisplays()
   digitalWrite(EPD_RESET_PIN, true);
 
   // Init and attempt to fill the displays buffers
-  // Serial.println("DSP INIT");
-  IndicatorDSP0.init();
-  IndicatorDSP0.writeScreenBuffer(GxEPD_WHITE);
-  IndicatorDSP1.init();
-  IndicatorDSP1.writeScreenBuffer(GxEPD_WHITE);
-  ArtDSP0.init();
-  ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
-  ArtDSP1.init();
-  ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
-  IndicatorDSP2.init();
-  IndicatorDSP2.writeScreenBuffer(GxEPD_WHITE);
-  IndicatorDSP3.init();
-  IndicatorDSP3.writeScreenBuffer(GxEPD_WHITE);
+  Serial.println("DSP INIT");
+  IndicatorDSP4.init();
+  IndicatorDSP4.writeScreenBuffer(GxEPD_WHITE);
+  IndicatorDSP5.init();
+  IndicatorDSP5.writeScreenBuffer(GxEPD_WHITE);
+  ArtDSP2.init();
+  ArtDSP2.writeScreenBuffer(GxEPD_WHITE);
+  ArtDSP3.init();
+  ArtDSP3.writeScreenBuffer(GxEPD_WHITE);
+  SerialNumberDSP.init();
+  SerialNumberDSP.writeScreenBuffer(GxEPD_WHITE);
 
   // Grab all dislays and clear them then release them
   digitalWrite(DSP0_CS_PIN, false);
@@ -136,14 +113,12 @@ void setupDisplays()
   digitalWrite(DSP2_CS_PIN, false);
   digitalWrite(DSP3_CS_PIN, false);
   digitalWrite(DSP4_CS_PIN, false);
-  digitalWrite(DSP5_CS_PIN, false);
   // IndicatorDSP0.clearScreen(GxEPD_WHITE);
   digitalWrite(DSP0_CS_PIN, true);
   digitalWrite(DSP1_CS_PIN, true);
   digitalWrite(DSP2_CS_PIN, true);
   digitalWrite(DSP3_CS_PIN, true);
   digitalWrite(DSP4_CS_PIN, true);
-  digitalWrite(DSP5_CS_PIN, true);
 
   delay(10);
 }
@@ -155,14 +130,12 @@ void drawDisplays()
   digitalWrite(DSP2_CS_PIN, false);
   digitalWrite(DSP3_CS_PIN, false);
   digitalWrite(DSP4_CS_PIN, false);
-  digitalWrite(DSP5_CS_PIN, false);
-  IndicatorDSP0.refresh();
+  IndicatorDSP4.refresh();
   digitalWrite(DSP0_CS_PIN, true);
   digitalWrite(DSP1_CS_PIN, true);
   digitalWrite(DSP2_CS_PIN, true);
   digitalWrite(DSP3_CS_PIN, true);
   digitalWrite(DSP4_CS_PIN, true);
-  digitalWrite(DSP5_CS_PIN, true);
 }
 
 // Draws a Battery to the specified display
@@ -171,7 +144,7 @@ void writeBattery(uint8_t displayNum, bool AAorD)
 {
   // Code needs to be updated to support multiple displays
   // displays[displayNum].fillScreen(GxEPD_WHITE);
-  if (displayNum < 2)
+  if (displayNum == 2 || displayNum == 3)
   {
     BlackCanvas.fillScreen(GxEPD_WHITE);
     RedCanvas.fillScreen(GxEPD_WHITE);
@@ -189,33 +162,46 @@ void writeBattery(uint8_t displayNum, bool AAorD)
 
   switch (displayNum)
   {
-  case 0:
-    ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
-    ArtDSP0.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 128, 256, true, false, false);
+  case 2:
+    ArtDSP2.writeScreenBuffer(GxEPD_WHITE);
+    ArtDSP2.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 128, 256, true, false, false);
     break;
-  case 1:
-    ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
-    ArtDSP1.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 128, 256, true, false, false);
+  case 3:
+    ArtDSP3.writeScreenBuffer(GxEPD_WHITE);
+    ArtDSP3.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 128, 256, true, false, false);
     break;
   }
 }
 
 // Draws the SerialNumber to dsp 0
-void writeSerialNum(String text)
+void writeSerialNum(String inText)
 {
-  StaticJsonDocument<60> doc(50);
-  doc["command"] = "serial";
-  doc["serial"] = text;
-  Serial1.println(serializeJson(doc, Serial));
+  inText.trim();
+  BlackCanvas.fillScreen(GxEPD_WHITE);
+  RedCanvas.fillScreen(GxEPD_WHITE);
+  BlackCanvas.setTextColor(GxEPD_BLACK);
+  RedCanvas.fillRect(0, 7, 250, 35, GxEPD_BLACK);
+  RedCanvas.fillRect(0, 94, 250, 35, GxEPD_BLACK);
+  BlackCanvas.setTextSize(1);
+  BlackCanvas.setFont(&FreeMonoBold24pt7b);
+  int16_t tbx, tby;
+  uint16_t tbw, tbh;
+  BlackCanvas.getTextBounds(inText, 0, 0, &tbx, &tby, &tbw, &tbh);
+  uint16_t x = ((BlackCanvas.width() - 45 - tbw) / 2) - tbx;
+  uint16_t y = ((BlackCanvas.height() + 6 - tbh) / 2) - tby;
+  BlackCanvas.setCursor(x, y);
+  BlackCanvas.print(inText);
+  SerialNumberDSP.writeScreenBuffer(GxEPD_WHITE);
+  SerialNumberDSP.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 128, 256, false, false, false);
 }
 
-// Draws the SerialNumber to dsp 0
-// Overload for a char array instead of a string
-void writeSerialNum(char intext[])
-{
-  String strtext = intext;
-  writeSerialNum(strtext);
-}
+// // Draws the SerialNumber to dsp 0
+// // Overload for a char array instead of a string
+// void writeSerialNum(string)
+// {
+//   char strtext[] = intext;
+//   writeSerialNum(strtext);
+// }
 
 // Draws a port to the specified display
 // Host is responsible for avoiding collisions, bad data will not be drawn but there might be a missing port caused by a collision
@@ -239,7 +225,7 @@ void writePort(uint8_t displayNum, byte activeports)
   // displays[displayNum].fillScreen(GxEPD_WHITE);
   const uint8_t VAL_TO_ADD = 67;
 
-  if (displayNum < 2)
+  if (displayNum == 2 || displayNum == 3)
   { // If the display number is on the Conductor node populate the display with the correct artwork
     BlackCanvas.fillScreen(GxEPD_WHITE);
     RedCanvas.fillScreen(GxEPD_WHITE);
@@ -296,21 +282,21 @@ void writePort(uint8_t displayNum, byte activeports)
     }
     switch (displayNum)
     {
-    case 0:
-      ArtDSP0.writeScreenBuffer(GxEPD_WHITE);
-      ArtDSP0.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 128, 256, false, false, false);
+    case 2:
+      ArtDSP2.writeScreenBuffer(GxEPD_WHITE);
+      ArtDSP2.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 122, 256, false, false, true);
       break;
-    case 1:
-      ArtDSP1.writeScreenBuffer(GxEPD_WHITE);
-      ArtDSP1.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 128, 256, false, false, false);
+    case 3:
+      ArtDSP3.writeScreenBuffer(GxEPD_WHITE);
+      ArtDSP3.writeImage(BlackCanvas.getBuffer(), RedCanvas.getBuffer(), 0, 0, 122, 256, false, false, true);
       break;
     }
   }
 }
 
-void writeIndicator(uint8_t indiNumber, bool lit, char *lbl)
+void writeIndicator(uint8_t indiNumber, bool lit, char lbl[3])
 {
-  if (indiNumber < 4)
+  if (indiNumber == 4 || indiNumber == 5)
   {
     BlackCanvas.fillScreen(GxEPD_WHITE);
     BlackCanvas.setCursor(-2, 98);
@@ -319,42 +305,17 @@ void writeIndicator(uint8_t indiNumber, bool lit, char *lbl)
     BlackCanvas.setTextSize(4);
     BlackCanvas.print(lbl);
   }
-  StaticJsonDocument<60> doc;
   switch (indiNumber)
   {
-  case 0:
-    IndicatorDSP0.writeScreenBuffer(GxEPD_WHITE);
-    IndicatorDSP0.writeImage(BlackCanvas.getBuffer(), NULL, 0, 0, 128, 256, false, false, false);
+  case 4:
+    IndicatorDSP4.writeScreenBuffer(GxEPD_WHITE);
+    IndicatorDSP4.writeImage(BlackCanvas.getBuffer(), NULL, 0, 0, 122, 256, false, false, false);
     digitalWrite(DSP0_LED_PIN, lit);
     break;
-  case 1:
-    IndicatorDSP1.writeScreenBuffer(GxEPD_WHITE);
-    IndicatorDSP1.writeImage(BlackCanvas.getBuffer(), NULL, 0, 0, 128, 256, false, false, false);
-    digitalWrite(DSP1_LED_PIN, lit);
-    break;
-  case 2:
-    IndicatorDSP2.writeScreenBuffer(GxEPD_WHITE);
-    IndicatorDSP2.writeImage(BlackCanvas.getBuffer(), NULL, 0, 0, 128, 256, false, false, false);
-    digitalWrite(DSP4_LED_PIN, lit);
-    break;
-  case 3:
-    IndicatorDSP3.writeScreenBuffer(GxEPD_WHITE);
-    IndicatorDSP3.writeImage(BlackCanvas.getBuffer(), NULL, 0, 0, 128, 256, false, false, false);
-    digitalWrite(DSP5_LED_PIN, lit);
-    break;
-  case 4:
-    doc["command"] = "indicator";
-    doc["display"] = 4;
-    doc["label"] = lbl;
-    doc["lit"] = lit;
-    Serial1.println(serializeJson(doc, Serial1));
-    break;
   case 5:
-    doc["command"] = "indicator";
-    doc["display"] = 5;
-    doc["label"] = lbl;
-    doc["lit"] = lit;
-    Serial1.println(serializeJson(doc, Serial1));
+    IndicatorDSP5.writeScreenBuffer(GxEPD_WHITE);
+    IndicatorDSP5.writeImage(BlackCanvas.getBuffer(), NULL, 0, 0, 122, 256, false, false, false);
+    digitalWrite(DSP1_LED_PIN, lit);
     break;
   }
 }
@@ -367,61 +328,21 @@ void clearEPDDSPS()
   digitalWrite(DSP2_CS_PIN, false);
   digitalWrite(DSP3_CS_PIN, false);
   digitalWrite(DSP4_CS_PIN, false);
-  digitalWrite(DSP5_CS_PIN, false);
-  IndicatorDSP1.clearScreen(GxEPD_WHITE);
+  IndicatorDSP4.clearScreen(GxEPD_WHITE);
   digitalWrite(DSP0_CS_PIN, true);
   digitalWrite(DSP1_CS_PIN, true);
   digitalWrite(DSP2_CS_PIN, true);
   digitalWrite(DSP3_CS_PIN, true);
   digitalWrite(DSP4_CS_PIN, true);
-  digitalWrite(DSP5_CS_PIN, true);
-
-  digitalWrite(DSP0_LED_PIN, false);
-  digitalWrite(DSP1_LED_PIN, false);
-  digitalWrite(DSP4_LED_PIN, false);
-  digitalWrite(DSP5_LED_PIN, false);
-
-  Serial1.println("{\"Clear\":\"All\"}");
-}
-
-void randomizeDSPS()
-{
-  for (int i = 6; i > 0; i--) {
-    indiMap[i-1] = 10;
-  } 
-  for (int i = 6; i > 0; i--) {
-    bool Stashed = false;
-    while (!Stashed) {
-      int r = random(4);
-      if (indiMap[r] == 10) {
-        indiMap[r] = i-1;
-        Stashed = true;
-      }
-    }
-  }
-  for (int i = 4; i > 0; i--) {
-    artMap[i-1] = 10;
-  }
-  for (int i = 4; i > 0; i--) {
-    bool Stashed = false;
-    while (!Stashed) {
-      int r = random(4);
-      if (artMap[r] == 10) {
-        artMap[r] = i-1;
-        Stashed = true;
-      }
-    }
-  }
 }
 
 // Determins what art to draw onto the display or to send that code to the follower device
 void processSideArt(uint8_t displayNum, byte artcode)
 {
-  StaticJsonDocument<60> doc(50);
   switch (displayNum)
   {
-  case 0:
-  case 1:
+  case 2:
+  case 3:
     // first bit equals art type Battery or Port
     // 0 = Battery
     // 1 = Port
@@ -447,131 +368,105 @@ void processSideArt(uint8_t displayNum, byte artcode)
       }
     }
     break;
-  case 2:
-    doc["command"] = "art";
-    doc["display"] = 2;
-    doc["artcode"] = artcode;
-    Serial1.println(serializeJson(doc, Serial1));
-    break;
-  case 3:
-    doc["command"] = "art";
-    doc["display"] = 3;
-    doc["artcode"] = artcode;
-    Serial1.println(serializeJson(doc, Serial1));
-    break;
   }
 }
 
-// Sends out our output buffer
-void requestEvent()
+
+enum command_type
 {
-  if (bytesToSend > 0)
-  {
-    Wire.write(outgoingI2CData, bytesToSend);
-  }
-  bytesToSend = 0;
-}
+  cmd_startup,
+  cmd_clear,
+  cmd_draw,
+  cmd_indicator,
+  cmd_art,
+  cmd_serial
+};
 
-// Copy the incoming data into our input buffer
-void receiveEvent(int numBytes)
+command_type commandHash(String const &inString)
 {
-  bytesReceived = numBytes;
-  for (int i = 0; i < numBytes; i++)
-  {
-    if (i > 10)
-    {
-      Wire.read();
-    }
-    else
-    {
-      incomeingI2CData[i] = Wire.read();
-    }
-  }
+  if (inString == "startup")
+    return cmd_startup;
+  if (inString == "clear")
+    return cmd_clear;
+  if (inString == "draw")
+    return cmd_draw;
+  if (inString == "serial")
+    return cmd_serial;
+  if (inString == "art")
+    return cmd_art;
+  if (inString == "indicator")
+    return cmd_indicator;
 }
 
-// Process the incoming data
-void I2CCommandProcessor()
-{
-  switch (incomeingI2CData[0] >> 4)
-  {
-  case 0x1: // Set
-    switch (incomeingI2CData[0] & 0xF)
-    {
-    case 0x0: // Set Serial Number
-      uint32_t command1 = 0x05000000 & (incomeingI2CData[1]);                                                                     // Construct command
-      uint32_t data1 = (incomeingI2CData[2]) << 24 & (incomeingI2CData[3] << 16) & (incomeingI2CData[4] << 8) & (incomeingI2CData[5]); // Construct data
-      uint32_t data2 = (incomeingI2CData[6]) << 24 & (incomeingI2CData[7] << 16) & (incomeingI2CData[8]) & (incomeingI2CData[9]); // Construct data
-      rp2040.fifo.push(command1);                                                                                                 // Send Command
-      rp2040.fifo.push(data1);                                                                                                    // Send Data
-      rp2040.fifo.push(data2);                                                                                                    // Send Data
-      break;
-    case 0x1: // Set Indicator
-      uint32_t command1 = 0x03000000 & (indiMap[indiNumber]) << 16); // Construct Command
-      uint32_t indicatorValue = (incomeingI2CData[1] << 24) & (incomeingI2CData[2] << 16) & (incomeingI2CData[3] << 8) & incomeingI2CData[4]; // Construct Indicator Value
-      rp2040.fifo.push(command1);                                                                                                 // Send Command
-      rp2040.fifo.push(indicatorValue);                                                                                           // Send Indicator Value
-      indiNumber++;
-      break;
-    case 0x2: // Set SideArt
-      uint32_t command1 = 0x04000000 & (artMap[artNumber] << 16) & (incomeingI2CData[1] << 8) ; // Construct command
-      rp2040.fifo.push(command1); // Send Command
-      artNumber++;
-      break;
-    }
-    break;
-
-  case 0x0: // Other Functions
-    switch (incomeingI2CData[0] & 0xF)
-    {
-    case 0x0: // Randomize Art DSP
-      randomizeDSPS();
-      break;
-    case 0x1:
-      rp2040.fifo.push(0x02000000); //Draw
-      break;
-    case 0x2:
-      rp2040.fifo.push(0x01000000); //Clear
-      artNumber = 0;
-      indiNumber = 0;
-      break;
-    }
-  }
-}
 
 void setup()
 {
-  // Seed random
-  randomSeed(analogRead(26));
-
-  // Start I2C Communications 
-  Wire.setSCL(CONTROLLER_I2C_SCL);
-  Wire.setSDA(CONTROLLER_I2C_SDA);
-  Wire.begin(I2C_ADDRESS);
-  Wire.onReceive(receiveEvent);
-  Wire.onRequest(requestEvent);
-}
-
-void setup1() {
-  // Set SPI Pins
-  SPI.setTX(EPD_MOSI_PIN);
-  SPI.setSCK(EPD_SCK_PIN);
- // Set S2S Serial
   Serial1.setTX(S2S_SERIAL_TX);
   Serial1.setRX(S2S_SERIAL_RX);
   Serial1.begin(S2S_SERIAL_SPEED);
+}
+
+void setup1()
+{
+  // Set SPI Pins
+  SPI.setTX(EPD_MOSI_PIN);
+  SPI.setSCK(EPD_SCK_PIN);
+  // Set S2S Serial
 
   BlackCanvas.setRotation(1);
   RedCanvas.setRotation(1);
-
-  // Tell remote to startup
-  Serial1.println("{\"command\":\"startup\"}");
-  // Startup Own Displays
-  setupDisplays();
 }
 
+DynamicJsonDocument doc(1024);
+bool newMessage = false;
 void loop()
 {
-  I2CCommandProcessor();
+  while (Serial1.available())
+  {
+    String SerialBuffer = Serial1.readStringUntil("\n");
+    deserializeJson(doc, SerialBuffer);
+    newMessage = true;
+  }
+  if (newMessage)
+  {
+    newMessage = false;
+    String command = doc["command"];
+    uint8_t display = doc["display"];
+    switch (commandHash(command))
+    {
+    case cmd_startup:
+      rp2040.fifo.push(0x00000000); // Startup
+      break;
+    case cmd_clear:
+      rp2040.fifo.push(0x01000000); // Clear
+      break;
+    case cmd_draw:
+      rp2040.fifo.push(0x02000000); // Draw
+      break;
+    case cmd_indicator:
+      uint32_t command1 = 0x03000000 & (display << 16); // Construct Command
+      bool lit = doc["lit"];
+      char lbl[3] = {doc["lbl"][0], doc["lbl"][1], doc["lbl"][2]};
+      uint32_t indicatorValue = (lit << 24) & (lbl[0] << 16) & (lbl[1] << 8) & lbl[2]; // Construct Indicator Value
+      rp2040.fifo.push(command1);                                                      // Send Command
+      rp2040.fifo.push(indicatorValue);                                                // Send Indicator Value
+      break;
+    case cmd_art:
+      uint8_t artValue = doc["artcode"];                                  // Get Artcode
+      uint32_t command1 = 0x04000000 & (display << 16) & (artValue << 8); // Construct command
+      rp2040.fifo.push(command1);                                         // Send Command
+      break;
+    case cmd_serial:
+      String serialValue = doc["serial"];                                                                                                 // Get Serial
+      uint32_t command1 = 0x05000000 & (serialValue.charAt(0));                                                                           // Construct command
+      uint32_t data1 = (serialValue.charAt(1)) << 24 & (serialValue.charAt(2) << 16) & (serialValue.charAt(3)) & (serialValue.charAt(4)); // Construct data
+      uint32_t data2 = (serialValue.charAt(5)) << 24 & (serialValue.charAt(6) << 16) & (serialValue.charAt(7)) & (serialValue.charAt(8)); // Construct data
+      rp2040.fifo.push(command1);                                                                                                         // Send Command
+      rp2040.fifo.push(data1);                                                                                                            // Send Data
+      rp2040.fifo.push(data2);                                                                                                            // Send Data
+      break;
+    }
+  }
 }
 
 void loop1()
