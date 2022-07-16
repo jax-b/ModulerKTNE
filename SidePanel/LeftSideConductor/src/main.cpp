@@ -203,7 +203,7 @@ void writeBattery(uint8_t displayNum, bool AAorD)
 // Draws the SerialNumber to dsp 0
 void writeSerialNum(String text)
 {
-  StaticJsonDocument<60> doc(50);
+  DynamicJsonDocument doc(60);
   doc["command"] = "serial";
   doc["serial"] = text;
   Serial1.println(serializeJson(doc, Serial));
@@ -319,7 +319,7 @@ void writeIndicator(uint8_t indiNumber, bool lit, char *lbl)
     BlackCanvas.setTextSize(4);
     BlackCanvas.print(lbl);
   }
-  StaticJsonDocument<60> doc;
+  DynamicJsonDocument doc(60);
   switch (indiNumber)
   {
   case 0:
@@ -417,7 +417,7 @@ void randomizeDSPS()
 // Determins what art to draw onto the display or to send that code to the follower device
 void processSideArt(uint8_t displayNum, byte artcode)
 {
-  StaticJsonDocument<60> doc(50);
+  DynamicJsonDocument doc(60);
   switch (displayNum)
   {
   case 0:
@@ -498,24 +498,30 @@ void I2CCommandProcessor()
     switch (incomeingI2CData[0] & 0xF)
     {
     case 0x0: // Set Serial Number
-      uint32_t command1 = 0x05000000 & (incomeingI2CData[1]);                                                                     // Construct command
-      uint32_t data1 = (incomeingI2CData[2]) << 24 & (incomeingI2CData[3] << 16) & (incomeingI2CData[4] << 8) & (incomeingI2CData[5]); // Construct data
-      uint32_t data2 = (incomeingI2CData[6]) << 24 & (incomeingI2CData[7] << 16) & (incomeingI2CData[8]) & (incomeingI2CData[9]); // Construct data
-      rp2040.fifo.push(command1);                                                                                                 // Send Command
-      rp2040.fifo.push(data1);                                                                                                    // Send Data
-      rp2040.fifo.push(data2);                                                                                                    // Send Data
+      {
+        uint32_t command1 = 0x05000000 & (incomeingI2CData[1]);                                                                     // Construct command
+        uint32_t data1 = (incomeingI2CData[2]) << 24 & (incomeingI2CData[3] << 16) & (incomeingI2CData[4] << 8) & (incomeingI2CData[5]); // Construct data
+        uint32_t data2 = (incomeingI2CData[6]) << 24 & (incomeingI2CData[7] << 16) & (incomeingI2CData[8]) & (incomeingI2CData[9]); // Construct data
+        rp2040.fifo.push(command1);                                                                                                 // Send Command
+        rp2040.fifo.push(data1);                                                                                                    // Send Data
+        rp2040.fifo.push(data2);                                                                                                    // Send Data
+      }
       break;
     case 0x1: // Set Indicator
-      uint32_t command1 = 0x03000000 & (indiMap[indiNumber]) << 16); // Construct Command
-      uint32_t indicatorValue = (incomeingI2CData[1] << 24) & (incomeingI2CData[2] << 16) & (incomeingI2CData[3] << 8) & incomeingI2CData[4]; // Construct Indicator Value
-      rp2040.fifo.push(command1);                                                                                                 // Send Command
-      rp2040.fifo.push(indicatorValue);                                                                                           // Send Indicator Value
-      indiNumber++;
+      {
+        uint32_t command1 = 0x03000000 & (indiMap[indiNumber] << 16); // Construct Command
+        uint32_t indicatorValue = (incomeingI2CData[1] << 24) & (incomeingI2CData[2] << 16) & (incomeingI2CData[3] << 8) & incomeingI2CData[4]; // Construct Indicator Value
+        rp2040.fifo.push(command1);                                                                                                 // Send Command
+        rp2040.fifo.push(indicatorValue);                                                                                           // Send Indicator Value
+        indiNumber++;
+      }
       break;
     case 0x2: // Set SideArt
-      uint32_t command1 = 0x04000000 & (artMap[artNumber] << 16) & (incomeingI2CData[1] << 8) ; // Construct command
-      rp2040.fifo.push(command1); // Send Command
-      artNumber++;
+      {
+        uint32_t command1 = 0x04000000 & (artMap[artNumber] << 16) & (incomeingI2CData[1] << 8) ; // Construct command
+        rp2040.fifo.push(command1); // Send Command
+        artNumber++;
+      }
       break;
     }
     break;

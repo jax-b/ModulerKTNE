@@ -379,7 +379,8 @@ enum command_type
   cmd_draw,
   cmd_indicator,
   cmd_art,
-  cmd_serial
+  cmd_serial,
+  cmd_bad
 };
 
 command_type commandHash(String const &inString)
@@ -396,6 +397,7 @@ command_type commandHash(String const &inString)
     return cmd_art;
   if (inString == "indicator")
     return cmd_indicator;
+  return cmd_bad;
 }
 
 
@@ -423,7 +425,7 @@ void loop()
 {
   while (Serial1.available())
   {
-    String SerialBuffer = Serial1.readStringUntil("\n");
+    String SerialBuffer = Serial1.readStringUntil('\n');
     deserializeJson(doc, SerialBuffer);
     newMessage = true;
   }
@@ -444,26 +446,32 @@ void loop()
       rp2040.fifo.push(0x02000000); // Draw
       break;
     case cmd_indicator:
-      uint32_t command1 = 0x03000000 & (display << 16); // Construct Command
-      bool lit = doc["lit"];
-      char lbl[3] = {doc["lbl"][0], doc["lbl"][1], doc["lbl"][2]};
-      uint32_t indicatorValue = (lit << 24) & (lbl[0] << 16) & (lbl[1] << 8) & lbl[2]; // Construct Indicator Value
-      rp2040.fifo.push(command1);                                                      // Send Command
-      rp2040.fifo.push(indicatorValue);                                                // Send Indicator Value
+      {
+        uint32_t command1 = 0x03000000 & (display << 16); // Construct Command
+        bool lit = doc["lit"];
+        char lbl[3] = {doc["lbl"][0], doc["lbl"][1], doc["lbl"][2]};
+        uint32_t indicatorValue = (lit << 24) & (lbl[0] << 16) & (lbl[1] << 8) & lbl[2]; // Construct Indicator Value
+        rp2040.fifo.push(command1);                                                      // Send Command
+        rp2040.fifo.push(indicatorValue);                                                // Send Indicator Value
+      }
       break;
     case cmd_art:
-      uint8_t artValue = doc["artcode"];                                  // Get Artcode
-      uint32_t command1 = 0x04000000 & (display << 16) & (artValue << 8); // Construct command
-      rp2040.fifo.push(command1);                                         // Send Command
+      {
+        uint8_t artValue = doc["artcode"];                                  // Get Artcode
+        uint32_t command1 = 0x04000000 & (display << 16) & (artValue << 8); // Construct command
+        rp2040.fifo.push(command1);                                         // Send Command
+      }
       break;
     case cmd_serial:
-      String serialValue = doc["serial"];                                                                                                 // Get Serial
-      uint32_t command1 = 0x05000000 & (serialValue.charAt(0));                                                                           // Construct command
-      uint32_t data1 = (serialValue.charAt(1)) << 24 & (serialValue.charAt(2) << 16) & (serialValue.charAt(3)) & (serialValue.charAt(4)); // Construct data
-      uint32_t data2 = (serialValue.charAt(5)) << 24 & (serialValue.charAt(6) << 16) & (serialValue.charAt(7)) & (serialValue.charAt(8)); // Construct data
-      rp2040.fifo.push(command1);                                                                                                         // Send Command
-      rp2040.fifo.push(data1);                                                                                                            // Send Data
-      rp2040.fifo.push(data2);                                                                                                            // Send Data
+      {
+        String serialValue = doc["serial"];                                                                                                 // Get Serial
+        uint32_t command1 = 0x05000000 & (serialValue.charAt(0));                                                                           // Construct command
+        uint32_t data1 = (serialValue.charAt(1)) << 24 & (serialValue.charAt(2) << 16) & (serialValue.charAt(3)) & (serialValue.charAt(4)); // Construct data
+        uint32_t data2 = (serialValue.charAt(5)) << 24 & (serialValue.charAt(6) << 16) & (serialValue.charAt(7)) & (serialValue.charAt(8)); // Construct data
+        rp2040.fifo.push(command1);                                                                                                         // Send Command
+        rp2040.fifo.push(data1);                                                                                                            // Send Data
+        rp2040.fifo.push(data2);                                                                                                            // Send Data
+      }
       break;
     }
   }
