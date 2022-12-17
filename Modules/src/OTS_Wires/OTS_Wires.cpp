@@ -124,12 +124,12 @@ void OTS_Wires::cutWire(uint8_t buttonNumber){
 void OTS_Wires::tickModule(uint16_t currentGameTime)
 {
     // Debounce Buttons
-    OTS_Wires::processButtons();
+    this->processButtons();
     // Check to see if a button was pressed
     for (uint8_t buttonNumber = 0; buttonNumber < 6; buttonNumber++){
         if (buttonStates[buttonNumber] == true) {
             // Trigger a wire cut for that button
-            OTS_Wires::cutWire(buttonNumber);
+            this->cutWire(buttonNumber);
         }
     }
 

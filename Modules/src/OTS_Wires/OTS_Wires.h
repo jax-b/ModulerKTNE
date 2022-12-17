@@ -11,6 +11,7 @@
 #define WIRE_BUTTON_PIN_4 5
 #define WIRE_BUTTON_PIN_5 6
 #define WIRE_BUTTON_PIN_6 7
+
 const uint32_t PROGMEM WIRE_COLOR[6] = {
     0x00000000, // OFF/No Wire
     0x00FFFFFF, // White

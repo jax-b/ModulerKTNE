@@ -11,10 +11,12 @@ using namespace std;
 // ********************************
 // #include "basemodule/basemodule.h"
 // BaseModule mod = BaseModule();
-#include "OTS_Button/OTS_Button.h"
-OTS_Button mod = OTS_Button();
+// #include "OTS_Button/OTS_Button.h"
+// OTS_Button mod = OTS_Button();
 // #include "OTS_Wires/OTS_Wires.h"
 // OTS_Wires mod = OTS_Wires();
+#include "OTS_Simon/OTS_Simon.h"
+OTS_Simon mod = OTS_Simon();
 
 
 // *************** External Communications Controller/Player *****************
