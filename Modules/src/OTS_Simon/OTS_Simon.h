@@ -1,4 +1,4 @@
-#include "..\baseModule\baseModule.h"
+#include "../baseModule/baseModule.h"
 #include <Adafruit_NeoPixel.h>
 
 #define GREEN_LED_PIN 10

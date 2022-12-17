@@ -1,5 +1,7 @@
+using namespace std;
 #include <Arduino.h>
 #include <Wire.h>
+#include <SPI.h>
 
 #define DEBUG_MODE true
 //#define DEBUG_MODE_TIMER
@@ -11,24 +13,15 @@
 // BaseModule mod = BaseModule();
 #include "OTS_Button\OTS_Button.h"
 OTS_Button mod = OTS_Button();
+// #include "OTS_Wires/OTS_Wires.h"
+// OTS_Wires mod = OTS_Wires();
 
 // *************** External Communications Controller/Player *****************
-/// Pins 32u4
-#ifdef __AVR_ATmega32U4__
-#define AddressInPin 26
-#define SuccessLEDPin 8
-#define FailureLEDPin 9
-#define S2MInteruptPin 4
-#define RandSorcePin 27
-#endif
-// Pins Pico
-#ifdef ARDUINO_ARCH_RP2040
 #define AddressInPin A0
 #define RandSorcePin 27
 #define SuccessLEDPin 8
 #define FailureLEDPin 9
 #define S2MInteruptPin 4
-#endif
 
 /// Timekeeping variables for external pins for their reset
 unsigned long S2MInteruptCallTime = 0;
@@ -36,10 +29,10 @@ unsigned long FailureLEDCallTime = 0;
 bool GamePlayLockout = 0;
 
 /// Buffers and data tracking for I2C communication
-byte incomeingI2CData[10];
-byte outgoingI2CData[10];
-uint8_t bytesToSend = 0;
-uint8_t bytesReceived = 0;
+uint8_t incomeingI2CData[10];
+uint8_t outgoingI2CData[10];
+uint8_t uint8_tsToSend = 0;
+uint8_t uint8_tsReceived = 0;
 // **********************************************************************
 
 // In side of the desired module use the following to acctivate the timer
@@ -63,7 +56,7 @@ uint16_t gameplaySeed = 0;
 uint8_t gameplayNumBattery = 0;
 /// There is only six possible ports in the game and they have a bit possition assigned to them.
 /// See reference chart in typed notes for more information about which is which
-byte gameplayPorts = 0;
+uint8_t gameplayPorts = 0;
 /// Timekeeping and gameplay variables
 unsigned long gameplayCountdownTime = 0;
 bool gameplayTimerRunning = false;
@@ -235,23 +228,23 @@ void decrementCounter()
 // Sends out our output buffer
 void requestEvent()
 {
-    if (bytesToSend > 0)
+    if (uint8_tsToSend > 0)
     {
 #ifdef DEBUG_MODE
         Serial.print("Sending: ");
-        Serial.println(bytesToSend);
+        Serial.println(uint8_tsToSend);
 #endif
 
-        for (size_t i = 0; i < bytesToSend; i++)
+        for (size_t i = 0; i < uint8_tsToSend; i++)
         {
 #ifdef __AVR_ATmega32U4__
-            Wire.write(outgoingI2CData, bytesToSend);
+            Wire.write(outgoingI2CData, uint8_tsToSend);
 #endif
 #ifdef ARDUINO_ARCH_RP2040
-            Wire1.write(outgoingI2CData, bytesToSend);
+            Wire1.write(outgoingI2CData, uint8_tsToSend);
 #endif
         }
-        bytesToSend = 0;
+        uint8_tsToSend = 0;
     }
 #ifdef ARDUINO_ARCH_RP2040
     else
@@ -263,13 +256,13 @@ void requestEvent()
 }
 
 // Copy the incoming data into our input buffer
-void receiveEvent(int numBytes)
+void receiveEvent(int numuint8_ts)
 {
 #ifdef DEBUG_MODE
     Serial.print("Received: ");
-    Serial.println(numBytes);
+    Serial.println(numuint8_ts);
 #endif
-    for (int i = 0; i < numBytes; i++)
+    for (int i = 0; i < numuint8_ts; i++)
     {
         if (i > 10)
         {
@@ -302,7 +295,7 @@ void receiveEvent(int numBytes)
 #endif
         }
     }
-    bytesReceived = numBytes;
+    uint8_tsReceived = numuint8_ts;
 #ifdef DEBUG_MODE
     Serial.println();
 #endif
@@ -418,8 +411,8 @@ void I2CCommandProcessor()
         {
         // Set solved status
         case 0x1:
-            // greater than 1 bytes because bytes received includes the command byte
-            if (bytesReceived > 1)
+            // greater than 1 uint8_ts because uint8_ts received includes the command uint8_t
+            if (uint8_tsReceived > 1)
             {
                 gameplayModuleSolved = incomeingI2CData[1];
 #ifdef DEBUG_MODE
@@ -460,9 +453,9 @@ void I2CCommandProcessor()
             break;
         // Sync Time between the module and the device
         case 0x2:
-            // Time should be a unsigned long so 4 bytes
-            // greater than 4 bytes because bytes received includes the command byte
-            if (bytesReceived > 4)
+            // Time should be a unsigned long so 4 uint8_ts
+            // greater than 4 uint8_ts because uint8_ts received includes the command uint8_t
+            if (uint8_tsReceived > 4)
             {
                 uint16_t data34 = incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 unsigned long data12 = incomeingI2CData[1] << 8 | incomeingI2CData[2];
@@ -475,9 +468,9 @@ void I2CCommandProcessor()
             break;
         // Set Strike Rate
         case 0x3:
-            // Reduction Rate should be a float so 4 bytes
-            // greater than 4 bytes because bytes received includes the command byte
-            if (bytesReceived > 4)
+            // Reduction Rate should be a float so 4 uint8_ts
+            // greater than 4 uint8_ts because uint8_ts received includes the command uint8_t
+            if (uint8_tsReceived > 4)
             {
                 uint16_t data34 = incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 unsigned long data12 = incomeingI2CData[1] << 8 | incomeingI2CData[2];
@@ -491,10 +484,10 @@ void I2CCommandProcessor()
         // Set Serial Number
         case 0x4:
             // Serial Number should be a String max 8 char;
-            // greater than 8 bytes because bytes received includes the command byte
-            if (bytesReceived > GAMEPLAYSERIALNUMBERLENGTH)
+            // greater than 8 uint8_ts because uint8_ts received includes the command uint8_t
+            if (uint8_tsReceived > GAMEPLAYSERIALNUMBERLENGTH)
             {
-                for (int i = 0; i < bytesReceived && i < GAMEPLAYSERIALNUMBERLENGTH; i++)
+                for (int i = 0; i < uint8_tsReceived && i < GAMEPLAYSERIALNUMBERLENGTH; i++)
                 {
                     gameplaySerialNumber[i] = (char)incomeingI2CData[i + 1];
                 }
@@ -508,10 +501,10 @@ void I2CCommandProcessor()
         // Set LitIndicator
         case 0x5:
             // Lit Indicator should be a string of 3 char
-            // greater than 3 bytes because bytes received includes the command byte
-            if (bytesReceived > 3)
+            // greater than 3 uint8_ts because uint8_ts received includes the command uint8_t
+            if (uint8_tsReceived > 3)
             {
-                for (int i = 0; i < bytesReceived && i < 3; i++)
+                for (int i = 0; i < uint8_tsReceived && i < 3; i++)
                 {
                     gameplayLitIndicators[gameplayLitIndicatorCount][i] = (char)incomeingI2CData[i + 1];
                 }
@@ -536,9 +529,9 @@ void I2CCommandProcessor()
             break;
         // Set Number of Batteries
         case 0x6:
-            // Number of Batteries should be a byte
-            // greater than 1 bytes because bytes received includes the command byte
-            if (bytesReceived > 1)
+            // Number of Batteries should be a uint8_t
+            // greater than 1 uint8_ts because uint8_ts received includes the command uint8_t
+            if (uint8_tsReceived > 1)
             {
                 gameplayNumBattery = incomeingI2CData[1];
                 mod.setBatteries(gameplayNumBattery);
@@ -550,9 +543,9 @@ void I2CCommandProcessor()
             break;
         // Set Active Ports
         case 0x7:
-            // Port Identities should be a byte
-            // greater than 1 bytes because bytes received includes the command byte
-            if (bytesReceived > 1)
+            // Port Identities should be a uint8_t
+            // greater than 1 uint8_ts because uint8_ts received includes the command uint8_t
+            if (uint8_tsReceived > 1)
             {
                 gameplayPorts = incomeingI2CData[1];
                 mod.setPorts(gameplayPorts);
@@ -564,9 +557,9 @@ void I2CCommandProcessor()
             break;
         // Set Seed
         case 0x8:
-            // Seed should be 2 bytes
-            // greater than 2 bytes because bytes received includes the command byte
-            if (bytesReceived > 2)
+            // Seed should be 2 uint8_ts
+            // greater than 2 uint8_ts because uint8_ts received includes the command uint8_t
+            if (uint8_tsReceived > 2)
             {
                 gameplaySeed = incomeingI2CData[1] << 8 | incomeingI2CData[2];
                 mod.setSeed(gameplaySeed);
@@ -586,20 +579,20 @@ void I2CCommandProcessor()
         {
         // Get the modules ID
         case 0x1:
-            bytesToSend = 3;
-            for (int i = 0; i < bytesToSend; i++)
+            uint8_tsToSend = 3;
+            for (int i = 0; i < uint8_tsToSend; i++)
             {
                 outgoingI2CData[i] = mod.getModuleName()[i];
             }
             break;
         // Get the Solved Status
         case 0x2:
-            bytesToSend = 1;
+            uint8_tsToSend = 1;
             outgoingI2CData[0] = gameplayModuleSolved;
             break;
         }
     }
-    bytesReceived = 0;
+    uint8_tsReceived = 0;
 }
 
 void setup()
@@ -715,7 +708,7 @@ void loop()
         }
     }
 
-    if (bytesReceived != 0)
+    if (uint8_tsReceived != 0)
     {
         I2CCommandProcessor();
     }

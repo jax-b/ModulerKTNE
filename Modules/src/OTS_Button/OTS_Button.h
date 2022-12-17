@@ -1,4 +1,4 @@
-#include "..\baseModule\baseModule.h"
+#include "../baseModule/baseModule.h"
 #include <Adafruit_NeoPixel.h>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold12pt7b.h>
