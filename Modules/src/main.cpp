@@ -1,71 +1,4 @@
-using namespace std;
-#include <Arduino.h>
-#include <Wire.h>
-#include <SPI.h>
-
-#define DEBUG_MODE true
-//#define DEBUG_MODE_TIMER
-
-// ********************************
-// Include the type of module that we use
-// ********************************
-// #include "basemodule\basemodule.h"
-// BaseModule mod = BaseModule();
-#include "OTS_Button\OTS_Button.h"
-OTS_Button mod = OTS_Button();
-// #include "OTS_Wires/OTS_Wires.h"
-// OTS_Wires mod = OTS_Wires();
-
-// *************** External Communications Controller/Player *****************
-#define AddressInPin A0
-#define RandSorcePin 27
-#define SuccessLEDPin 8
-#define FailureLEDPin 9
-#define S2MInteruptPin 4
-
-/// Timekeeping variables for external pins for their reset
-unsigned long S2MInteruptCallTime = 0;
-unsigned long FailureLEDCallTime = 0;
-bool GamePlayLockout = 0;
-
-/// Buffers and data tracking for I2C communication
-uint8_t incomeingI2CData[10];
-uint8_t outgoingI2CData[10];
-uint8_t uint8_tsToSend = 0;
-uint8_t uint8_tsReceived = 0;
-// **********************************************************************
-
-// In side of the desired module use the following to acctivate the timer
-// #define TIMER_ENABLE True
-
-// ************** Default Variable Sizes ******************
-#define GAMEPLAYSERIALNUMBERLENGTH 8
-#define GAMEPLAYMAXLITINDICATOR 6
-
-// *************** Gameplay Variables *****************
-// the specific module  might not use the following variables but they will get set
-// by the master controller so we want to keep trac of them for the module specific code
-/// each run will have a serial number that is used in that run
-char gameplaySerialNumber[GAMEPLAYSERIALNUMBERLENGTH];
-/// The device can have a number of lit indicators on the sides but gameplay only cares if they are lit
-char gameplayLitIndicators[GAMEPLAYMAXLITINDICATOR][3];
-uint8_t gameplayLitIndicatorCount = 0;
-/// Most modules will have a seed that it can be set to in order to load a specific module configuration
-uint16_t gameplaySeed = 0;
-/// Number of battery's that esists on the entire device
-uint8_t gameplayNumBattery = 0;
-/// There is only six possible ports in the game and they have a bit possition assigned to them.
-/// See reference chart in typed notes for more information about which is which
-uint8_t gameplayPorts = 0;
-/// Timekeeping and gameplay variables
-unsigned long gameplayCountdownTime = 0;
-bool gameplayTimerRunning = false;
-float gameplayStrikeReductionRate = 0.25;
-/// All most modules will have a state that they can be set to
-/// if a module is failed it will be set to a negative number
-/// it will decrement by 1 each time it is failed
-int8_t gameplayModuleSolved = 0;
-// ****************************************************
+#include "main.h"
 
 // I2C from AIN Address Table
 uint8_t convertToAddress(uint16_t addrVIn)
@@ -161,8 +94,6 @@ void FlagModuleFailed()
 }
 
 #ifdef TIMER_ENABLE
-unsigned long timekeeperLastRun = 0;
-uint8_t textraCount = 0;
 // Updates to defused time of the module
 void decrementCounter()
 {
@@ -230,86 +161,58 @@ void requestEvent()
 {
     if (uint8_tsToSend > 0)
     {
-#ifdef DEBUG_MODE
+
         Serial.print("Sending: ");
         Serial.println(uint8_tsToSend);
-#endif
 
         for (size_t i = 0; i < uint8_tsToSend; i++)
         {
-#ifdef __AVR_ATmega32U4__
-            Wire.write(outgoingI2CData, uint8_tsToSend);
-#endif
-#ifdef ARDUINO_ARCH_RP2040
             Wire1.write(outgoingI2CData, uint8_tsToSend);
-#endif
         }
         uint8_tsToSend = 0;
     }
-#ifdef ARDUINO_ARCH_RP2040
     else
     {
 
         Wire1.write(0xFF);
     }
-#endif
 }
 
 // Copy the incoming data into our input buffer
 void receiveEvent(int numuint8_ts)
 {
-#ifdef DEBUG_MODE
+
     Serial.print("Received: ");
     Serial.println(numuint8_ts);
-#endif
     for (int i = 0; i < numuint8_ts; i++)
     {
         if (i > 10)
         {
-#ifdef __AVR_ATmega32U4__
-            Wire.read();
-#endif
-#ifdef ARDUINO_ARCH_RP2040
             Wire1.read();
-#endif
         }
         else
         {
-#ifdef DEBUG_MODE
-#ifdef __AVR_ATmega32U4__
-            uint8_t wirein = Wire.read();
-#endif
-#ifdef ARDUINO_ARCH_RP2040
             uint8_t wirein = Wire1.read();
-#endif
             Serial.print(wirein, HEX);
             Serial.print(" ");
             incomeingI2CData[i] = wirein;
-#else
-#ifdef __AVR_ATmega32U4__
-            incomeingI2CData[i] = Wire.read();
-#endif
-#ifdef ARDUINO_ARCH_RP2040
+
             incomeingI2CData[i] = Wire1.read();
-#endif
-#endif
         }
     }
     uint8_tsReceived = numuint8_ts;
-#ifdef DEBUG_MODE
+
     Serial.println();
-#endif
 }
 
 // Processe a command from the controller and if necessary copy data into the output buffer
 void I2CCommandProcessor()
 {
-#ifdef DEBUG_MODE
+
     Serial.print("I2C cmdgroup:");
     Serial.print(incomeingI2CData[0] >> 4, HEX);
     Serial.print(", cmd:");
     Serial.println(incomeingI2CData[0] & 0xF, HEX);
-#endif
     switch (incomeingI2CData[0] >> 4)
     {
     case 0x4:
@@ -317,9 +220,8 @@ void I2CCommandProcessor()
         {
         case 0x0: // Stop
             gameplayTimerRunning = false;
-#ifdef DEBUG_MODE
+
             Serial.println("Game Stoped");
-#endif
             break;
 
         default:
@@ -337,9 +239,8 @@ void I2CCommandProcessor()
                 gameplaySeed = random(1, 65535);
                 mod.setSeed(gameplaySeed);
             }
-#ifdef DEBUG_MODE
+
             Serial.println("Game Started");
-#endif
             break;
 
         default:
@@ -357,9 +258,8 @@ void I2CCommandProcessor()
                 gameplaySerialNumber[i] = '\0';
             }
             mod.setSerialNumber(gameplaySerialNumber);
-#ifdef DEBUG_MODE
+
             Serial.println("Serial Number Cleared");
-#endif
             break;
         // Clear LitIndicators
         case 0x5:
@@ -372,34 +272,30 @@ void I2CCommandProcessor()
                 }
             }
             mod.setIndicators(gameplayLitIndicators);
-#ifdef DEBUG_MODE
+
             Serial.println("Lit Indicators Cleared");
-#endif
             break;
         // Clear Number Batteries
         case 0x6:
             gameplayNumBattery = 0;
             mod.setBatteries(gameplayNumBattery);
-#ifdef DEBUG_MODE
+
             Serial.println("Number Batteries Cleared");
-#endif
             break;
         // Clear Port Identities
         case 0x7:
             gameplayPorts = 0x0;
             mod.setPorts(gameplayPorts);
-#ifdef DEBUG_MODE
+
             Serial.println("Port Identities Cleared");
-#endif
             break;
         // Clear Seed
         case 0x8:
             gameplaySeed = 0;
             mod.setSeed(gameplaySeed);
             mod.clearModule();
-#ifdef DEBUG_MODE
+
             Serial.println("Seed Cleared");
-#endif
             break;
         default:
             break;
@@ -415,10 +311,9 @@ void I2CCommandProcessor()
             if (uint8_tsReceived > 1)
             {
                 gameplayModuleSolved = incomeingI2CData[1];
-#ifdef DEBUG_MODE
+
                 Serial.print("SolvedStat: ");
                 Serial.println(gameplayModuleSolved);
-#endif
                 if (gameplayModuleSolved > 0)
                 {
                     gameplayModuleSolved = 1;
@@ -460,10 +355,9 @@ void I2CCommandProcessor()
                 uint16_t data34 = incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 unsigned long data12 = incomeingI2CData[1] << 8 | incomeingI2CData[2];
                 gameplayCountdownTime = data12 << 16 | data34;
-#ifdef DEBUG_MODE
+
                 Serial.print("SyncTime: ");
                 Serial.println(gameplayCountdownTime);
-#endif
             }
             break;
         // Set Strike Rate
@@ -475,10 +369,9 @@ void I2CCommandProcessor()
                 uint16_t data34 = incomeingI2CData[3] << 8 | incomeingI2CData[4];
                 unsigned long data12 = incomeingI2CData[1] << 8 | incomeingI2CData[2];
                 gameplayStrikeReductionRate = data12 << 16 | data34;
-#ifdef DEBUG_MODE
+
                 Serial.print("StrikeRate: ");
                 Serial.println(gameplayStrikeReductionRate);
-#endif
             }
             break;
         // Set Serial Number
@@ -492,10 +385,9 @@ void I2CCommandProcessor()
                     gameplaySerialNumber[i] = (char)incomeingI2CData[i + 1];
                 }
                 mod.setSerialNumber(gameplaySerialNumber);
-#ifdef DEBUG_MODE
+
                 Serial.print("SerialNumber: ");
                 Serial.println(gameplaySerialNumber);
-#endif
             }
             break;
         // Set LitIndicator
@@ -513,7 +405,7 @@ void I2CCommandProcessor()
                     gameplayLitIndicatorCount++;
                 }
                 mod.setIndicators(gameplayLitIndicators);
-#ifdef DEBUG_MODE
+
                 Serial.print("LitIndicators: {");
                 for (uint8_t i = 0; i < gameplayLitIndicatorCount; i++)
                 {
@@ -524,7 +416,6 @@ void I2CCommandProcessor()
                     Serial.print(", ");
                 }
                 Serial.println("}");
-#endif
             }
             break;
         // Set Number of Batteries
@@ -535,10 +426,9 @@ void I2CCommandProcessor()
             {
                 gameplayNumBattery = incomeingI2CData[1];
                 mod.setBatteries(gameplayNumBattery);
-#ifdef DEBUG_MODE
+
                 Serial.print("NumBattery: ");
                 Serial.println(gameplayNumBattery);
-#endif
             }
             break;
         // Set Active Ports
@@ -549,10 +439,9 @@ void I2CCommandProcessor()
             {
                 gameplayPorts = incomeingI2CData[1];
                 mod.setPorts(gameplayPorts);
-#ifdef DEBUG_MODE
+
                 Serial.print("Ports: ");
                 Serial.println(gameplayPorts);
-#endif
             }
             break;
         // Set Seed
@@ -563,10 +452,9 @@ void I2CCommandProcessor()
             {
                 gameplaySeed = incomeingI2CData[1] << 8 | incomeingI2CData[2];
                 mod.setSeed(gameplaySeed);
-#ifdef DEBUG_MODE
+
                 Serial.print("Seed: ");
                 Serial.println(gameplaySeed);
-#endif
             }
             break;
         default:
@@ -597,13 +485,11 @@ void I2CCommandProcessor()
 
 void setup()
 {
-#ifdef DEBUG_MODE
+
     Serial.begin(115200);
-    while (!Serial)
-        ; // wait for serial port to connect.
+    // while (!Serial); // wait for serial port to connect.
     delay(500);
     Serial.println("Serial Connected");
-#endif
     // Setup LED's
     pinMode(SuccessLEDPin, OUTPUT);
     pinMode(FailureLEDPin, OUTPUT);
@@ -618,32 +504,19 @@ void setup()
 
     // Setup I2C
     // Start Listening for address
-#ifdef __AVR_ATmega32U4__
-    Wire.begin(convertToAddress(analogRead(AddressInPin)));
-#ifdef DEBUG_MODE
-    Serial.print("I2C Listening on ADDR: ");
-    Serial.println(convertToAddress(analogRead(AddressInPin)), HEX);
-#endif
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
-#endif
 
-#ifdef ARDUINO_ARCH_RP2040
-#ifdef DEBUG_MODE
     Serial.println("RP2040 Set SPI TX");
-#endif
     SPI.setTX(23);
-#ifdef DEBUG_MODE
+
     Serial.println("RP2040 Set SPI CLK");
-#endif
     SPI.setSCK(22);
-#ifdef DEBUG_MODE
+
     Serial.println("RP2040 Set Wire SCL");
-#endif
     Wire1.setSCL(3);
-#ifdef DEBUG_MODE
+
     Serial.println("RP2040 Set Wire SDA");
-#endif
     Wire1.setSDA(2);
 
     uint8_t address = convertToAddress(analogRead(AddressInPin)/4);
@@ -652,18 +525,13 @@ void setup()
         digitalWrite(FailureLEDPin, HIGH);
         while(true);
     }
-#ifdef DEBUG_MODE
     
     Serial.print("I2C Listening on ADDR: ");
     Serial.println(address, HEX);
     Wire1.begin(address);
-#else
-    Wire1.begin(address);
-#endif
 
     Wire1.onReceive(receiveEvent);
     Wire1.onRequest(requestEvent);
-#endif
 
     mod.setupModule();
 

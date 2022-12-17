@@ -3,19 +3,18 @@ using namespace std;
 #include <Wire.h>
 #include <SPI.h>
 
-#include "OTS_Wires/OTS_Wires.h"
-OTS_Wires mod = OTS_Wires();
-
-#define DEBUG_MODE true
 //#define DEBUG_MODE_TIMER
+#define TIMER_ENABLE
 
 // ********************************
 // Include the type of module that we use
 // ********************************
 // #include "basemodule/basemodule.h"
 // BaseModule mod = BaseModule();
-// #include "OTS_Button/OTS_Button.h"
-// OTS_Button mod = OTS_Button();
+#include "OTS_Button/OTS_Button.h"
+OTS_Button mod = OTS_Button();
+// #include "OTS_Wires/OTS_Wires.h"
+// OTS_Wires mod = OTS_Wires();
 
 
 // *************** External Communications Controller/Player *****************

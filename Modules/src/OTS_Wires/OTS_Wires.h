@@ -40,5 +40,5 @@ protected:
     unsigned long lastDebounceTime[6] = {0, 0, 0, 0, 0, 0};
 
     void processButtons();
-    void OTS_Wires::cutWire(uint8_t buttonNumber);
+    void cutWire(uint8_t buttonNumber);
 };
