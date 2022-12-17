@@ -74,6 +74,15 @@ void OTS_Simon::resetLEDs()
     }
 }
 
+void OTS_Simon::clearModule() {
+    OTS_Simon::seed = 0;
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        digitalWrite(LEDOrder[i], LOW);
+    }
+    noTone(TONE_PIN);
+}
+
 void OTS_Simon::playSequence()
 {
     if (OTS_Simon::sequencePosition >= OTS_Simon::sequenceLength)

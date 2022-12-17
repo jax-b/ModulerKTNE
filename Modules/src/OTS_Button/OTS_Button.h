@@ -34,7 +34,7 @@ public:
     virtual void tickModule(unsigned long);
     virtual void clearModule();
 
-protected:
+private:
     uint8_t buttonColor = 0x0;
     uint8_t stripColor = 0x0;
     uint32_t stripColorHex = 0x0;
@@ -42,15 +42,15 @@ protected:
     // only 4 possible words, placing them into an array then using the seed to choose which word will be displayed
     Adafruit_NeoPixel *_pixels;
     GxEPD2_BW<GxEPD2_154_D67, 32> _display = GxEPD2_154_D67(EPD_CS, EPD_DC, -1, EPD_BUSY);
-
-private:
     unsigned long timeLastBtn = 0;
     bool lastBTNState = 0;
-    void relHeldButton(unsigned long);
-    uint16_t btnDebounce();
-    bool drawScreen = false;
     uint16_t textX = 0;
     uint16_t textY = 0;
     String strChosenWord = "";
+    bool drawScreen = false;
     bool failureBTNReset = false;
+    
+protected:
+    void relHeldButton(unsigned long);
+    uint16_t btnDebounce();
 };

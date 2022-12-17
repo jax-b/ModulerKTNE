@@ -2,6 +2,11 @@
 // #define PCBVERSION_1_1
 
 
+#define GREEN_TONE_HZ 765
+#define RED_TONE_HZ 535
+#define BLUE_TONE_HZ 645
+#define YELLOW_TONE_HZ 850
+
 #include <arduino.h>
 #ifdef PCBVERSION_1_01
 #define AddressInPin 26
@@ -43,6 +48,7 @@
 
 const uint8_t ButtonOrder[] = {GreenButton, RedButton, BlueButton, YellowButton};
 const uint8_t LEDOrder[] = {GreenLED, RedLED, BlueLED, YellowLED};
+const uint16_t ToneOrder[] = {GREEN_TONE_HZ, RED_TONE_HZ, BLUE_TONE_HZ, YELLOW_TONE_HZ};
 bool buttonStates[] = {0, 0, 0, 0};
 bool buttonStatesFlicker[] = {0, 0, 0, 0};
 unsigned long lastDebounceTime[] = {0, 0, 0, 0};
@@ -136,7 +142,7 @@ void debounce(int ButtonNumber)
     if ((millis() - lastDebounceTime[ButtonNumber]) > DEBOUNCE_DELAY)
     {
         // save the the last state
-        buttonStates[ButtonNumber] = currentState;
+        buttonStates[ButtonNumber] = !currentState;
     }
 }
 
@@ -213,7 +219,7 @@ void setup()
     #ifdef PCBVERSION_1_1
     digitalWrite(AudioShutdown, false); 
     #endif
-    float frq = 100;
+    float frq = 500;
     for (uint8_t i = 0; i < 8; i++)
     {
         Serial.print(frq);
@@ -227,16 +233,48 @@ void setup()
     #ifdef PCBVERSION_1_1
     digitalWrite(AudioShutdown, true); 
     #endif
+    Serial.println("Switching to maunual mode");
 }
-
+bool toneplaying = false;
+uint8_t lastButtonPushed = 0;
 void loop()
 {
     for (int i = 0; i < 4; i++)
     {
         debounce(i);
     }
+    uint8_t btnpushed = 10;
+    // Check for a button being pushed then light up the LED and store which button was pushed
     for (int i = 0; i < 4; i++)
     {
-        digitalWrite(LEDOrder[i], !buttonStates[i]);
+        if (buttonStates[i] == HIGH)
+        {
+            digitalWrite(LEDOrder[i], HIGH);
+            btnpushed = i;
+        } else {
+            digitalWrite(LEDOrder[i], LOW);
+        }
+    }
+    // If no button was detected being pushed turn off the tone 
+    if (btnpushed == 10) {
+        toneplaying = false;
+        noTone(AudioOut);
+    } else {
+        // if a button was pushed and a tone is not playing play the tone
+        if (toneplaying == false) {
+            // Play the tone ans store the last button
+            toneplaying = true;
+            tone(AudioOut, ToneOrder[btnpushed]);
+            lastButtonPushed = btnpushed;
+        } else {
+            // Else if the tone is playing and a different button was pushed than previously play the tone for the new button
+            if (btnpushed != lastButtonPushed)
+            {
+                toneplaying = true;
+                noTone(AudioOut);
+                tone(AudioOut, ToneOrder[btnpushed]);
+                lastButtonPushed = btnpushed;
+            }
+        }
     }
 }

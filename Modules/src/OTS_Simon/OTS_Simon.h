@@ -12,7 +12,7 @@
 #define BLUE_TONE_HZ 645
 #define YELLOW_LED_PIN 5
 #define YELLOW_BUTTON_PIN 6 
-#define YELLOW_TONE_HZ 990
+#define YELLOW_TONE_HZ 850
 #define TONE_PIN 3
 
 // vowel, strike, position
@@ -77,8 +77,9 @@ public:
     virtual void setupModule();
     virtual void setSeed(uint16_t);
     virtual void tickModule(uint16_t);
+    virtual void clearModule();
 
-protected:
+private:
     bool buttonStates[4] = {0, 0, 0, 0};
     bool buttonStatesFlicker[4] = {0, 0, 0, 0};
     unsigned long lastDebounceTime[4] = {0, 0, 0, 0};
@@ -92,7 +93,7 @@ protected:
     uint8_t PlayerEntrys[4] = {0, 0, 0, 0};
     uint8_t PlayerEntrysPosition = 0;
 
-private:
+protected:
     void processButtons();
     bool checkSerialNumVowel();
     void resetLEDs();

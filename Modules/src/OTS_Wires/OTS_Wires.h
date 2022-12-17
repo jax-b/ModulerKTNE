@@ -39,7 +39,7 @@ public:
     virtual void tickModule(uint16_t);
     virtual void clearModule();
 
-protected:
+private:
     Adafruit_NeoPixel *_pixels;
     bool buttonStates[6] = {0, 0, 0, 0, 0, 0};
     bool buttonStatesFlicker[6] = {0, 0, 0, 0, 0, 0};
@@ -47,7 +47,8 @@ protected:
     uint8_t wireColors[6] = {0, 0, 0, 0, 0, 0};
     uint8_t numWires = 0;
     unsigned long lastDebounceTime[6] = {0, 0, 0, 0, 0, 0};
-
+    
+protected:
     void processButtons();
     void cutWire(uint8_t buttonNumber);
 };
