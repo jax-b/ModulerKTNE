@@ -2,21 +2,13 @@
 
 OTS_Wires::OTS_Wires()
 {   
+    // Set the module ID
     const char realModID[] = "wire";
     for (uint8_t i = 0; i < 4; i++)
     {
-        modID[i] = realModID[i];
+        baseModule::modID[i] = realModID[i];
     }
 }
-
-const uint8_t PROGMEM wireButtonPins[6] = {
-    WIRE_BUTTON_PIN_1,
-    WIRE_BUTTON_PIN_2,
-    WIRE_BUTTON_PIN_3,
-    WIRE_BUTTON_PIN_4,
-    WIRE_BUTTON_PIN_5,
-    WIRE_BUTTON_PIN_6
-};
 
 void OTS_Wires::clearModule()
 {
@@ -81,7 +73,7 @@ void OTS_Wires::setSeed(uint16_t inSeed)
     {
         return;
     }
-    OTS_Wires::numWires = seed; //fancy math
+    OTS_Wires::numWires = seed; // fancy math
     
     for (uint8_t wire = 0; wire < 6; wire++) {
         // Need math to tell which wire is which color and if its connected
@@ -101,29 +93,42 @@ void OTS_Wires::cutWire(uint8_t buttonNumber){
         
         bool cutGood = false;
         // GameLogic for wire cutting Set Cut good to true if the wire is the right color
-
+        OTS_Wires::wireCuts[buttonNumber] = false;
         if (cutGood) {
+            // Log Wire Cut
+            Serial.print("Wire ");
+            Serial.print(buttonNumber);
+            Serial.println(" was cut successfully");
+            // Turn off all of the wire lights on the module
             for (uint8_t i = 0; i < 12; i++)
             {
                 OTS_Wires::_pixels->setPixelColor(i, WIRE_COLOR[0]);
             }
             OTS_Wires::_pixels->show();
+            // Flag the module as disarmed
             OTS_Wires::successTriggered = true;
-            OTS_Wires::wireCuts[buttonNumber] = false;
         } else {
+            // Log Wire cut
+            Serial.print("Wire ");
+            Serial.print(buttonNumber);
+            Serial.println(" was cut poorly and triggered a strike");
+            // Flag that someone did a uh oh and cut the wrong wire signal!
             OTS_Wires::failureTriggered = true;
+            // Turn off half of the wire to signify the cut
             OTS_Wires::_pixels->setPixelColor(buttonNumber+6, WIRE_COLOR[0]);
             OTS_Wires::_pixels->show();
-            OTS_Wires::wireCuts[buttonNumber] = false;
         }
     }
 }
 
 void OTS_Wires::tickModule(uint16_t currentGameTime)
 {
+    // Debounce Buttons
     OTS_Wires::processButtons();
+    // Check to see if a button was pressed
     for (uint8_t buttonNumber = 0; buttonNumber < 6; buttonNumber++){
         if (buttonStates[buttonNumber] == true) {
+            // Trigger a wire cut for that button
             OTS_Wires::cutWire(buttonNumber);
         }
     }
