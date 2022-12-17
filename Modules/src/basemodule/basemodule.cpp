@@ -16,9 +16,8 @@ bool baseModule::checkSuccess()
 }
 char *baseModule::getModuleName()
 {
-    #ifdef DEBUG_MODE
-        Serial.println("baseModule::modID");
-    #endif
+    Serial.print("modID: ");
+    Serial.println(baseModule::modID);
     return baseModule::modID;
 }
 void baseModule::setIndicators(char inIndicators[GAMEPLAYMAXLITINDICATOR][3])

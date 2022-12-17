@@ -1,7 +1,5 @@
 #include "OTS_Button.h"
 
-//#define DEBUG_MODE true
-
 OTS_Button::OTS_Button()
 {
     const char realModID[] = "bttn";
@@ -154,12 +152,10 @@ void OTS_Button::setSeed(uint16_t inSeed)
         }
     }
 
-#ifdef DEBUG_MODE
     Serial.print("Chosen word num: ");
     Serial.print(OTS_Button::chosenWord);
     Serial.print(":");
     Serial.println(strChosenWord);
-#endif
     OTS_Button::drawScreen = true;
     int16_t x1, y1;
     uint16_t w, h;
@@ -211,9 +207,7 @@ void OTS_Button::tickModule(unsigned long currentGameTime)
     {
         if (timeBTNPressed >= 1 && timeBTNPressed < 500)
         { // if the button is pressed for less than 1 second
-#ifdef DEBUG_MODE
             Serial.println("Immediately Button Pressed Successfully");
-#endif
             OTS_Button::successTriggered = true;
         }
         else if (timeBTNPressed == 0) // Button Not Pressed
@@ -222,9 +216,7 @@ void OTS_Button::tickModule(unsigned long currentGameTime)
         }
         else
         {
-#ifdef DEBUG_MODE
             Serial.println("Immediately Button Pressed Failed");
-#endif
             OTS_Button::failureTriggered = true;
             OTS_Button::failureBTNReset = true;
         }
@@ -265,7 +257,6 @@ void OTS_Button::relHeldButton(unsigned long currentGameTime)
     }
     if (ctime.charAt(ctime.lastIndexOf(releaseDigit)) == releaseDigit)
     {
-#ifdef DEBUG_MODE
         Serial.print("Held Button Successfully: {ctime: ");
         Serial.print(ctime);
         Serial.print(", releaseDigit: ");
@@ -273,12 +264,10 @@ void OTS_Button::relHeldButton(unsigned long currentGameTime)
         Serial.print(", charatIndex: ");
         Serial.print(ctime.charAt(ctime.lastIndexOf(releaseDigit)));
         Serial.println("}");
-#endif
         OTS_Button::successTriggered = true;
     }
     else
     {
-#ifdef DEBUG_MODE
         Serial.print("Held Button Failed: {ctime:");
         Serial.print(ctime);
         Serial.print(", releaseDigit:");
@@ -286,7 +275,6 @@ void OTS_Button::relHeldButton(unsigned long currentGameTime)
         Serial.print(", charatIndex:");
         Serial.print(ctime.charAt(ctime.lastIndexOf(releaseDigit)));
         Serial.println("}");
-#endif
         OTS_Button::failureTriggered = true;
     }
 }
