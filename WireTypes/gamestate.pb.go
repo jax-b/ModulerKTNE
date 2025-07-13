@@ -4,7 +4,7 @@
 // 	protoc        v3.19.6
 // source: gamestate.proto
 
-package wire_types
+package WireTypes
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -262,8 +262,7 @@ var File_gamestate_proto protoreflect.FileDescriptor
 
 const file_gamestate_proto_rawDesc = "" +
 	"\n" +
-	"\x0fgamestate.proto\x12\n" +
-	"wire_types\x1a\x1fgoogle/protobuf/timestamp.proto\"1\n" +
+	"\x0fgamestate.proto\x12\tWireTypes\x1a\x1fgoogle/protobuf/timestamp.proto\"1\n" +
 	"\tIndicator\x12\x12\n" +
 	"\x04Name\x18\x01 \x01(\tR\x04Name\x12\x10\n" +
 	"\x03Lit\x18\x02 \x01(\bR\x03Lit\"\x95\x01\n" +
@@ -273,18 +272,18 @@ const file_gamestate_proto_rawDesc = "" +
 	"\x03PS2\x18\x03 \x01(\bR\x03PS2\x12\x12\n" +
 	"\x04RJ45\x18\x04 \x01(\bR\x04RJ45\x12\x16\n" +
 	"\x06Serial\x18\x05 \x01(\bR\x06Serial\x12\x1c\n" +
-	"\tStereoRCA\x18\x06 \x01(\bR\tStereoRCA\"\xe3\x02\n" +
+	"\tStereoRCA\x18\x06 \x01(\bR\tStereoRCA\"\xe1\x02\n" +
 	"\tGameState\x12\x12\n" +
 	"\x04Seed\x18\x01 \x01(\rR\x04Seed\x12\x1c\n" +
-	"\tBatteries\x18\x02 \x01(\rR\tBatteries\x123\n" +
-	"\tGamePorts\x18\x03 \x01(\v2\x15.wire_types.GamePortsR\tGamePorts\x12\"\n" +
+	"\tBatteries\x18\x02 \x01(\rR\tBatteries\x122\n" +
+	"\tGamePorts\x18\x03 \x01(\v2\x14.WireTypes.GamePortsR\tGamePorts\x12\"\n" +
 	"\fTimerRunning\x18\x04 \x01(\bR\fTimerRunning\x12:\n" +
 	"\n" +
 	"TimerValue\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"TimerValue\x12.\n" +
 	"\x12TimerReductionRate\x18\x06 \x01(\x02R\x12TimerReductionRate\x12\"\n" +
-	"\fSerialNumber\x18\a \x01(\tR\fSerialNumber\x12;\n" +
-	"\rLitIndicators\x18\b \x03(\v2\x15.wire_types.IndicatorR\rLitIndicatorsB)Z'github.com/jax-b/ModulerKTNE/wire_typesb\x06proto3"
+	"\fSerialNumber\x18\a \x01(\tR\fSerialNumber\x12:\n" +
+	"\rLitIndicators\x18\b \x03(\v2\x14.WireTypes.IndicatorR\rLitIndicatorsB(Z&github.com/jax-b/ModulerKTNE/WireTypesb\x06proto3"
 
 var (
 	file_gamestate_proto_rawDescOnce sync.Once
@@ -300,15 +299,15 @@ func file_gamestate_proto_rawDescGZIP() []byte {
 
 var file_gamestate_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_gamestate_proto_goTypes = []any{
-	(*Indicator)(nil),             // 0: wire_types.Indicator
-	(*GamePorts)(nil),             // 1: wire_types.GamePorts
-	(*GameState)(nil),             // 2: wire_types.GameState
+	(*Indicator)(nil),             // 0: WireTypes.Indicator
+	(*GamePorts)(nil),             // 1: WireTypes.GamePorts
+	(*GameState)(nil),             // 2: WireTypes.GameState
 	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
 }
 var file_gamestate_proto_depIdxs = []int32{
-	1, // 0: wire_types.GameState.GamePorts:type_name -> wire_types.GamePorts
-	3, // 1: wire_types.GameState.TimerValue:type_name -> google.protobuf.Timestamp
-	0, // 2: wire_types.GameState.LitIndicators:type_name -> wire_types.Indicator
+	1, // 0: WireTypes.GameState.GamePorts:type_name -> WireTypes.GamePorts
+	3, // 1: WireTypes.GameState.TimerValue:type_name -> google.protobuf.Timestamp
+	0, // 2: WireTypes.GameState.LitIndicators:type_name -> WireTypes.Indicator
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name

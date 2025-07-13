@@ -1,7 +1,7 @@
 syntax = "proto3";  
 
-package wire_types;
-option go_package = "github.com/jax-b/ModulerKTNE/wire_types";
+package WireTypes;
+option go_package = "github.com/jax-b/ModulerKTNE/WireTypes";
 
 import "gamestate.proto";
 import "modulestate.proto";
@@ -9,6 +9,7 @@ import "modulestate.proto";
 enum Operation {
     Set = 0;
     Update = 1;
+    Response = 2;
 }
 
 message WireMessage {

@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v3.19.6
-// source: wiremesage.proto
+// source: wiremessage.proto
 
-package wire_types
+package WireTypes
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -24,8 +24,9 @@ const (
 type Operation int32
 
 const (
-	Operation_Set    Operation = 0
-	Operation_Update Operation = 1
+	Operation_Set      Operation = 0
+	Operation_Update   Operation = 1
+	Operation_Response Operation = 2
 )
 
 // Enum value maps for Operation.
@@ -33,10 +34,12 @@ var (
 	Operation_name = map[int32]string{
 		0: "Set",
 		1: "Update",
+		2: "Response",
 	}
 	Operation_value = map[string]int32{
-		"Set":    0,
-		"Update": 1,
+		"Set":      0,
+		"Update":   1,
+		"Response": 2,
 	}
 )
 
@@ -51,11 +54,11 @@ func (x Operation) String() string {
 }
 
 func (Operation) Descriptor() protoreflect.EnumDescriptor {
-	return file_wiremesage_proto_enumTypes[0].Descriptor()
+	return file_wiremessage_proto_enumTypes[0].Descriptor()
 }
 
 func (Operation) Type() protoreflect.EnumType {
-	return &file_wiremesage_proto_enumTypes[0]
+	return &file_wiremessage_proto_enumTypes[0]
 }
 
 func (x Operation) Number() protoreflect.EnumNumber {
@@ -64,14 +67,14 @@ func (x Operation) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Operation.Descriptor instead.
 func (Operation) EnumDescriptor() ([]byte, []int) {
-	return file_wiremesage_proto_rawDescGZIP(), []int{0}
+	return file_wiremessage_proto_rawDescGZIP(), []int{0}
 }
 
 type WireMessage struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Sender   uint32                 `protobuf:"varint,1,opt,name=Sender,proto3" json:"Sender,omitempty"`
 	Receiver uint32                 `protobuf:"varint,2,opt,name=Receiver,proto3" json:"Receiver,omitempty"`
-	Option   Operation              `protobuf:"varint,3,opt,name=Option,proto3,enum=wire_types.Operation" json:"Option,omitempty"`
+	Option   Operation              `protobuf:"varint,3,opt,name=Option,proto3,enum=WireTypes.Operation" json:"Option,omitempty"`
 	// Types that are valid to be assigned to Content:
 	//
 	//	*WireMessage_GameStateContent
@@ -83,7 +86,7 @@ type WireMessage struct {
 
 func (x *WireMessage) Reset() {
 	*x = WireMessage{}
-	mi := &file_wiremesage_proto_msgTypes[0]
+	mi := &file_wiremessage_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -95,7 +98,7 @@ func (x *WireMessage) String() string {
 func (*WireMessage) ProtoMessage() {}
 
 func (x *WireMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_wiremesage_proto_msgTypes[0]
+	mi := &file_wiremessage_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -108,7 +111,7 @@ func (x *WireMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WireMessage.ProtoReflect.Descriptor instead.
 func (*WireMessage) Descriptor() ([]byte, []int) {
-	return file_wiremesage_proto_rawDescGZIP(), []int{0}
+	return file_wiremessage_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *WireMessage) GetSender() uint32 {
@@ -173,48 +176,48 @@ func (*WireMessage_GameStateContent) isWireMessage_Content() {}
 
 func (*WireMessage_ModuleStateContent) isWireMessage_Content() {}
 
-var File_wiremesage_proto protoreflect.FileDescriptor
+var File_wiremessage_proto protoreflect.FileDescriptor
 
-const file_wiremesage_proto_rawDesc = "" +
+const file_wiremessage_proto_rawDesc = "" +
 	"\n" +
-	"\x10wiremesage.proto\x12\n" +
-	"wire_types\x1a\x0fgamestate.proto\x1a\x11modulestate.proto\"\x8b\x02\n" +
+	"\x11wiremessage.proto\x12\tWireTypes\x1a\x0fgamestate.proto\x1a\x11modulestate.proto\"\x88\x02\n" +
 	"\vWireMessage\x12\x16\n" +
 	"\x06Sender\x18\x01 \x01(\rR\x06Sender\x12\x1a\n" +
-	"\bReceiver\x18\x02 \x01(\rR\bReceiver\x12-\n" +
-	"\x06Option\x18\x03 \x01(\x0e2\x15.wire_types.OperationR\x06Option\x12C\n" +
-	"\x10GameStateContent\x18\v \x01(\v2\x15.wire_types.GameStateH\x00R\x10GameStateContent\x12I\n" +
-	"\x12ModuleStateContent\x18\f \x01(\v2\x17.wire_types.ModuleStateH\x00R\x12ModuleStateContentB\t\n" +
-	"\acontent* \n" +
+	"\bReceiver\x18\x02 \x01(\rR\bReceiver\x12,\n" +
+	"\x06Option\x18\x03 \x01(\x0e2\x14.WireTypes.OperationR\x06Option\x12B\n" +
+	"\x10GameStateContent\x18\v \x01(\v2\x14.WireTypes.GameStateH\x00R\x10GameStateContent\x12H\n" +
+	"\x12ModuleStateContent\x18\f \x01(\v2\x16.WireTypes.ModuleStateH\x00R\x12ModuleStateContentB\t\n" +
+	"\acontent*.\n" +
 	"\tOperation\x12\a\n" +
 	"\x03Set\x10\x00\x12\n" +
 	"\n" +
-	"\x06Update\x10\x01B)Z'github.com/jax-b/ModulerKTNE/wire_typesb\x06proto3"
+	"\x06Update\x10\x01\x12\f\n" +
+	"\bResponse\x10\x02B(Z&github.com/jax-b/ModulerKTNE/WireTypesb\x06proto3"
 
 var (
-	file_wiremesage_proto_rawDescOnce sync.Once
-	file_wiremesage_proto_rawDescData []byte
+	file_wiremessage_proto_rawDescOnce sync.Once
+	file_wiremessage_proto_rawDescData []byte
 )
 
-func file_wiremesage_proto_rawDescGZIP() []byte {
-	file_wiremesage_proto_rawDescOnce.Do(func() {
-		file_wiremesage_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_wiremesage_proto_rawDesc), len(file_wiremesage_proto_rawDesc)))
+func file_wiremessage_proto_rawDescGZIP() []byte {
+	file_wiremessage_proto_rawDescOnce.Do(func() {
+		file_wiremessage_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_wiremessage_proto_rawDesc), len(file_wiremessage_proto_rawDesc)))
 	})
-	return file_wiremesage_proto_rawDescData
+	return file_wiremessage_proto_rawDescData
 }
 
-var file_wiremesage_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_wiremesage_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_wiremesage_proto_goTypes = []any{
-	(Operation)(0),      // 0: wire_types.Operation
-	(*WireMessage)(nil), // 1: wire_types.WireMessage
-	(*GameState)(nil),   // 2: wire_types.GameState
-	(*ModuleState)(nil), // 3: wire_types.ModuleState
+var file_wiremessage_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_wiremessage_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_wiremessage_proto_goTypes = []any{
+	(Operation)(0),      // 0: WireTypes.Operation
+	(*WireMessage)(nil), // 1: WireTypes.WireMessage
+	(*GameState)(nil),   // 2: WireTypes.GameState
+	(*ModuleState)(nil), // 3: WireTypes.ModuleState
 }
-var file_wiremesage_proto_depIdxs = []int32{
-	0, // 0: wire_types.WireMessage.Option:type_name -> wire_types.Operation
-	2, // 1: wire_types.WireMessage.GameStateContent:type_name -> wire_types.GameState
-	3, // 2: wire_types.WireMessage.ModuleStateContent:type_name -> wire_types.ModuleState
+var file_wiremessage_proto_depIdxs = []int32{
+	0, // 0: WireTypes.WireMessage.Option:type_name -> WireTypes.Operation
+	2, // 1: WireTypes.WireMessage.GameStateContent:type_name -> WireTypes.GameState
+	3, // 2: WireTypes.WireMessage.ModuleStateContent:type_name -> WireTypes.ModuleState
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -222,14 +225,14 @@ var file_wiremesage_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_wiremesage_proto_init() }
-func file_wiremesage_proto_init() {
-	if File_wiremesage_proto != nil {
+func init() { file_wiremessage_proto_init() }
+func file_wiremessage_proto_init() {
+	if File_wiremessage_proto != nil {
 		return
 	}
 	file_gamestate_proto_init()
 	file_modulestate_proto_init()
-	file_wiremesage_proto_msgTypes[0].OneofWrappers = []any{
+	file_wiremessage_proto_msgTypes[0].OneofWrappers = []any{
 		(*WireMessage_GameStateContent)(nil),
 		(*WireMessage_ModuleStateContent)(nil),
 	}
@@ -237,18 +240,18 @@ func file_wiremesage_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_wiremesage_proto_rawDesc), len(file_wiremesage_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_wiremessage_proto_rawDesc), len(file_wiremessage_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_wiremesage_proto_goTypes,
-		DependencyIndexes: file_wiremesage_proto_depIdxs,
-		EnumInfos:         file_wiremesage_proto_enumTypes,
-		MessageInfos:      file_wiremesage_proto_msgTypes,
+		GoTypes:           file_wiremessage_proto_goTypes,
+		DependencyIndexes: file_wiremessage_proto_depIdxs,
+		EnumInfos:         file_wiremessage_proto_enumTypes,
+		MessageInfos:      file_wiremessage_proto_msgTypes,
 	}.Build()
-	File_wiremesage_proto = out.File
-	file_wiremesage_proto_goTypes = nil
-	file_wiremesage_proto_depIdxs = nil
+	File_wiremessage_proto = out.File
+	file_wiremessage_proto_goTypes = nil
+	file_wiremessage_proto_depIdxs = nil
 }

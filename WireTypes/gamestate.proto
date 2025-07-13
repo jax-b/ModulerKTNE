@@ -1,6 +1,6 @@
 syntax = "proto3";
-package wire_types;
-option go_package = "github.com/jax-b/ModulerKTNE/wire_types";
+package WireTypes;
+option go_package = "github.com/jax-b/ModulerKTNE/WireTypes";
 
 import "google/protobuf/timestamp.proto";
 

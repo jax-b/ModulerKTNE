@@ -4,7 +4,7 @@
 // 	protoc        v3.19.6
 // source: modulestate.proto
 
-package wire_types
+package WireTypes
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -101,8 +101,7 @@ var File_modulestate_proto protoreflect.FileDescriptor
 
 const file_modulestate_proto_rawDesc = "" +
 	"\n" +
-	"\x11modulestate.proto\x12\n" +
-	"wire_types\"\x88\x02\n" +
+	"\x11modulestate.proto\x12\tWireTypes\"\x88\x02\n" +
 	"\vModuleState\x12\x1f\n" +
 	"\bModuleId\x18\x01 \x01(\tH\x00R\bModuleId\x88\x01\x01\x12#\n" +
 	"\n" +
@@ -115,7 +114,7 @@ const file_modulestate_proto_rawDesc = "" +
 	"\v_ModuleNameB\x10\n" +
 	"\x0e_ModuleVersionB\v\n" +
 	"\t_IsActiveB\v\n" +
-	"\t_IsSolvedB)Z'github.com/jax-b/ModulerKTNE/wire_typesb\x06proto3"
+	"\t_IsSolvedB(Z&github.com/jax-b/ModulerKTNE/WireTypesb\x06proto3"
 
 var (
 	file_modulestate_proto_rawDescOnce sync.Once
@@ -131,7 +130,7 @@ func file_modulestate_proto_rawDescGZIP() []byte {
 
 var file_modulestate_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_modulestate_proto_goTypes = []any{
-	(*ModuleState)(nil), // 0: wire_types.ModuleState
+	(*ModuleState)(nil), // 0: WireTypes.ModuleState
 }
 var file_modulestate_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
