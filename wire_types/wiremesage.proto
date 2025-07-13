@@ -1,0 +1,22 @@
+syntax = "proto3";  
+
+package wire_types;
+option go_package = "github.com/jax-b/ModulerKTNE/wire_types";
+
+import "gamestate.proto";
+import "modulestate.proto";
+
+enum Operation {
+    Set = 0;
+    Update = 1;
+}
+
+message WireMessage {
+    uint32 Sender = 1;
+    uint32 Receiver = 2;
+    Operation Option = 3;
+    oneof content {
+        GameState GameStateContent = 11;
+        ModuleState ModuleStateContent = 12;
+    }
+}

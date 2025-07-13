@@ -1,0 +1,11 @@
+syntax = "proto3";
+package wire_types;
+option go_package = "github.com/jax-b/ModulerKTNE/wire_types";
+
+message ModuleState {
+    optional string ModuleId = 1;
+    optional string ModuleName = 2;
+    optional string ModuleVersion = 3;
+    optional bool IsActive = 4;
+    optional bool IsSolved = 5;
+}

@@ -1,0 +1,30 @@
+syntax = "proto3";
+package wire_types;
+option go_package = "github.com/jax-b/ModulerKTNE/wire_types";
+
+import "google/protobuf/timestamp.proto";
+
+message Indicator {
+    string Name = 1;
+    bool Lit = 2;
+}
+
+message GamePorts {
+    bool DVI    = 1;
+    bool Parallel = 2;
+    bool PS2 = 3;
+    bool RJ45 = 4;
+    bool Serial = 5;
+    bool StereoRCA = 6;
+}
+
+message GameState {
+    uint32 Seed = 1;
+    uint32 Batteries = 2;
+    GamePorts GamePorts = 3;
+    bool TimerRunning = 4;
+    google.protobuf.Timestamp TimerValue = 5;
+    float TimerReductionRate = 6;
+    string SerialNumber = 7;
+    repeated Indicator LitIndicators = 8;
+}
