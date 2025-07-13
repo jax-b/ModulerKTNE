@@ -1,3 +1,12 @@
+# --------------
+
+# Abandoned
+Dam this needs a lot of work. What was i thinking on some of the decisions. Ill rework this into several separate repos in the future
+
+# --------------
+
+
+
 # ModulerKTNE
 A real life keep talking and nobody explodes
 The goal of this project it to make a modular [Keep Talking and Nobody Explodes game](https://keeptalkinggame.com/).
